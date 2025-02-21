@@ -4,9 +4,9 @@ Since my LCD8 device fell appart due to the plastic becomming brittile (I guess 
 
 ## Board
 Front:
-![Front of PCB](https://github.com/consp/lcd8-re/blob/master/img/front.png?raw=true)
+![Front of PCB](https://github.com/consp/lcd8-re/blob/master/img/Front.png)
 Back:
-![Back of PCB](https://github.com/consp/lcd8-re/blob/master/img/back-mirror.png?raw=true)
+![Back of PCB](https://github.com/consp/lcd8-re/blob/master/img/Back-mirror.png)
 
 ### Chips
 
@@ -28,7 +28,7 @@ Q?: A1043 Unknown transistor, likely NPN
 ## Display
 I'm not 100% sure as I have not yet found the actual display. It looks like a 320x200 RGB driven display with 4 PC pins for sync/enable/clock and 16 data pins for parallel data via DMA transfers onto PB*.
 
-![LCD connector](https://github.com/consp/lcd8-re/blob/master/img/lcd-connector.jpg?raw=true)
+![LCD connector](https://github.com/consp/lcd8-re/blob/master/img/lcd_connector.jpg)
 
 Markings display: 
 - LM35014B2
