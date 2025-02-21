@@ -10,13 +10,13 @@ Back:
 
 ### Chips
 
-U1: MCU AT32F415RCT7, 256k flash
-U2: C1117-3.3 3.3v LDO
-U3: XLSEMI XL7015E1 DC/DC converter 0.8A 5-80V
-U4: 1B0B0G Unknown IC, likely a I2C EEPROM 
+- U1: MCU AT32F415RCT7, 256k flash
+- U2: C1117-3.3 3.3v LDO
+- U3: XLSEMI XL7015E1 DC/DC converter 0.8A 5-80V
+- U4: 1B0B0G Unknown IC, likely a I2C EEPROM 
 
-Qn: Either G1 or BG (NPN or PNP fet)
-Q?: A1043 Unknown transistor, likely NPN
+- Qn: Either G1 or BG (NPN or PNP fet)
+- Q?: A1043 Unknown transistor, likely NPN
 
 ### Notable things
 - Bodge cap just north of the MCU
@@ -34,6 +34,7 @@ Markings display:
 - LM35014B2
 - HCC350-06A29
 - LM-035CK45021N0-14B2-B1
+
 Markings connector:
 - MCU 16B
 - RGB 16/18
