@@ -20,13 +20,16 @@ Back:
 
 ### Notable things
 - Bodge cap just north of the MCU
-- Place for one more cap on +5V line
-- Unconnected 2 pin connector connected to PC0, likely for a button
+- Place for one more cap on power input on the DC/DC converter.
+- Place for one more cap on both VDD and +5V.
+- Unconnected 2 pin connector connected to PC0, likely for a non installed button. You could use it for a light sensor as PC0 is an ADC channel.
 - Two large pads connected to GND/VBAT
-- Two small pads connected by zener to GND/+5V likely for USB port *Note that the MCU can draw up to 400mA and the DC/DC is only rated for 0.6A outputting 5V.
+- Two small pads connected by zener to GND/+VDD
+- Power enable is a very simple "press button and get power", after which the MCU takes over by triggering PA4 (sense for on button is on PA6). This also means the button is at VBAT and the inputs of the other buttons are not protected so make sure they do not short out.
 
 ## Display
-I'm not 100% sure as I have not yet found the actual display. It looks like a 320x200 RGB driven display with 4 PC pins for sync/enable/clock and 16 data pins for parallel data via DMA transfers onto PB*.
+I'm not 100% sure as I have not yet found the actual display. It looks like a 320x200 or 320x400 RGB driven display with 4 PC pins for sync/enable/clock and 16 data pins for parallel data via DMA transfers onto PB*.
+Considering the display layout my guess is the MCU has a very small 1 line framebuffer which gets pushed/updated to the display.
 
 ![LCD connector](https://github.com/consp/lcd8-re/blob/master/img/lcd_connector.jpg)
 
