@@ -28,8 +28,19 @@ Back:
 - Power enable is a very simple "press button and get power", after which the MCU takes over by triggering PA4 (sense for on button is on PA6). This also means the button is at VBAT and the inputs of the other buttons are not protected so make sure they do not short out.
 
 ## Display
-I'm not 100% sure as I have not yet found the actual display. It looks like a 320x200 or 320x400 RGB driven display with 4 PC pins for sync/enable/clock and 16 data pins for parallel data via DMA transfers onto PB*.
-Considering the display layout my guess is the MCU has a very small 1 line framebuffer which gets pushed/updated to the display.
+The display has the following characteristics (if my calculations are correct):
+- 320x480 pixels
+- 8080 interface with likely a ILI9488 chip, initial assumption about RGB interface was wrong.
+- 16bit 2MHz data rate, though only for commands. Data is significantly slower for some reason.
+- CA/PASEL commands are at 2MHz, rest is variable but around 750khz. Everything comes in PA/CASEL (10 cycles) followed by 1 cycle RAMWR and 36 cycles of data. This is partial guesswork as I do not have a logic analyser only a scope.
+- Blocks are either send in 36 pixels (5:6:5 mode) or 32 pixels (6:6:6 mode)
+- Screen is never updated completely, only partially after first draw.
+
+Pinout likely control lines:
+- Pin 9 (PC11) is CS
+- Pin 10 (PC10) is DCx (Data/Command select)
+- Pin 11 (PC9) is Write Strobe (WRx)
+- Pin 12 (PC8) is likely Read Strobe (RDx) but is never used (always high)
 
 ![LCD connector](https://github.com/consp/lcd8-re/blob/master/img/lcd_connector.jpg)
 
@@ -42,8 +53,6 @@ Markings connector:
 - MCU 16B
 - RGB 16/18
 - BJG-035CK4502N0
-
-It looks like a RGB 16bit interface, the 4 PC8-11 lines being HSync, VSync and Display enable and clock (likely P8 or P9). Not enough pins are connected for the 8080 protocol.
 
 ## Software
 The MCU is locked, writing will destroy the original data. BEWARE!
