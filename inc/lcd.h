@@ -1,0 +1,255 @@
+#ifndef __LCD_H__
+#define __LCD_H__
+
+#include "at32f415_gpio.h"
+#include "delay.h"
+
+void lcd_init(void);
+void lcd_backlight(uint32_t enable);
+
+#define PIN_READ GPIO_PINS_8
+#define PIN_WRITE GPIO_PINS_9
+#define PIN_CD GPIO_PINS_10
+#define PIN_CS GPIO_PINS_11
+
+// #define PIN_READ GPIO_PINS_8
+// #define PIN_WRITE GPIO_PINS_9
+// #define PIN_CD GPIO_PINS_11
+// #define PIN_CS GPIO_PINS_10
+//
+// #define PIN_READ GPIO_PINS_8
+// #define PIN_WRITE GPIO_PINS_10
+// #define PIN_CD GPIO_PINS_9
+// #define PIN_CS GPIO_PINS_11
+
+// #define PIN_READ GPIO_PINS_8
+// #define PIN_WRITE GPIO_PINS_10
+// #define PIN_CD GPIO_PINS_11
+// #define PIN_CS GPIO_PINS_9
+
+// #define PIN_READ GPIO_PINS_8
+// #define PIN_WRITE GPIO_PINS_11
+// #define PIN_CD GPIO_PINS_9
+// #define PIN_CS GPIO_PINS_10
+
+// #define PIN_READ GPIO_PINS_8
+// #define PIN_WRITE GPIO_PINS_11
+// #define PIN_CD GPIO_PINS_10
+// #define PIN_CS GPIO_PINS_9
+
+// #define PIN_READ GPIO_PINS_9
+// #define PIN_WRITE GPIO_PINS_8
+// #define PIN_CD GPIO_PINS_10
+// #define PIN_CS GPIO_PINS_11
+
+// no data, all previous had 0x1000
+// #define PIN_READ GPIO_PINS_9
+// #define PIN_WRITE GPIO_PINS_8
+// #define PIN_CD GPIO_PINS_11
+// #define PIN_CS GPIO_PINS_10
+
+// #define PIN_READ GPIO_PINS_9
+// #define PIN_WRITE GPIO_PINS_10
+// #define PIN_CD GPIO_PINS_8
+// #define PIN_CS GPIO_PINS_11
+
+// #define PIN_READ GPIO_PINS_9
+// #define PIN_WRITE GPIO_PINS_10
+// #define PIN_CD GPIO_PINS_11
+// #define PIN_CS GPIO_PINS_8
+
+// #define PIN_READ GPIO_PINS_9
+// #define PIN_WRITE GPIO_PINS_11
+// #define PIN_CD GPIO_PINS_8
+// #define PIN_CS GPIO_PINS_10
+
+// again 0x1000
+// #define PIN_READ GPIO_PINS_9
+// #define PIN_WRITE GPIO_PINS_11
+// #define PIN_CD GPIO_PINS_10
+// #define PIN_CS GPIO_PINS_8
+
+// 0x0000
+// #define PIN_READ GPIO_PINS_10
+// #define PIN_WRITE GPIO_PINS_9
+// #define PIN_CD GPIO_PINS_8 
+// #define PIN_CS GPIO_PINS_11
+
+// #define PIN_READ GPIO_PINS_10
+// #define PIN_WRITE GPIO_PINS_9
+// #define PIN_CD GPIO_PINS_11
+// #define PIN_CS GPIO_PINS_8 
+
+// 0x1000
+// #define PIN_READ GPIO_PINS_10
+// #define PIN_WRITE GPIO_PINS_8 
+// #define PIN_CD GPIO_PINS_9
+// #define PIN_CS GPIO_PINS_11
+
+// 0x0000
+// #define PIN_READ GPIO_PINS_10
+// #define PIN_WRITE GPIO_PINS_8 
+// #define PIN_CD GPIO_PINS_11
+// #define PIN_CS GPIO_PINS_9
+
+// 0x10000
+// #define PIN_READ GPIO_PINS_10
+// #define PIN_WRITE GPIO_PINS_11
+// #define PIN_CD GPIO_PINS_9
+// #define PIN_CS GPIO_PINS_8 
+
+// 0x0000
+// #define PIN_READ GPIO_PINS_10
+// #define PIN_WRITE GPIO_PINS_11
+// #define PIN_CD GPIO_PINS_8 
+// #define PIN_CS GPIO_PINS_9
+
+// 0x1000
+// #define PIN_READ GPIO_PINS_11
+// #define PIN_WRITE GPIO_PINS_9
+// #define PIN_CD GPIO_PINS_10
+// #define PIN_CS GPIO_PINS_8 
+
+// #define PIN_READ GPIO_PINS_11
+// #define PIN_WRITE GPIO_PINS_9
+// #define PIN_CD GPIO_PINS_8 
+// #define PIN_CS GPIO_PINS_10
+//
+// #define PIN_READ GPIO_PINS_11
+// #define PIN_WRITE GPIO_PINS_10
+// #define PIN_CD GPIO_PINS_9
+// #define PIN_CS GPIO_PINS_8 
+
+// #define PIN_READ GPIO_PINS_11
+// #define PIN_WRITE GPIO_PINS_10
+// #define PIN_CD GPIO_PINS_8 
+// #define PIN_CS GPIO_PINS_9
+
+// #define PIN_READ GPIO_PINS_11
+// #define PIN_WRITE GPIO_PINS_8 
+// #define PIN_CD GPIO_PINS_9
+// #define PIN_CS GPIO_PINS_10
+
+// #define PIN_READ GPIO_PINS_11
+// #define PIN_WRITE GPIO_PINS_8 
+// #define PIN_CD GPIO_PINS_10
+// #define PIN_CS GPIO_PINS_9
+
+/*
+ * Timings
+ *
+ * Fmclk max 110Mhz, pw ~10ns
+ * 500ns per r/w cycle assumes 2MHz, which should be achievable
+ *
+ * Write:
+ * Pull READ high
+ * Pull CD to C or D (no setup)
+ * Pull CS# low, min 20ns delay
+ * Setup DATA
+ * Pull Write strobe low, keep low for at least 50ns
+ * Pull Write strobe high for at least 50ns
+ * Pull CS# high before next cycle
+ *
+ * Read:
+ * Pull WRITE high
+ * Pull CD to D (no setup)
+ * Pull CS# low, min 20ns delay
+ */
+
+
+
+#define COLOR_565
+//#define COLOR_666
+
+/** 
+ * Color conversions
+ */
+#ifdef COLOR_565
+#define ILI_RGB(r, g, b) (((r >> 3) << 11) | ((g >> 2) << 5) | ((b >> 3)))
+#endif
+
+/*
+ * 2MHz
+ */
+#define DELAY_NOP_6        asm(".rept 1 ; nop ; .endr");
+#define DELAY_NOP_20        asm(".rept 3 ; nop ; .endr");
+#define DELAY_NOP_50        asm(".rept 7 ; nop ; .endr");
+#define DELAY_NOP_200       asm(".rept 24 ; nop ; .endr");
+#define DELAY_NOP_400       asm(".rept 59 ; nop ; .endr");
+#define DELAY_NOP_500       asm(".rept 74 ; nop ; .endr");
+
+/*
+ * 1MHz
+ */
+// #define DELAY_NOP_6        asm(".rept 2 ; nop ; .endr");
+// #define DELAY_NOP_20        asm(".rept 6 ; nop ; .endr");
+// #define DELAY_NOP_50        asm(".rept 14 ; nop ; .endr");
+// #define DELAY_NOP_200       asm(".rept 48 ; nop ; .endr");
+// #define DELAY_NOP_400       asm(".rept 118 ; nop ; .endr");
+// #define DELAY_NOP_500       asm(".rept 148 ; nop ; .endr");
+
+// #define DELAY_NOP_6         delay_10ns(1); 
+// #define DELAY_NOP_20        delay_10ns(2);
+// #define DELAY_NOP_50        delay_10ns(5);
+// #define DELAY_NOP_200       delay_10ns(20);
+// #define DELAY_NOP_400       delay_10ns(40);
+// #define DELAY_NOP_500       delay_10ns(50);
+#define WRITE_DATA(x)       GPIOB->odt = x
+#define CLEAR_DATA()        GPIOB->odt = 0
+
+#define COMMAND()           GPIOC->clr = PIN_CD
+#define DATA()              GPIOC->scr = PIN_CD
+// #define WRITE_STROBE()      DELAY_NOP_50; GPIOC->scr = PIN_WRITE; DELAY_NOP_50
+#define READ_STROBE()       GPIOC->clr = PIN_READ; DELAY_NOP_200; GPIOC->scr = PIN_READ; DELAY_NOP_200;
+
+#define SET_READ()          GPIOB->odt = 0xFFFF; GPIOB->idt = 0; GPIOB->cfglr = 0x88888888; GPIOB->cfghr = 0x88888888; 
+#define SET_WRITE()         GPIOB->odt = 0; GPIOB->idt = 0; GPIOB->cfglr = 0x33333333; GPIOB->cfghr = 0x33333333;
+
+#define CS_HIGH()           GPIOC->scr = PIN_CS 
+#define CS_LOW()            GPIOC->clr = PIN_CS
+
+#define WRITE_8BIT(x)       WRITE_DATA(x & 0x00FF); DELAY_NOP_50; GPIOC->clr = PIN_WRITE; DELAY_NOP_200; GPIOC->scr = PIN_WRITE; DELAY_NOP_200
+#define WRITE_16BIT(x)      GPIOC->clr = PIN_WRITE; WRITE_DATA(x); DELAY_NOP_50; GPIOC->scr = PIN_WRITE; DELAY_NOP_50
+#define READ()              ((uint16_t)(GPIOB->idt & 0x0000FFFF))
+
+#define WRITE_LOW()         WRITE_DATA(0)
+
+
+#define ILI_SOFT_RESET                  0x01
+#define ILI_SLEEP_OUT                   0x11
+#define ILI_SLEEP_IN                    0x10
+#define ILI_MEMORY_ACCESS_CONTROL       0x36
+#define ILI_CABC_CONTROL_9              0xCF
+#define ILI_INTERFACE_PIXEL_FORMAT      0x3A
+#define ILI_DISPLAY_ON                  0x29
+#define ILI_DISPLAY_OFF                 0x28
+#define ILI_POSITIVE_GAMMA_CORRECTION   0xE0
+#define ILI_NEGATIVE_GAMMA_CORRECTION   0xE1
+#define ILI_POWER_CONTROL_1             0xC0
+#define ILI_POWER_CONTROL_2             0xC1
+#define ILI_VCOM_CONTROL_1              0xC5
+#define ILI_INTERFACE_MODE_CONTROL      0xB0
+#define ILI_FRAME_RATE_CONTROL_NORMAL   0xB1
+#define ILI_DISPLAY_INVERSION_CONTROL   0xB4
+#define ILI_DISPLAY_FUNCTION_CONTROL    0xB6
+#define ILI_SET_IMAGE_FUNCTION          0xE9
+#define ILI_WRITE_CTRL_DISPLAY          0x53
+#define ILI_WRITE_DISPLAY_BRIGHTNESS    0x51
+#define ILI_ADJUST_CONTROL_3            0xF7
+
+#define ILI_COL_ADDR_SET                0x2A
+#define ILI_PA_ADDR_SET                 0x2B
+#define ILI_MEMORY_WRITE                0x2C
+
+#define RGB(r, g, b)            ((uint16_t) (((r & 0b11111000) << 8) | ((g & 0b11111100) << 3) | b >> 3))
+/**
+ *
+ * commands
+ */
+
+
+void set_address_window(uint32_t x, uint32_t y, uint32_t x2, uint32_t y2);
+void fill(uint32_t color, uint32_t len);
+int lcd_start(void);
+
+#endif // __LCD_H__

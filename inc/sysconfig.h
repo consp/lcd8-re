@@ -1,0 +1,1 @@
+#define AT32F415RCT7

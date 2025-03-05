@@ -1,0 +1,88 @@
+/**
+  **************************************************************************
+  * @file     main.c
+  * @brief    main program
+  **************************************************************************
+  *                       Copyright notice & Disclaimer
+  *
+  * The software Board Support Package (BSP) that is made available to
+  * download from Artery official website is the copyrighted work of Artery.
+  * Artery authorizes customers to use, copy, and distribute the BSP
+  * software and its related documentation for the purpose of design and
+  * development in conjunction with Artery microcontrollers. Use of the
+  * software is governed by this copyright notice and the following disclaimer.
+  *
+  * THIS SOFTWARE IS PROVIDED ON "AS IS" BASIS WITHOUT WARRANTIES,
+  * GUARANTEES OR REPRESENTATIONS OF ANY KIND. ARTERY EXPRESSLY DISCLAIMS,
+  * TO THE FULLEST EXTENT PERMITTED BY LAW, ALL EXPRESS, IMPLIED OR
+  * STATUTORY OR OTHER WARRANTIES, GUARANTEES OR REPRESENTATIONS,
+  * INCLUDING BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY,
+  * FITNESS FOR A PARTICULAR PURPOSE, OR NON-INFRINGEMENT.
+  *
+  **************************************************************************
+  */
+
+#include "delay.h"
+#include "eeprom.h"
+#include "lcd.h"
+#include "controls.h"
+#include "at32f415_clock.h"
+#include "at32f415_dma.h"
+#include <string.h>
+#include <stdio.h>
+
+/** @addtogroup AT32F415_periph_examples
+  * @{
+  */
+
+/** @addtogroup 415_I2S_spii2s_switch_halfduplex_polling I2S_spii2s_switch_halfduplex_polling
+  * @{
+  */
+
+__IO uint32_t tx_index = 0, rx_index = 0;
+volatile error_status transfer_status1 = ERROR, transfer_status2 = ERROR, transfer_status3 = ERROR;
+
+#define DEBUG 1
+
+#ifdef DEBUG
+uint8_t *debugbuffer = (uint8_t *) 0x20004000;
+uint16_t *debugbuffer16 = (uint16_t *) 0x20004000;
+uint32_t *debugbuffer32 = (uint32_t *) 0x20004000;
+#endif
+
+extern adc_data_t adc;
+/**
+  * @brief  main function.
+  * @param  none
+  * @retval none
+  */
+int main(void)
+{
+    __IO uint32_t index = 0;
+    for (int i = 0; i < 512; i++)  debugbuffer[i] = 0xAA;
+
+    nvic_priority_group_config(NVIC_PRIORITY_GROUP_4);
+    system_clock_config();
+    eeprom_init(); // initialize the eeprom for data storage
+    lcd_init();
+    controls_init();
+    i2c_initialize();
+
+    uint32_t color = 0xAAAAAAAA;
+
+    lcd_start(); // not working since I can only read about 10 byres before the IC crashes.
+    while(1) {
+        delay_ms(100);
+        adc_ordinary_software_trigger_enable(ADC1, TRUE);
+        debugbuffer32[1] = power_button();
+        debugbuffer32[2] = up_button();
+        debugbuffer32[3] = down_button();
+        debugbuffer[0]++;
+        debugbuffer32[8] = int_temp();
+        debugbuffer32[12] = ext_temp();
+        memcpy(&debugbuffer32[9], &adc, 10);
+        while(dma_flag_get(DMA1_FDT1_FLAG) == RESET);
+        dma_flag_clear(DMA1_FDT1_FLAG);
+    }
+}
+
