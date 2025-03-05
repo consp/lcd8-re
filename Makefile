@@ -28,6 +28,7 @@ C_SOURCES =  \
 src/startup/system_at32f415.c \
 src/drivers/at32f415_crm.c \
 src/drivers/at32f415_dma.c \
+src/drivers/at32f415_tmr.c \
 src/drivers/at32f415_adc.c \
 src/drivers/at32f415_usart.c \
 src/drivers/at32f415_gpio.c \

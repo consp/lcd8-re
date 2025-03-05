@@ -61,7 +61,7 @@ void system_clock_config(void)
   }
 
   /* config pll clock resource */
-  crm_pll_config(CRM_PLL_SOURCE_HICK, CRM_PLL_MULT_37); // 4m*37 = 148000000, almost 150mhz which will allow 100ns timer accuracy.
+  crm_pll_config(CRM_PLL_SOURCE_HICK, CRM_PLL_MULT_36); // 4m*37 = 148000000, almost 150mhz which will allow 100ns timer accuracy.
 
   /* enable pll */
   crm_clock_source_enable(CRM_CLOCK_SOURCE_PLL, TRUE);

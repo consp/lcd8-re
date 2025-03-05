@@ -1,4 +1,5 @@
 #include "lcd.h"
+#include "at32f415_crm.h"
 
 #define MEMORY_DEBUG
 uint16_t dummy = 0;
@@ -31,12 +32,31 @@ const ili_cmd ili_startup_cmds[] = {
 		/* {ILI_ADJUST_CONTROL_3,              {0xA9, 0x51, 0x2C, 0x82}, 4} */
 };
 
+void lcd_backlight_init(void) {
+  /* tmr3 time base configuration */
+
+    uint16_t div_value = (uint16_t)(system_core_clock / 24000000) - 1;
+    tmr_base_init(TMR3, 1000, div_value); // 10khz
+    tmr_cnt_dir_set(TMR3, TMR_COUNT_UP);
+    tmr_clock_source_div_set(TMR3, TMR_CLOCK_DIV1);
+
+    tmr_output_config_type tmr_oc_init_structure;
+    tmr_output_default_para_init(&tmr_oc_init_structure);
+    tmr_oc_init_structure.oc_mode = TMR_OUTPUT_CONTROL_PWM_MODE_A;
+    tmr_oc_init_structure.oc_idle_state = FALSE;
+    tmr_oc_init_structure.oc_polarity = TMR_OUTPUT_ACTIVE_HIGH;
+    tmr_oc_init_structure.oc_output_state = TRUE;
+    tmr_output_channel_config(TMR3, TMR_SELECT_CHANNEL_2, &tmr_oc_init_structure);
+    tmr_channel_value_set(TMR3, TMR_SELECT_CHANNEL_2, 0);
+    tmr_output_channel_buffer_enable(TMR3, TMR_SELECT_CHANNEL_2, TRUE);
+    tmr_period_buffer_enable(TMR3, TRUE);
+
+    /* tmr enable counter */
+    tmr_counter_enable(TMR3, TRUE);
+}
+
 void lcd_init(void) {
     
-  crm_periph_clock_enable(CRM_GPIOA_PERIPH_CLOCK, TRUE);
-  crm_periph_clock_enable(CRM_GPIOB_PERIPH_CLOCK, TRUE); // we use all channels
-  crm_periph_clock_enable(CRM_GPIOC_PERIPH_CLOCK, TRUE); // we use all channels
-  
   gpio_init_type gpio_initstructure;
 
   /* for (int i = 0; i < 16; i++) { */
@@ -48,14 +68,16 @@ void lcd_init(void) {
   /*   gpio_init(GPIOB, &gpio_initstructure); */
   /* } */
 
-  // Backlight pin, set full on for now, switch to pwm
+  // Backlight pin, pwm 
     gpio_initstructure.gpio_out_type       = GPIO_OUTPUT_PUSH_PULL;
     gpio_initstructure.gpio_pull           = GPIO_PULL_NONE; // external pullup
-    gpio_initstructure.gpio_mode           = GPIO_MODE_OUTPUT;
+    gpio_initstructure.gpio_mode           = GPIO_MODE_MUX;
     gpio_initstructure.gpio_drive_strength = GPIO_DRIVE_STRENGTH_MAXIMUM;
     gpio_initstructure.gpio_pins           = GPIO_PINS_7;
     gpio_init(GPIOA, &gpio_initstructure);
 
+    crm_periph_clock_enable(CRM_TMR3_PERIPH_CLOCK, TRUE);
+    lcd_backlight_init();
 
     // init clocks
 
@@ -99,13 +121,11 @@ void lcd_init(void) {
     GPIOC->odt |= PIN_READ | PIN_WRITE | PIN_CD | PIN_CS; // force all high
     SET_WRITE();
     CLEAR_DATA();
-    lcd_backlight(1);
 
 }
 
-void lcd_backlight(uint32_t enable) {
-    if (enable) gpio_bits_set(GPIOA, GPIO_PINS_7);
-    else gpio_bits_reset(GPIOA, GPIO_PINS_7);
+void lcd_backlight(uint32_t value) { // 0-100
+    tmr_channel_value_set(TMR3, TMR_SELECT_CHANNEL_2, value * 10);
 }
 
 static void write_cmd(uint8_t command) {

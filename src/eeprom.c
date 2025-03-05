@@ -149,5 +149,8 @@ void eeprom_init(void) {
   gpio_initstructure.gpio_drive_strength = GPIO_DRIVE_STRENGTH_STRONGER;
   gpio_initstructure.gpio_pins           = GPIO_PINS_7;
   gpio_init(GPIOC, &gpio_initstructure);
+  
+
+  i2c_initialize();
 }
 

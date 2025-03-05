@@ -63,13 +63,18 @@ int main(void)
 
     nvic_priority_group_config(NVIC_PRIORITY_GROUP_4);
     system_clock_config();
+
+    // enable gpio clocks
+    crm_periph_clock_enable(CRM_GPIOA_PERIPH_CLOCK, TRUE); // we use all channels
+    crm_periph_clock_enable(CRM_GPIOB_PERIPH_CLOCK, TRUE); // we use all channels
+    crm_periph_clock_enable(CRM_GPIOC_PERIPH_CLOCK, TRUE); // we use all channels
+  
     eeprom_init(); // initialize the eeprom for data storage
-    lcd_init();
-    controls_init();
-    i2c_initialize();
+    controls_init(); // adc and 
+    lcd_init();    // attempt to initialize the lcd, mine responds to ID4 as a ILI9488
 
     uint32_t color = 0xAAAAAAAA;
-
+    uint32_t dd = 0;
     lcd_start(); // not working since I can only read about 10 byres before the IC crashes.
     while(1) {
         delay_ms(100);
@@ -83,6 +88,9 @@ int main(void)
         memcpy(&debugbuffer32[9], &adc, 10);
         while(dma_flag_get(DMA1_FDT1_FLAG) == RESET);
         dma_flag_clear(DMA1_FDT1_FLAG);
+        dd++;
+        lcd_backlight(dd);
+        dd = dd % 100;
     }
 }
 
