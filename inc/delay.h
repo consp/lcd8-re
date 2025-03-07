@@ -1,5 +1,10 @@
-#include "stdio.h"
+#include <stdio.h>
+#include <stdint.h>
+#ifndef SIM
 #include "at32f415.h"
+#else
+#include <time.h>
+#endif
 
 #define NS_CALC(s) (s / 10)
 

@@ -1,8 +1,13 @@
 #ifndef __EEPROM_H__
 #define __EEPROM_H__
 
+#ifndef SIM
 #include "at32f415_gpio.h"
+#else
+#include <string.h>
+#endif
 #include "delay.h"
+#include "config.h"
 
 #define T_LOW  5
 #define T_HIGH 4

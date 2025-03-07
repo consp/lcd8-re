@@ -3,7 +3,7 @@
 # target
 ######################################
 TARGET = LCD8H-firmware
-
+SIM = lcd8-test
 
 ######################################
 # building variables
@@ -39,12 +39,54 @@ src/delay.c \
 src/eeprom.c \
 src/lcd.c \
 src/controls.c \
+src/gui.c \
 src/main.c
-# src/system_stm32f1xx_Bootloader.c
-#Drivers/STM32F1xx_HAL_Driver/Src/stm32f1xx_hal_exti.c \
+
+C_SOURCES += \
+src/ugui/fonts/font_4x6.c \
+src/ugui/fonts/font_5x8.c \
+src/ugui/fonts/font_6x8.c \
+src/ugui/fonts/font_6x10.c \
+src/ugui/fonts/font_8x12.c \
+src/ugui/fonts/font_32x53.c \
+src/ugui/fonts/ANDALEMO_3X5.c \
+src/ugui/fonts/ANDALEMO_4X7.c \
+src/ugui/fonts/ANDALEMO_5X8.c \
+src/ugui/fonts/ANDALEMO_6X9_MONO.c \
+src/ugui/fonts/ANDALEMO_6X10_MONO.c \
+src/ugui/fonts/ANDALEMO_46X71.c \
+src/ugui/ugui.c \
+src/ugui/ugui_image.c \
+src/ugui/ugui_progress.c \
+src/ugui/ugui_textbox.c
+
 # ASM sources
 ASM_SOURCES =  \
 src/startup/startup_at32f415.s
+
+SIM_C_SOURCES = \
+src/ugui/ugui.c \
+src/ugui/ugui_image.c \
+src/ugui/ugui_progress.c \
+src/ugui/ugui_textbox.c \
+src/ugui/ugui_button.c \
+src/ugui/ugui_checkbox.c \
+src/ugui/fonts/font_4x6.c \
+src/ugui/fonts/font_5x8.c \
+src/ugui/fonts/font_6x8.c \
+src/ugui/fonts/font_6x10.c \
+src/ugui/fonts/font_8x12.c \
+src/ugui/fonts/font_32x53.c \
+src/ugui/fonts/ANDALEMO_4X7.c \
+src/ugui/fonts/ANDALEMO_5X8.c \
+src/ugui/fonts/ANDALEMO_6X9_MONO.c \
+src/ugui/fonts/ANDALEMO_6X10_MONO.c \
+src/ugui/fonts/ANDALEMO_46X71.c \
+src/delay.c \
+src/eeprom.c \
+src/controls.c \
+src/gui.c \
+src/main.c
 
 #######################################
 # binaries
@@ -66,6 +108,8 @@ SZ = $(PREFIX)size
 endif
 HEX = $(CP) -O ihex
 BIN = $(CP) -O binary -S
+
+SIM_CC = gcc
  
 #######################################
 # CFLAGS
@@ -106,9 +150,11 @@ C_INCLUDES =  \
 ASFLAGS = $(MCU) $(AS_DEFS) $(AS_INCLUDES) $(OPT) -Wall -fdata-sections -ffunction-sections $(LTO) 
 
 CFLAGS = $(MCU) $(C_DEFS) $(C_INCLUDES) $(OPT) -Wall -fdata-sections -ffunction-sections $(LTO)
+SIM_CFLAGS = $(C_INCLUDES) $(OPT) -Wall -DSIM
 
 ifeq ($(DEBUG), 1)
 CFLAGS += -g3
+SIM_CFLAGS += -g3
 endif
 
 
@@ -128,8 +174,10 @@ LDSCRIPT = src/startup/AT32F415xB_FLASH.ld
 # libraries
 # LIBS = -lc -lm -lnosys -larm_cortexM3l_math
 LIBS =  -lm
+SIM_LIBS = -lm -lX11
 # LIBDIR = -LDrivers/CMSIS
 LDFLAGS = $(MCU) -specs=nano.specs -specs=nosys.specs --specs=rdimon.specs  -T$(LDSCRIPT) $(LIBS) -Wl,-Map=$(BUILD_DIR)/$(TARGET).map,--cref -Wl,--gc-sections -Wl,--print-memory-usage $(CFLAGS)
+SIM_LDFLAGS = $(SIM_LIBS) -Wl,--print-memory-usage $(SIM_CFLAGS)
 
 # default action: build all
 all: $(BUILD_DIR)/$(TARGET).elf $(BUILD_DIR)/$(TARGET).hex $(BUILD_DIR)/$(TARGET).bin
@@ -141,7 +189,9 @@ all: $(BUILD_DIR)/$(TARGET).elf $(BUILD_DIR)/$(TARGET).hex $(BUILD_DIR)/$(TARGET
 # list of objects
 
 OBJECTS = $(addprefix $(BUILD_DIR)/,$(notdir $(C_SOURCES:.c=.o)))
+SIM_OBJECTS = $(addprefix $(BUILD_DIR)/sim/,$(notdir $(SIM_C_SOURCES:.c=.o)))
 vpath %.c $(sort $(dir $(C_SOURCES)))
+vpath %.c $(sort $(dir $(SIM_C_SOURCES)))
 # list of ASM program objects
 OBJECTS += $(addprefix $(BUILD_DIR)/,$(notdir $(ASM_SOURCES:.s=.o)))
 vpath %.s $(sort $(dir $(ASM_SOURCES)))
@@ -150,6 +200,9 @@ SOBJECTS = $(addprefix $(BUILD_DIR)/,$(notdir $(C_SOURCES:.c=.S)))
 
 $(BUILD_DIR)/%.o: %.c Makefile | $(BUILD_DIR) 
 	$(CC) -c $(CFLAGS) -Wa,-a,-ad,-alms=$(BUILD_DIR)/$(notdir $(<:.c=.lst)) $< -o $@
+
+$(BUILD_DIR)/sim/%.o: %.c Makefile | $(BUILD_DIR)/sim
+	$(SIM_CC) -c $(SIM_CFLAGS) $< -o $@
 
 $(BUILD_DIR)/%.o: %.s Makefile | $(BUILD_DIR)
 	$(AS) -c $(CFLAGS) $< -o $@
@@ -164,6 +217,9 @@ $(BUILD_DIR)/$(TARGET).elf: $(OBJECTS) Makefile
 	$(CC) $(OBJECTS) $(LDFLAGS) -o $@
 	$(SZ) $@
 
+$(BUILD_DIR)/sim/$(SIM): $(SIM_OBJECTS) Makefile
+	$(SIM_CC) $(SIM_OBJECTS) $(SIM_LDFLAGS) -o $@
+
 $(BUILD_DIR)/%.hex: $(BUILD_DIR)/%.elf | $(BUILD_DIR)
 	$(HEX) $< $@
 	
@@ -173,6 +229,9 @@ $(BUILD_DIR)/%.bin: $(BUILD_DIR)/%.elf | $(BUILD_DIR)
 	
 $(BUILD_DIR):
 	mkdir $@	
+	
+$(BUILD_DIR)/sim: $(BUILD_DIR)
+	mkdir $@	
 
 preprocessor: $(DOBJECTS)
 
@@ -180,6 +239,8 @@ assembler: $(SOBJECTS)
 
 flash: $(BUILD_DIR)/$(TARGET).bin
 	pyocd load build/LCD8H-firmware.bin --target stm32f103rc
+
+sim: $(BUILD_DIR)/sim/$(SIM) | $(BUILD_DIR)
 	
 #######################################
 # clean up

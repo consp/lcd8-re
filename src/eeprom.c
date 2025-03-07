@@ -2,10 +2,10 @@
  * Read/write to eeprom via i2c bitbang
  */
 
-#include "at32f415_gpio.h"
 #include "delay.h"
 #include "eeprom.h"
 
+#ifndef SIM
 uint32_t SCL_PIN = GPIO_PINS_7;
 uint32_t SDA_PIN = GPIO_PINS_6;
 gpio_type *GPIO_BLOCK = GPIOC;
@@ -154,3 +154,23 @@ void eeprom_init(void) {
   i2c_initialize();
 }
 
+#else
+uint8_t eeprom_data[EEPROM_SIZE];
+
+uint8_t eeprom_read_byte(uint32_t byte) {
+    return eeprom_data[byte];
+}
+
+void eeprom_read_bytes(uint32_t start, uint8_t *buffer, uint32_t length) {
+    memcpy(buffer, &eeprom_data[start], length);
+}
+
+void eeprom_write_byte(uint8_t address, uint8_t byte) {
+    eeprom_data[address] = byte;
+}
+
+void eeprom_init(void) {
+    // read from file?
+}
+
+#endif

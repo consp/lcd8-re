@@ -1,11 +1,21 @@
 #ifndef __LCD_H__
 #define __LCD_H__
 
+#include "config.h"
 #include "at32f415_gpio.h"
 #include "delay.h"
+#include "ugui/ugui.h"
 
 void lcd_init(void);
 void lcd_backlight(uint32_t enable);
+
+/* ugui accelerators */
+void lcd_draw(UG_S16 x, UG_S16 y, UG_COLOR color);
+UG_RESULT lcd_draw_line(UG_S16 x1, UG_S16 y1, UG_S16 x2, UG_S16 y2, UG_COLOR color);
+UG_RESULT lcd_fill(UG_S16 x1, UG_S16 y1, UG_S16 x2, UG_S16 y2, UG_COLOR color);
+void (*lcd_fill_area(UG_S16 x1, UG_S16 y1, UG_S16 x2, UG_S16 y2))(uint32_t, UG_COLOR);
+UG_RESULT lcd_draw_bmp(UG_S16 x, UG_S16 y, UG_BMP *bmp);
+void lcd_update(void);
 
 #define PIN_READ GPIO_PINS_8
 #define PIN_WRITE GPIO_PINS_9
@@ -171,22 +181,22 @@ void lcd_backlight(uint32_t enable);
 /*
  * 2MHz
  */
-#define DELAY_NOP_6        asm(".rept 1 ; nop ; .endr");
-#define DELAY_NOP_20        asm(".rept 3 ; nop ; .endr");
-#define DELAY_NOP_50        asm(".rept 7 ; nop ; .endr");
-#define DELAY_NOP_200       asm(".rept 24 ; nop ; .endr");
-#define DELAY_NOP_400       asm(".rept 59 ; nop ; .endr");
-#define DELAY_NOP_500       asm(".rept 74 ; nop ; .endr");
+// #define DELAY_NOP_6        asm(".rept 1 ; nop ; .endr");
+// #define DELAY_NOP_20        asm(".rept 3 ; nop ; .endr");
+// #define DELAY_NOP_50        asm(".rept 7 ; nop ; .endr");
+// #define DELAY_NOP_200       asm(".rept 24 ; nop ; .endr");
+// #define DELAY_NOP_400       asm(".rept 59 ; nop ; .endr");
+// #define DELAY_NOP_500       asm(".rept 74 ; nop ; .endr");
 
 /*
  * 1MHz
  */
-// #define DELAY_NOP_6        asm(".rept 2 ; nop ; .endr");
-// #define DELAY_NOP_20        asm(".rept 6 ; nop ; .endr");
-// #define DELAY_NOP_50        asm(".rept 14 ; nop ; .endr");
-// #define DELAY_NOP_200       asm(".rept 48 ; nop ; .endr");
-// #define DELAY_NOP_400       asm(".rept 118 ; nop ; .endr");
-// #define DELAY_NOP_500       asm(".rept 148 ; nop ; .endr");
+#define DELAY_NOP_6        asm(".rept 2 ; nop ; .endr");
+#define DELAY_NOP_20        asm(".rept 6 ; nop ; .endr");
+#define DELAY_NOP_50        asm(".rept 14 ; nop ; .endr");
+#define DELAY_NOP_200       asm(".rept 48 ; nop ; .endr");
+#define DELAY_NOP_400       asm(".rept 118 ; nop ; .endr");
+#define DELAY_NOP_500       asm(".rept 148 ; nop ; .endr");
 
 // #define DELAY_NOP_6         delay_10ns(1); 
 // #define DELAY_NOP_20        delay_10ns(2);
@@ -197,22 +207,28 @@ void lcd_backlight(uint32_t enable);
 #define WRITE_DATA(x)       GPIOB->odt = x
 #define CLEAR_DATA()        GPIOB->odt = 0
 
-#define COMMAND()           GPIOC->clr = PIN_CD
-#define DATA()              GPIOC->scr = PIN_CD
 // #define WRITE_STROBE()      DELAY_NOP_50; GPIOC->scr = PIN_WRITE; DELAY_NOP_50
-#define READ_STROBE()       GPIOC->clr = PIN_READ; DELAY_NOP_200; GPIOC->scr = PIN_READ; DELAY_NOP_200;
+// #define READ_STROBE()       GPIOC->clr = PIN_READ; DELAY_NOP_200; GPIOC->scr = PIN_RoEAD; DELAY_NOP_200;
 
-#define SET_READ()          GPIOB->odt = 0xFFFF; GPIOB->idt = 0; GPIOB->cfglr = 0x88888888; GPIOB->cfghr = 0x88888888; 
-#define SET_WRITE()         GPIOB->odt = 0; GPIOB->idt = 0; GPIOB->cfglr = 0x33333333; GPIOB->cfghr = 0x33333333;
 
-#define CS_HIGH()           GPIOC->scr = PIN_CS 
-#define CS_LOW()            GPIOC->clr = PIN_CS
+#define SET_READ()          GPIOB->odt = 0; GPIOB->cfglr = 0x44444444; GPIOB->cfghr = 0x44444444; 
+#define SET_WRITE()         GPIOB->odt = 0; GPIOB->cfglr = 0x33333333; GPIOB->cfghr = 0x33333333;
 
-#define WRITE_8BIT(x)       WRITE_DATA(x & 0x00FF); DELAY_NOP_50; GPIOC->clr = PIN_WRITE; DELAY_NOP_200; GPIOC->scr = PIN_WRITE; DELAY_NOP_200
-#define WRITE_16BIT(x)      GPIOC->clr = PIN_WRITE; WRITE_DATA(x); DELAY_NOP_50; GPIOC->scr = PIN_WRITE; DELAY_NOP_50
+#define CS_IDLE             GPIOC->scr = PIN_CS 
+#define CS_ACTIVE           GPIOC->clr = PIN_CS
+
+#define READ_IDLE           GPIOC->scr = PIN_READ
+#define READ_ACTIVE         GPIOC->clr = PIN_READ
+
+#define COMMAND             GPIOC->clr = PIN_CD
+#define DATA                GPIOC->scr = PIN_CD
+
+#define WRITE_IDLE          GPIOC->scr = PIN_WRITE
+#define WRITE_ACTIVE        GPIOC->clr = PIN_WRITE
+
+#define WRITE_8BIT(x)       WRITE_DATA(x & 0x00FF); // GPIOC->clr = PIN_WRITE; DELAY_NOP_6;  GPIOC->scr = PIN_WRITE; DELAY_NOP_50; DELAY_NOP_50; CLEAR_DATA() 
+#define WRITE_16BIT(x)      WRITE_DATA(x); //GPIOC->clr = PIN_WRITE; DELAY_NOP_6; GPIOC->scr = PIN_WRITE; DELAY_NOP_50; CLEAR_DATA() 
 #define READ()              ((uint16_t)(GPIOB->idt & 0x0000FFFF))
-
-#define WRITE_LOW()         WRITE_DATA(0)
 
 
 #define ILI_SOFT_RESET                  0x01

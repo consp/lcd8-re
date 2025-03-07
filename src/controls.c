@@ -1,10 +1,24 @@
 #include "controls.h"
 
+#ifndef SIM
 #include "at32f415_dma.h"
+#include "at32f415_tmr.h"
+#include "at32f415_crm.h"
 
 adc_data_t adc;
 
 uint16_t external_temperature_old_value = 0;
+
+uint32_t power_button_cnt = 0;
+uint32_t up_button_cnt = 0;
+uint32_t down_button_cnt = 0;
+uint32_t nc_button_cnt = 0;
+
+#define DEBUG
+#ifdef DEBUG 
+uint32_t *debug = (uint32_t *) 0x20004000;
+#endif
+
 /**
  * static functions
  */
@@ -59,6 +73,33 @@ static void dma_config(void)
     dma_channel_enable(DMA1_CHANNEL1, TRUE);
 }
 
+static void tmr_config(void) {
+
+    crm_periph_clock_enable(CRM_TMR4_PERIPH_CLOCK, TRUE);
+    tmr_output_config_type tmr_oc_init_structure;
+    /* tmre base configuration */
+    tmr_base_init(TMR4, 1000, 144000); // 1khz
+    tmr_cnt_dir_set(TMR4, TMR_COUNT_UP);
+    tmr_clock_source_div_set(TMR4, TMR_CLOCK_DIV1);
+
+    /* output compare toggle mode configuration: channel1 */
+    tmr_output_default_para_init(&tmr_oc_init_structure);
+    tmr_oc_init_structure.oc_mode = TMR_OUTPUT_CONTROL_SWITCH;
+    tmr_oc_init_structure.oc_idle_state = FALSE;
+    tmr_oc_init_structure.oc_polarity = TMR_OUTPUT_ACTIVE_LOW;
+    tmr_oc_init_structure.oc_output_state = FALSE;
+    tmr_output_channel_config(TMR4, TMR_SELECT_CHANNEL_1, &tmr_oc_init_structure);
+    tmr_channel_value_set(TMR4, TMR_SELECT_CHANNEL_1, BUTTON_MEASURE_PERIOD);
+    /* tmr_output_channel_config(TMR4, TMR_SELECT_CHANNEL_2, &tmr_oc_init_structure); */
+    /* tmr_channel_value_set(TMR4, TMR_SELECT_CHANNEL_2, BUTTON_ACTIVE_PERIOD); */
+    /* tmr_output_channel_config(TMR4, TMR_SELECT_CHANNEL_3, &tmr_oc_init_structure); */
+    /* tmr_channel_value_set(TMR4, TMR_SELECT_CHANNEL_3, ch3_val); */
+    /* tmr_output_channel_config(TMR4, TMR_SELECT_CHANNEL_4, &tmr_oc_init_structure); */
+    /* tmr_channel_value_set(TMR4, TMR_SELECT_CHANNEL_4, ch4_val); */
+    tmr_counter_enable(TMR4, TRUE);
+    tmr_interrupt_enable(TMR4, TMR_C1_INT, TRUE);
+}
+
 /**
  * public functions
  */
@@ -103,7 +144,7 @@ void controls_init(void) {
     gpio_initstructure.gpio_drive_strength = GPIO_DRIVE_STRENGTH_MAXIMUM; // input
     gpio_initstructure.gpio_pins           = VOLTAGE_DETECT_PIN;
     gpio_init(VOLTAGE_DETECT_GPIO, &gpio_initstructure);
-    
+
     gpio_initstructure.gpio_out_type       = GPIO_OUTPUT_PUSH_PULL; // input
     gpio_initstructure.gpio_pull           = NC_BUTTON_PULL; // external pullup
     gpio_initstructure.gpio_mode           = NC_BUTTON_MODE;
@@ -118,21 +159,37 @@ void controls_init(void) {
 
     dma_config();
     adc_config();
+    tmr_config();
 }
 
+int up_button_press(void) { return up_button_cnt > BUTTON_COUNT && up_button_cnt < BUTTON_HOLD ? 1 : 0; }
+int down_button_press(void) { return down_button_cnt > BUTTON_COUNT && down_button_cnt < BUTTON_HOLD ? 1 : 0; }
+int power_button_press(void) { return power_button_cnt > BUTTON_COUNT && power_button_cnt < BUTTON_HOLD ? 1 : 0; }
+int nc_button_press(void) { return nc_button_cnt > BUTTON_COUNT && nc_button_cnt < BUTTON_HOLD ? 1 : 0; }
 
-int power_button(void) {
-    if (POWER_BUTTON_MODE == GPIO_MODE_INPUT) return POWER_BUTTON_GPIO->idt & (POWER_BUTTON_PIN);
+int up_button_hold(void) { return up_button_cnt > BUTTON_HOLD ? up_button_cnt : 0; }
+int down_button_hold(void) { return down_button_cnt > BUTTON_HOLD ? down_button_cnt : 0; }
+int power_button_hold(void) { return power_button_cnt > BUTTON_HOLD ? power_button_cnt : 0; }
+int nc_button_hold(void) { return nc_button_cnt > BUTTON_HOLD ? nc_button_cnt : 0; }
+
+
+static inline int power_button_measure(void) {
+    if (POWER_BUTTON_MODE == GPIO_MODE_INPUT) return (POWER_BUTTON_GPIO->idt & (POWER_BUTTON_PIN)) > 0;
     return adc.power_button == 0;
 }
 
-int down_button(void) {
-    if (DOWN_BUTTON_MODE == GPIO_MODE_INPUT) return DOWN_BUTTON_GPIO->idt & (DOWN_BUTTON_PIN);
+static inline int down_button_measure(void) {
+    if (DOWN_BUTTON_MODE == GPIO_MODE_INPUT) return (DOWN_BUTTON_GPIO->idt & (DOWN_BUTTON_PIN)) == 0;
     return adc.temperature_ext == 0;
 }
 
-int up_button(void) {
-    if (UP_BUTTON_MODE == GPIO_MODE_INPUT) return UP_BUTTON_GPIO->idt & (UP_BUTTON_PIN);
+static inline int up_button_measure(void) {
+    if (UP_BUTTON_MODE == GPIO_MODE_INPUT) return (UP_BUTTON_GPIO->idt & (UP_BUTTON_PIN)) == 0;
+    return adc.up_button == 0;
+}
+
+static inline int nc_button_measure(void) {
+    if (NC_BUTTON_MODE == GPIO_MODE_INPUT) return (NC_BUTTON_GPIO->idt & (NC_BUTTON_PIN)) > 0;
     return adc.nc_button == 0;
 }
 
@@ -148,6 +205,53 @@ int32_t ext_temp(void) {
     // value is stored for when button is pressed as it pulls to ground
     if (adc.temperature_ext > 0) external_temperature_old_value = adc.temperature_ext;
     return NTC_ADC2Temperature(adc.temperature_ext == 0 ? external_temperature_old_value : adc.temperature_ext);
+}
+
+static inline void measure_buttons(void) {
+    // debounce
+    if (up_button_measure()) up_button_cnt += up_button_measure();
+    else up_button_cnt = 0;
+    if (down_button_measure()) down_button_cnt += down_button_measure();
+    else down_button_cnt = 0;
+    if (nc_button_measure()) nc_button_cnt += nc_button_measure();
+    else nc_button_cnt = 0; 
+    if (power_button_measure()) power_button_cnt += power_button_measure();
+    else power_button_cnt = 0;
+}
+
+
+void TMR4_GLOBAL_IRQHandler(void)
+{
+    uint32_t capture = 0;
+    if(tmr_interrupt_flag_get(TMR4, TMR_C1_FLAG) != RESET)
+    {
+        tmr_flag_clear(TMR4, TMR_C1_FLAG );
+        capture = tmr_channel_value_get(TMR4, TMR_SELECT_CHANNEL_1);
+        tmr_channel_value_set(TMR4, TMR_SELECT_CHANNEL_1, capture + BUTTON_MEASURE_PERIOD);
+        measure_buttons();
+#ifdef DEBUG
+        debug[20] = up_button_cnt;
+        debug[21] = down_button_cnt;
+        debug[22] = power_button_cnt;
+        debug[23] = nc_button_cnt;
+#endif
+    }
+
+  /* TMR4_CH3 toggling with frequency = 732.4 Hz */
+  /* if(tmr_interrupt_flag_get(TMR4, TMR_C3_FLAG) != RESET) */
+  /* { */
+  /*   tmr_flag_clear(TMR4, TMR_C3_FLAG); */
+  /*   capture = tmr_channel_value_get(TMR4, TMR_SELECT_CHANNEL_3); */
+  /*   tmr_channel_value_set(TMR4, TMR_SELECT_CHANNEL_3, capture + ch3_val); */
+  /* } */
+  /*  */
+  /* TMR4_CH4 toggling with frequency = 1464.8 Hz */
+  /* if(tmr_interrupt_flag_get(TMR4, TMR_C4_FLAG) != RESET) */
+  /* { */
+  /*   tmr_flag_clear(TMR4, TMR_C4_FLAG); */
+  /*   capture = tmr_channel_value_get(TMR4, TMR_SELECT_CHANNEL_4); */
+  /*   tmr_channel_value_set(TMR4, TMR_SELECT_CHANNEL_4, capture + ch4_val); */
+  /* } */
 }
 
 /**
@@ -346,3 +450,77 @@ int32_t NTC_ADC2Temperature(int16_t adc_value){
   /* Interpolate between both points. */
   return p1 - ( (p1-p2) * (adc_value & 0x0003) ) / 4;
 };
+
+#else
+
+extern x11_data_t *handle;
+XEvent event;
+
+void controls_init(void) {
+    
+};
+
+int bt_up, bt_down, bt_nc, bt_power = 0;
+
+static void read_buttons(void) {
+    while(XPending(handle->dis)) {
+        XEvent event;
+        XNextEvent(handle->dis,&event);
+        if(event.type == KeyPress) {
+            uint32_t keycode = event.xkey.keycode;
+            switch (keycode) {
+                case XK_W:
+                    bt_up = 1;
+                    break;
+                case XK_S:
+                    bt_down = 1;
+                    break;
+                case XK_D:
+                    bt_power = 1;
+                    break;
+                case XK_A:
+                    bt_nc = 1;
+                    break;
+            }
+        } else if(event.type==KeyRelease) {
+            uint32_t keycode = event.xkey.keycode;
+            switch (keycode) {
+                case XK_W:
+                    bt_up = 0;
+                    break;
+                case XK_S:
+                    bt_down = 0;
+                    break;
+                case XK_D:
+                    bt_power = 0;
+                    break;
+                case XK_A:
+                    bt_nc = 0;
+                    break;
+            }
+        }
+    }
+}
+int power_button_press(void) {
+    read_buttons();
+    return bt_power == 1;
+};
+int up_button_press(void) {
+    read_buttons();
+    return bt_up == 1;
+};
+int down_button_press(void) {
+    read_buttons();
+    return bt_down == 1;
+};
+int nc_button_press(void) {
+    read_buttons();
+    return bt_nc == 1;
+}
+int power_button_hold(void) { return 0; };
+int up_button_hold(void) { return 0; };
+int down_button_hold(void) { return 0; };
+int nc_button_hold(void) { return 0; };
+int32_t int_temp(void) { return 25 << 8; }
+int32_t ext_temp(void) { return 25 << 8; }
+#endif
