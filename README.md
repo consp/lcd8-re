@@ -19,13 +19,14 @@ Back:
 - Q?: A1043 Unknown transistor, likely NPN
 
 ### Notable things
+- Beware! The Electrolithic caps might be snot-glued in.
 - Bodge cap just north of the MCU
 - Place for one more cap on power input on the DC/DC converter.
 - Place for one more cap on both VDD and +5V.
 - Unconnected 2 pin connector connected to PC0, likely for a non installed button. You could use it for a light sensor as PC0 is an ADC channel.
-- Two large pads connected to GND/VBAT
-- Two small pads connected by zener to GND/VDD
-- There is a NTC inside the button chip on channel PC1 (could also be PC2 if installed upside down). It's read normally and acts as a button when pulled to ground.
+- Two large pads connected to GND/VBAT, on the USB versions this is where the USB DC/DC converter is connected.
+- Two small pads connected by zener to GND/VDD, likely to supply the chip if a RTC low freq. crystal is provided by means of a 3v cell or some higher efficiency dc/dc converter from VBAT than the standard LDO.
+- There is a NTC inside the button pcb on channel PC1 (could also be PC2 if installed upside down). It's read normally and acts as a button when pulled to ground.
 - Power enable is a very simple "press button and get power", after which the MCU takes over by triggering PA4 (sense for on button is on PA6). This also means the button is at VBAT and the inputs of the other buttons are not protected so make sure they do not short out.
 - The MCU does not like to be power glitched. This will destroy any data in flash memory. (experimentally verified, repeatedly)
 
@@ -35,14 +36,14 @@ The display has the following characteristics (if my calculations are correct):
 - 8080 interface with likely a ILI9488 chip, initial assumption about RGB interface was wrong.
 - 16bit 2MHz data rate, though only for commands. Data is significantly slower, it looks like everything is bitbanged which would explain that (see STM32 example or the ESP32 example).
 - CA/PASEL commands are at 2MHz, rest is variable but around 750khz. Everything comes in PA/CASEL (10 cycles) followed by 1 cycle RAMWR and 36 cycles of data. This is partial guesswork as I do not have a logic analyser only a scope.
-- Blocks are either send in 36 pixels (5:6:5 mode) or 32 pixels (6:6:6 mode)
+- Blocks are either send in 36 pixels (5:6:5 mode) or 32 pixels (6:6:6 mode). Some ILI948x chips only operate in 18bit mode, though for the 8080 communication mode 16bit should be configurable if the chip is genuine.
 - Screen is never updated completely, only partially after first draw. There is no full redraw cycle.
 
 Pinout likely control lines:
 - Pin 9 (PC11) is CS
 - Pin 10 (PC10) is DCx (Data/Command select)
 - Pin 11 (PC9) is Write Strobe (WRx)
-- Pin 12 (PC8) is likely Read Strobe (RDx) but is never used (always high)
+- Pin 12 (PC8) is likely Read Strobe (RDx) but is never observed used (always high)
 
 ![LCD connector](https://github.com/consp/lcd8-re/blob/master/img/lcd_connector.jpg)
 
