@@ -983,8 +983,8 @@ UG_S16 _UG_PutChar( UG_CHAR chr, UG_S16 x, UG_S16 y, UG_COLOR fc, UG_COLOR bc)
    else if ( gui->currentFont.font_type == FONT_TYPE_8BPP)
    {
      for( j=0;j< gui->currentFont.char_height;j++ )
-     {
-       for( i=0;i<actual_char_width;i++ )
+     { //actual_char_width
+       for( i=0;i< gui->currentFont.char_width;i++ )
        {
          b = *data++;
 #ifdef UGUI_USE_COLOR_RGB888
@@ -1004,6 +1004,17 @@ UG_S16 _UG_PutChar( UG_CHAR chr, UG_S16 x, UG_S16 y, UG_COLOR fc, UG_COLOR bc)
          {
            gui->device->pset(x+i,y+j,color);                                                // Not accelerated output
          }
+       } 
+       for (i=gui->currentFont.char_width; i < actual_char_width; i++) {
+         if(driver)
+         {
+           push_pixels(1,bc);                                                          // Accelerated output
+         }
+         else
+         {
+           gui->device->pset(x+i,y+j,bc);                                                // Not accelerated output
+         }
+         data++;
        }
        data +=  gui->currentFont.char_width - actual_char_width;
      }
@@ -1219,6 +1230,7 @@ void _UG_PutText(UG_TEXT* txt)
       }
    }
    if ( align & ALIGN_V_CENTER ) yp >>= 1;
+
    yp += ys;
 
    while( 1 )
@@ -1515,7 +1527,9 @@ void UG_DrawBMP( UG_S16 xp, UG_S16 yp, UG_BMP* bmp )
    UG_COLOR c;
    UG_S16 x,y;
 
-   if ( bmp->p == NULL ) return;
+   if ( bmp->p == NULL ) {
+       return;
+   }
 
    if ( bmp->bpp == BMP_BPP_1){
      UG_U8 xx,yy,b;

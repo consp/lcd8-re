@@ -47,17 +47,19 @@ __IO uint32_t tx_index = 0, rx_index = 0;
 volatile error_status transfer_status1 = ERROR, transfer_status2 = ERROR, transfer_status3 = ERROR;
 #endif
 
-#ifdef DEBUG
+#ifdef MEMORY_DEBUG
 #ifndef SIM
-uint8_t *debugbuffer = (uint8_t *) 0x20004000;
-uint16_t *debugbuffer16 = (uint16_t *) 0x20004000;
-uint32_t *debugbuffer32 = (uint32_t *) 0x20004000;
+uint8_t *debugbuffer = (uint8_t *) 0x20007E00;
+uint16_t *debugbuffer16 = (uint16_t *) 0x20007E00;
+uint32_t *debugbuffer32 = (uint32_t *) 0x20007E00;
 #else
 uint8_t *debugbuffer[2048];
 uint16_t *debugbuffer16;
 uint32_t *debugbuffer32;
 #endif
 #endif
+
+extern uint32_t timer;
 
 extern adc_data_t adc;
 /**
@@ -67,7 +69,7 @@ extern adc_data_t adc;
   */
 int main(void)
 {
-#ifdef DEBUG
+#ifdef MEMORY_DEBUG
 #ifdef SIM
     memset(debugbuffer, 0xAA, 2048);
     debugbuffer16 = (uint16_t *) debugbuffer;
@@ -79,8 +81,8 @@ int main(void)
 #ifndef SIM
     __IO uint32_t index = 0;
 
-    nvic_priority_group_config(NVIC_PRIORITY_GROUP_4);
-    nvic_irq_enable(TMR4_GLOBAL_IRQn, 0, 0);
+    /* nvic_priority_group_config(NVIC_PRIORITY_GROUP_4); */
+    /* nvic_irq_enable(TMR4_GLOBAL_IRQn, 0, 0); */
     system_clock_config();
 
     // enable gpio clocks
@@ -92,39 +94,27 @@ int main(void)
 #endif
 
     eeprom_init(); // initialize the eeprom for data storage
-    controls_init(); // adc and 
+    controls_init(); // adc and buttons 
+
+    lcd_backlight(100);
+    lcd_start();
 
     gui_init();
 
-    uint32_t color = 0xAAAAAAAA;
-    uint32_t dd = 0;
-#ifdef DEBUG
-    debugbuffer32[1] = 0;
-    debugbuffer32[2] = 0;
-    debugbuffer32[3] = 0;
-#endif
-
+    uint8_t x = 0;
+    /*
+     * Target is 30 fps, which is overkill
+     *
+     * most large items (bar, top line etc) take ~4-5ms
+     * graph takes 34ms so maybe two frames
+     * large text takes ~6ms
+     */
     while(1) {
-        delay_ms(100);
-        /* adc_ordinary_software_trigger_enable(ADC1, TRUE); */
-        /* debugbuffer32[1] += power_button_press(); */
-        /* debugbuffer32[2] += up_button_press(); */
-        /* debugbuffer32[3] += down_button_press(); */
-        /* debugbuffer[0]++; */
-        /* debugbuffer32[8] = int_temp(); */
-        /* debugbuffer32[12] = ext_temp(); */
-        /* memcpy(&debugbuffer32[9], &adc, 10); */
-        /* while(dma_flag_get(DMA1_FDT1_FLAG) == RESET); */
-        /* dma_flag_clear(DMA1_FDT1_FLAG); */
-        /* dd++; */
-        /* lcd_backlight(dd); */
-        /* dd = dd % 100; */
-
-        gui_update();
-#ifdef SIM
-        int button = up_button_press();
-        usleep(1000); // sleep 100ms
-#endif
+        volatile uint32_t tm = timer_cb();
+        adc_ordinary_software_trigger_enable(ADC1, TRUE);       // trigger adc
+        gui_update();                                           // update gui data
+        lv_timer_handler();                                     // draw
+        x++;
     }
 }
 

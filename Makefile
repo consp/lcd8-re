@@ -40,53 +40,36 @@ src/eeprom.c \
 src/lcd.c \
 src/controls.c \
 src/gui.c \
+src/img.c \
 src/main.c
 
 C_SOURCES += \
-src/ugui/fonts/font_4x6.c \
-src/ugui/fonts/font_5x8.c \
-src/ugui/fonts/font_6x8.c \
-src/ugui/fonts/font_6x10.c \
-src/ugui/fonts/font_8x12.c \
-src/ugui/fonts/font_32x53.c \
-src/ugui/fonts/ANDALEMO_3X5.c \
-src/ugui/fonts/ANDALEMO_4X7.c \
-src/ugui/fonts/ANDALEMO_5X8.c \
-src/ugui/fonts/ANDALEMO_6X9_MONO.c \
-src/ugui/fonts/ANDALEMO_6X10_MONO.c \
-src/ugui/fonts/ANDALEMO_46X71.c \
-src/ugui/ugui.c \
-src/ugui/ugui_image.c \
-src/ugui/ugui_progress.c \
-src/ugui/ugui_textbox.c
+src/fonts/8.x/ANDALEMO_72.c \
+src/fonts/8.x/ANDALEMO_28.c \
+src/fonts/8.x/ANDALEMO_16.c \
+src/fonts/8.x/FRY_32.c \
+src/fonts/large_text_1bpp.c \
+src/img/battery_black.c
 
 # ASM sources
 ASM_SOURCES =  \
 src/startup/startup_at32f415.s
 
 SIM_C_SOURCES = \
-src/ugui/ugui.c \
-src/ugui/ugui_image.c \
-src/ugui/ugui_progress.c \
-src/ugui/ugui_textbox.c \
-src/ugui/ugui_button.c \
-src/ugui/ugui_checkbox.c \
-src/ugui/fonts/font_4x6.c \
-src/ugui/fonts/font_5x8.c \
-src/ugui/fonts/font_6x8.c \
-src/ugui/fonts/font_6x10.c \
-src/ugui/fonts/font_8x12.c \
-src/ugui/fonts/font_32x53.c \
-src/ugui/fonts/ANDALEMO_4X7.c \
-src/ugui/fonts/ANDALEMO_5X8.c \
-src/ugui/fonts/ANDALEMO_6X9_MONO.c \
-src/ugui/fonts/ANDALEMO_6X10_MONO.c \
-src/ugui/fonts/ANDALEMO_46X71.c \
 src/delay.c \
 src/eeprom.c \
+src/img.c \
 src/controls.c \
 src/gui.c \
 src/main.c
+
+LVGL_PATH ?= $(shell pwd)/thirdparty/lvgl
+
+# append files
+C_SOURCES += $(shell find $(LVGL_PATH)/src -type f -name '*.c')
+SIM_C_SOURCES += $(shell find $(LVGL_PATH)/src -type f -name '*.c')
+# ASM_SOURCES += $(shell find $(LVGL_PATH)/src -type f -name '*.S') // neuther neon nor helium suport
+
 
 #######################################
 # binaries
@@ -120,7 +103,7 @@ CPU = -mcpu=cortex-m4
 # fpu
 
 # float-abi
-LTO=
+LTO= -flto
 
 # mcu
 MCU = $(CPU) -mthumb -mfloat-abi=soft '-D__weak=__attribute__((weak))'
@@ -135,21 +118,22 @@ C_DEFS =  \
 -DARM_MATH_CM4 '-D__packed=__attribute__((__packed__))'
 
 # AS includes
-AS_INCLUDES = 
+AS_INCLUDES =
 
 # C includes
 C_INCLUDES =  \
 -Iinc/ \
 -Iinc/drivers/ \
 -Iinc/cmsis/core \
--Iinc/cmsis/device
+-Iinc/cmsis/device \
+-I$(LVGL_PATH)/src
 
 
 
 # compile gcc flags
 ASFLAGS = $(MCU) $(AS_DEFS) $(AS_INCLUDES) $(OPT) -Wall -fdata-sections -ffunction-sections $(LTO) 
 
-CFLAGS = $(MCU) $(C_DEFS) $(C_INCLUDES) $(OPT) -Wall -fdata-sections -ffunction-sections $(LTO)
+CFLAGS += $(MCU) $(C_DEFS) $(C_INCLUDES) $(OPT) -Wall -fdata-sections -ffunction-sections $(LTO)
 SIM_CFLAGS = $(C_INCLUDES) $(OPT) -Wall -DSIM
 
 ifeq ($(DEBUG), 1)
@@ -169,7 +153,7 @@ endif
 # LDSCRIPT = STM32F103C6Tx_FLASH_Bootloader.ld
 # LDSCRIPT = STM32F103C6Tx_FLASH.ld
 
-LDSCRIPT = src/startup/AT32F415xB_FLASH.ld
+LDSCRIPT = src/startup/AT32F415xC_FLASH.ld
 
 # libraries
 # LIBS = -lc -lm -lnosys -larm_cortexM3l_math
@@ -228,10 +212,10 @@ $(BUILD_DIR)/%.bin: $(BUILD_DIR)/%.elf | $(BUILD_DIR)
 	$(MAKE) --no-print-directory post-build
 	
 $(BUILD_DIR):
-	mkdir $@	
+	mkdir -p $@	
 	
 $(BUILD_DIR)/sim: $(BUILD_DIR)
-	mkdir $@	
+	mkdir -p $@	
 
 preprocessor: $(DOBJECTS)
 

@@ -1,4 +1,5 @@
 #include "ugui/ugui_textbox.h"
+#include <string.h>
 
 /* -------------------------------------------------------------------------------- */
 /* -- Textbox FUNCTIONS                                                          -- */
@@ -16,6 +17,7 @@ UG_RESULT UG_TextboxCreate( UG_WINDOW* wnd, UG_TEXTBOX* txb, UG_U8 id, UG_S16 xs
 
    /* Initialize object-specific parameters */
    txb->str = NULL;
+   txb->str_len = 0;
    txb->font = UG_GetGUI() != NULL ? (UG_GetGUI()->font) : NULL;
    txb->style = 0; /* reserved */
    txb->fc = wnd->fc;
@@ -119,6 +121,12 @@ UG_RESULT UG_TextboxSetText( UG_WINDOW* wnd, UG_U8 id, char* str )
    if ( obj == NULL ) return UG_RESULT_FAIL;
 
    txb = (UG_TEXTBOX*)(obj->data);
+
+   if (strlen(str) != txb->str_len) {
+       txb->str_len = strlen(str);
+       obj->state |= OBJ_STATE_REDRAW_BG;
+   }
+
    txb->str = str;
    obj->state |= OBJ_STATE_UPDATE | OBJ_STATE_REDRAW;
 
@@ -314,6 +322,7 @@ static void _UG_TextboxUpdate(UG_WINDOW* wnd, UG_OBJECT* obj)
             obj->a_abs.ys = obj->a_rel.ys + a.ys;
             obj->a_abs.xe = obj->a_rel.xe + a.xs;
             obj->a_abs.ye = obj->a_rel.ye + a.ys;
+
             if ( obj->a_abs.ye > wnd->ye ) return;
             if ( obj->a_abs.xe > wnd->xe ) return;
 #ifdef UGUI_USE_PRERENDER_EVENT
@@ -323,7 +332,10 @@ static void _UG_TextboxUpdate(UG_WINDOW* wnd, UG_OBJECT* obj)
             txt.bc = txb->bc;
             txt.fc = txb->fc;
 
-            UG_FillFrame(obj->a_abs.xs, obj->a_abs.ys, obj->a_abs.xe, obj->a_abs.ye, txt.bc);
+            if (obj->state & OBJ_STATE_REDRAW_BG) {
+            // there is no need for a full redraw of the bg unless the text has a different length than before
+                UG_FillFrame(obj->a_abs.xs, obj->a_abs.ys, obj->a_abs.xe, obj->a_abs.ye, txt.bc);
+            }
 
             /* Draw Textbox text */
             txt.a.xs = obj->a_abs.xs;

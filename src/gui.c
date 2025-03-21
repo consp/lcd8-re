@@ -1,463 +1,616 @@
 #include "gui.h"
+#include "img.h"
+#include "lvgl.h"
+#include "controls.h"
 
-static UG_GUI ugui;
-static UG_DEVICE device = {
-    .x_dim = DISPLAY_WIDTH,
-    .y_dim = DISPLAY_HEIGHT,
-#ifndef SIM
-    .pset = lcd_draw,
-    .flush = lcd_update,
-#endif
-};
+uint8_t pixelbuffer[PIXEL_BUFFER_LINES * DISPLAY_WIDTH * 2];
+volatile uint32_t timer = 0;
+uint32_t timer_old = 0;
 
-#define WINDOW_MAIN_OBJECTS 16
+/*** 
+ * data variables
+ */
+int32_t power_value = 0, power_value_old = 0;
+int32_t speed = 0, oldspeed = 0;
+int32_t battery_value = 0, battery_value_old = 0;
+int32_t battery_voltage = 0, battery_voltage_old = 24<<8;
+int32_t int_temperature = 0, int_temperature_old = 0;
+int32_t ext_temperature = 0, ext_temperature_old = 0;
+int32_t mot_temperature = 0, mot_temperature_old = 0;
+int32_t avg_speed = 0, avg_power = 0;
 
-UG_WINDOW window_main;
-UG_OBJECT window_main_objects[WINDOW_MAIN_OBJECTS] = {0};
-UG_PROGRESS window_main_battery_progress = {0};
-
-UG_TEXTBOX txt4;
-UG_TEXTBOX txt1;
-UG_TEXTBOX txt2;
-UG_TEXTBOX txt3;
-#ifdef SIM
-x11_data_t *handle;
-simcfg_t *simCfg;
-
-void GUI_Setup(UG_DEVICE *device);
-void x11_pset(UG_S16 x, UG_S16 y, UG_COLOR c);
-void x11_flush(void);
-bool x11_setup(int width, int height);
-void x11_process();
-#define WINDOW_BACK_COLOR C_BLACK 
-#define INITIAL_MARGIN  3
-#define BTN_WIDTH       100
-#define BTN_HEIGHT      30
-#define CHB_WIDTH       100
-#define CHB_HEIGHT      14
-
-#define OBJ_Y(i)        BTN_HEIGHT*i+(INITIAL_MARGIN*(i+1))
-
-UG_BUTTON btn0;
-UG_BUTTON btn1;
-UG_BUTTON btn2;
-UG_BUTTON btn3;
-UG_CHECKBOX chb0;
-UG_CHECKBOX chb1;
-UG_CHECKBOX chb2;
-UG_CHECKBOX chb3;
-#endif
-
-// local functions
-void _draw_speed(void);
-
-
-void gui_init(void) {
-#ifdef SIM
-
-    /* signal(SIGSEGV, handler);   // install our handler */
-    /* signal(SIGBUS, handler);   // install our handler */
-
-    printf("LCD Simulator\n");
-
-    // Get config
-    simCfg = (simcfg_t *)malloc(sizeof(simcfg_t));
-    simCfg->width = DISPLAY_WIDTH;
-    simCfg->height = DISPLAY_HEIGHT;
-    simCfg->screenMultiplier = 2;
-    simCfg->screenMargin = 10;
-    simCfg->windowBackColor = WINDOW_BACK_COLOR;
-
-    //Setup X
-    if (true != x11_setup(simCfg->width, simCfg->height))
-    {
-        printf("Error Initializing X11 driver\n");
-    }
-    //Setup UGUI
-    device.x_dim = simCfg->width;
-    device.y_dim = simCfg->height;
-    device.pset = &x11_pset;
-    device.flush = &x11_flush;
-
-    UG_Init(&ugui, &device);
+/***
+ * display variables
+ */
+#if LVGL_VERSION_MAJOR == 9
+lv_display_t *display = NULL;
 #else
-
-    UG_DriverRegister(DRIVER_DRAW_LINE, lcd_draw_line);
-    UG_DriverRegister(DRIVER_FILL_FRAME, lcd_fill);
-    UG_DriverRegister(DRIVER_FILL_AREA, lcd_fill_area);
-    UG_DriverRegister(DRIVER_DRAW_BMP, lcd_draw_bmp);
-
-
+lv_disp_t *display = NULL;
+lv_disp_drv_t disp_drv = {0};
+lv_disp_draw_buf_t draw_buf = {0};
 #endif
 
-    UG_FillScreen(C_BLACK);
+#ifdef DEBUG
+lv_obj_t *debug_text = NULL;
+#endif
 
-    UG_FontSetHSpace( 2 );
-    UG_FontSetVSpace( 2 );
-    UG_SetForecolor( C_WHITE );
-    UG_SetBackcolor( C_BLACK );
+lv_indev_t *buttons = NULL;
 
-    //Setup Window
-    UG_WindowCreate(&window_main, window_main_objects, WINDOW_MAIN_OBJECTS, NULL);
-    UG_WindowSetForeColor(&window_main, C_WHITE);
-    UG_WindowSetBackColor(&window_main, C_BLACK);
-    UG_WindowSetStyle(&window_main, WND_STYLE_HIDE_TITLE);
+lv_obj_t *powerbar_positive = NULL;
+lv_obj_t *powerbar_negative = NULL;
+lv_obj_t *powerbar_center_line = NULL;
+lv_obj_t *powerbar_high_line = NULL;
+lv_obj_t *powerbar_shade = NULL;
+lv_obj_t *powerbar_text = NULL;
 
+lv_obj_t *temperature = NULL;
+lv_obj_t *voltage = NULL;
+lv_obj_t *motor_temperature = NULL;
+lv_obj_t *battery = NULL;
+lv_obj_t *battery_bar = NULL;
+lv_obj_t *battery_label = NULL;
+lv_obj_t *speed_minor = NULL;
 
-    UG_ProgressCreate(&window_main, &window_main_battery_progress, PGB_ID_1, UGUI_POS(0, 0, 120, 10));
-    UG_ProgressSetStyle(&window_main, PGB_ID_1, PGB_STYLE_2D | PGB_STYLE_FORE_COLOR_MESH);
-    UG_ProgressSetProgress(&window_main, PGB_ID_1, 0);
-    UG_ProgressSetForeColor(&window_main, PGB_ID_1, C_GREEN );
-    UG_ProgressSetBackColor(&window_main, PGB_ID_1, C_BLACK );
+lv_obj_t *trip_distance_text = NULL;
+lv_obj_t *trip_time_text = NULL;
+lv_obj_t *total_distance_text = NULL;
+lv_obj_t *avg_speed_text = NULL;
+lv_obj_t *max_speed_text = NULL;
 
-    UG_TextboxCreate(&window_main, &txt1, TXB_ID_0, UGUI_POS(10, 30, 200, 30));
-    UG_TextboxSetFont(&window_main, TXB_ID_0, FONT_4X6);
-    UG_TextboxSetText(&window_main, TXB_ID_0, "Abc123");
-    UG_TextboxSetAlignment(&window_main, TXB_ID_0, ALIGN_BOTTOM_LEFT);
-    UG_TextboxCreate(&window_main, &txt2, TXB_ID_1, UGUI_POS(10, 60, 200, 30));
-    UG_TextboxSetFont(&window_main, TXB_ID_1, FONT_ANDALEMO_6X10_MONO);
-    UG_TextboxSetText(&window_main, TXB_ID_1, "Abc123");
-    UG_TextboxSetAlignment(&window_main, TXB_ID_1, ALIGN_BOTTOM_LEFT);
-    UG_TextboxCreate(&window_main, &txt3, TXB_ID_2, UGUI_POS(10, 90, 200, 30));
-    UG_TextboxSetFont(&window_main, TXB_ID_2, FONT_ANDALEMO_4X7);
-    UG_TextboxSetText(&window_main, TXB_ID_2, "Abc123");
-    /* UG_TextboxSetAlignment(&window_main, TXB_ID_2, ALIGN_BOTTOM_LEFT); */
-    /* UG_TextboxCreate(&window_main, &txt4, TXB_ID_3, UGUI_POS(10, 120, 200, 30)); */
-    /* UG_TextboxSetFont(&window_main, TXB_ID_3, FONT_ANDALEMO_5X8); */
-    /* UG_TextboxSetText(&window_main, TXB_ID_3, "Abc123"); */
-    UG_TextboxSetAlignment(&window_main, TXB_ID_3, ALIGN_BOTTOM_LEFT);
-    UG_TextboxSetForeColor(&window_main, TXB_ID_0, C_BLACK);
-    UG_TextboxSetForeColor(&window_main, TXB_ID_1, C_BLACK);
-    UG_TextboxSetForeColor(&window_main, TXB_ID_2, C_BLACK);
-    UG_TextboxSetForeColor(&window_main, TXB_ID_3, C_BLACK);
-    UG_TextboxSetBackColor(&window_main, TXB_ID_0, C_AQUA);
-    UG_TextboxSetBackColor(&window_main, TXB_ID_1, C_DARK_CYAN);
-    UG_TextboxSetBackColor(&window_main, TXB_ID_2, C_DARK_RED);
-    UG_TextboxSetBackColor(&window_main, TXB_ID_3, C_DARK_GREEN);
+lv_obj_t *graph = NULL; 
+lv_chart_series_t *graph_series;
+lv_coord_t graph_array[100] = {0};
 
 
-    UG_WindowShow(&window_main);
-    
-    UG_Update();
+lv_style_t text_slim, text_normal;
 
+// images
+//
+#if LVGL_VERSION_MAJOR == 9
+extern const lv_image_dsc_t battery_black;
+#else
+extern const lv_img_dsc_t battery_black;
+#endif
+
+// draw and local functions
+static void _draw_speed(void);
+static void _draw_battery(void);
+static void _draw_power(void);
+static void _draw_temperature(void);
+static void _draw_voltage(void);
+void _draw_graph(lv_timer_t *timer);
+void gui_draw_init(void);
+
+#ifdef DEBUG
+void _sim_update(lv_timer_t *timer);
+#endif
+static void _avg_timer(lv_timer_t *timer);
+
+
+// timers
+lv_timer_t *draw_graph_timer = NULL;
+lv_timer_t *sim_timer = NULL;
+lv_timer_t *avg_timer = NULL;
+
+// lvgl local
+static void graph_event_cb(lv_event_t * e);
+
+/***
+ * LVGL timer functions
+ */
+uint32_t timer_cb(void) {
+    return timer;
 }
 
-typedef enum {
-    WINDOW_MAIN,
-    WINDOW_SETUP
-} Windows;
+tmr_output_config_type tmr_output_struct;
+void gui_init(void) {
+    // setup timer
+    crm_periph_clock_enable(CRM_TMR1_PERIPH_CLOCK, TRUE);
+    tmr_base_init(TMR1, 143, 1000-1); // 1khz
+    tmr_clock_source_div_set(TMR1, TMR_CLOCK_DIV1);
+    tmr_cnt_dir_set(TMR1, TMR_COUNT_UP);
+    /* tmr_output_channel_config(TMR1, TMR_SELECT_CHANNEL_4, &tmr_output_struct); */
+    tmr_interrupt_enable(TMR1, TMR_OVF_INT, TRUE); // trap on overflow
 
-Windows current_window = WINDOW_MAIN;
+    tmr_output_enable(TMR1, FALSE);
+    tmr_counter_enable(TMR1, TRUE);
 
+    nvic_priority_group_config(NVIC_PRIORITY_GROUP_4);
+    nvic_irq_enable(TMR1_OVF_TMR10_IRQn, 0, 0);
+
+    lv_init();
+
+    // set display
+#if LVGL_VERSION_MAJOR == 8
+    lv_disp_drv_init(&disp_drv);
+    lv_disp_draw_buf_init(&draw_buf, pixelbuffer, NULL, PIXEL_BUFFER_LINES * DISPLAY_WIDTH);
+    disp_drv.draw_buf = &draw_buf;
+    disp_drv.flush_cb = lcd_lvgl_flush;    /*Set your driver function*/
+    disp_drv.set_px_cb = NULL;
+    disp_drv.hor_res = DISPLAY_WIDTH;   /*Set the horizontal resolution of the disp_drv*/
+    disp_drv.ver_res =DISPLAY_HEIGHT;   /*Set the vertical resolution of the disp_drv*/
+    display = lv_disp_drv_register(&disp_drv);
+    /* // ticks */
+    /* lv_timer_set_cb(&timer_cb); */
+#else
+    display = lv_display_create(DISPLAY_WIDTH, DISPLAY_HEIGHT);
+    lv_display_set_buffers(display, pixelbuffer, NULL, PIXEL_BUFFER_SIZE, LV_DISPLAY_RENDER_MODE_PARTIAL);
+    lv_display_set_flush_cb(display, lcd_lvgl_flush);
+
+    // ticks
+    lv_tick_set_cb(&timer_cb);
+    
+    buttons = lv_indev_create();
+    lv_indev_set_type(buttons, LV_INDEV_TYPE_BUTTON);
+    lv_indev_set_read_cb(buttons, controls_callback);
+#endif
+    // input
+    gui_draw_init();
+}
+
+uint8_t p = 0;
+extern uint32_t *debugbuffer32;
+uint32_t inttimer = 0;
+
+
+// use tmr1 for ms interval timer
+//
+void TMR1_OVF_TMR10_IRQHandler(void)
+{
+    if(tmr_interrupt_flag_get(TMR1, TMR_OVF_FLAG) != RESET)
+    {
+        /* lv_tick_inc(1); */
+        timer++;
+        tmr_flag_clear(TMR1, TMR_OVF_FLAG);
+    }
+    // overflow is 10ms
+}
 uint32_t redraw_speed, 
          redraw_temp_int, 
          redraw_temp_ext = 0;
 
-void gui_update(void) {
-    switch (current_window) {
-        case WINDOW_MAIN:
-            if (redraw_speed) {
-                _draw_speed();
-            }
-            _draw_battery();
-            break;
-        case WINDOW_SETUP:
-            break;
-    }
-    UG_Update();
-#ifdef SIM
-    x11_process();
-#endif
-}
+void gui_draw_init(void) {
+    lv_theme_default_init(NULL, lv_color_make(0, 0, 0), lv_color_make(255, 255, 255), LV_THEME_DEFAULT_DARK, &lv_font_andalemo_28);
 
-void _draw_speed(void) {
+    lv_obj_set_style_bg_color(lv_screen_active(), lv_color_make(0, 0, 0), LV_PART_MAIN);
+
+    // text tyles
+    lv_style_set_text_font(&text_normal, &lv_font_andalemo_28);
+    lv_style_set_bg_color(&text_normal, lv_color_make(0, 0, 0));
+    lv_style_set_text_color(&text_normal, lv_color_make(255, 255, 255));
+    lv_style_set_pad_top(&text_normal, 2);
+    lv_style_set_text_align(&text_normal, LV_TEXT_ALIGN_LEFT);
+    lv_style_set_text_font(&text_slim, &lv_font_fry_32);
+    lv_style_set_bg_color(&text_slim, lv_color_make(0, 0, 0));
+    lv_style_set_text_color(&text_slim, lv_color_make(255, 255, 255));
+
+    // bars
+    powerbar_positive = lv_bar_create(lv_screen_active());
+
+    // positive
+    static lv_style_t powerbar_style_normal, powerbar_style_normal_indicator;
+    lv_style_set_border_color(&powerbar_style_normal, POWER_COLOR_NORMAL_DARK);
+    lv_style_set_border_width(&powerbar_style_normal, 1);
+    lv_style_set_radius(&powerbar_style_normal, 0);
+    lv_style_init(&powerbar_style_normal_indicator);
+    lv_style_set_bg_opa(&powerbar_style_normal_indicator, LV_OPA_COVER);
+    lv_style_set_bg_color(&powerbar_style_normal_indicator, POWER_COLOR_NORMAL);
+    lv_style_set_radius(&powerbar_style_normal_indicator, 0);
+
+    lv_obj_set_pos(powerbar_positive, POWER_REGEN_WIDTH + POWER_BAR_WIDTH, POWER_TOP); 
+    lv_obj_set_size(powerbar_positive, POWER_NORMAL_WIDTH, POWER_HEIGHT);
+    lv_bar_set_range(powerbar_positive, 0, POWER_MAX);
+    lv_obj_add_style(powerbar_positive, &powerbar_style_normal, LV_PART_MAIN);
+    lv_obj_add_style(powerbar_positive, &powerbar_style_normal_indicator, LV_PART_INDICATOR);
+    lv_bar_set_value(powerbar_positive, 50, LV_ANIM_OFF);
+
+    // negative
+    powerbar_negative = lv_bar_create(lv_screen_active());
+    static lv_style_t powerbar_style_negative, powerbar_style_negative_indicator;
+    lv_style_set_border_color(&powerbar_style_negative, POWER_COLOR_REGEN_DARK);
+    lv_style_set_bg_opa(&powerbar_style_negative, LV_OPA_COVER);
+    lv_style_set_border_width(&powerbar_style_negative, 1);
+    lv_style_set_radius(&powerbar_style_negative, 0);
+    lv_style_init(&powerbar_style_negative_indicator);
+    lv_style_set_bg_opa(&powerbar_style_negative_indicator, LV_OPA_COVER);
+    lv_style_set_bg_color(&powerbar_style_negative_indicator, POWER_COLOR_REGEN);
+    lv_style_set_radius(&powerbar_style_negative_indicator, 0);
+
+    lv_obj_set_pos(powerbar_negative, 0, POWER_TOP); 
+    lv_obj_set_size(powerbar_negative, POWER_REGEN_WIDTH, POWER_HEIGHT);
+    lv_obj_set_style_base_dir(powerbar_negative, LV_BASE_DIR_RTL, 0);
+    lv_bar_set_range(powerbar_negative, 0, 250);
+    lv_obj_add_style(powerbar_negative, &powerbar_style_negative, LV_PART_MAIN);
+    lv_obj_add_style(powerbar_negative, &powerbar_style_negative_indicator, LV_PART_INDICATOR);
+    lv_bar_set_value(powerbar_negative, 100, LV_ANIM_OFF);
+
+
+    // lines
+
+    // center bar
+    //
+    // text
+    powerbar_text = lv_label_create(lv_screen_active());
+    static lv_style_t powerbar_text_style;
+    lv_style_init(&powerbar_text_style);
+    lv_style_set_text_font(&powerbar_text_style, &lv_font_andalemo_28);
+    lv_style_set_text_color(&powerbar_text_style, lv_color_make(255, 255, 255));
+    lv_style_set_bg_color(&powerbar_text_style, POWER_COLOR_BG);
+    lv_style_set_bg_opa(&powerbar_text_style, LV_OPA_COVER);
+    lv_style_set_pad_top(&powerbar_text_style, 2);
+    lv_style_set_text_align(&powerbar_text_style, LV_TEXT_ALIGN_LEFT);
+    lv_obj_add_style(powerbar_text, &powerbar_text_style, LV_PART_MAIN | LV_STATE_DEFAULT);
+    lv_obj_set_pos(powerbar_text, POWER_TEXT_X, POWER_TOP);
+    lv_obj_set_size(powerbar_text, POWER_TEXT_WIDTH, 32);
+    lv_label_set_text_fmt(powerbar_text, "-999", 12);
+    lv_label_set_long_mode(powerbar_text, LV_LABEL_LONG_CLIP);
     
-    /* UG_TextboxCreate(&window_main, &txt3, TXB_ID_3, UGUI_POS(INITIAL_MARGIN*3+BTN_WIDTH+CHB_WIDTH, OBJ_Y(3), 100, 53)); */
-    /* UG_TextboxSetFont(&window_main, TXB_ID_3, FONT_32X53); */
-    /* UG_TextboxSetText(&window_main, TXB_ID_3, "ABC"); */
-    /* #if !defined(UGUI_USE_COLOR_BW) */
-    /* UG_TextboxSetBackColor(&window_main, TXB_ID_3, C_PALE_TURQUOISE); */
-    /* #endif */
-}
-uint32_t battery_percentage = 0;
-void _draw_battery(void) {
-    UG_ProgressSetProgress(&window_main, PGB_ID_1, battery_percentage);
-    battery_percentage += 1;
-    if (battery_percentage >= 50) battery_percentage = 1;
-}
 
-#ifdef SIM
 
-void windowHandler(UG_MESSAGE *msg);
-void GUI_Setup(UG_DEVICE *device)
-{
-    //Setup UGUI
-    /* UG_Init(&ugui, device); */
-    /*  */
-    /* UG_FillScreen(C_BLACK); */
+    temperature = lv_label_create(lv_screen_active());
+    lv_obj_add_style(temperature, &text_slim, LV_PART_MAIN | LV_STATE_DEFAULT);
+    lv_obj_set_pos(temperature, TEMP_TEXT_X, TEMP_TEXT_Y);
+    lv_obj_set_size(temperature, TEMP_TEXT_WIDTH, TEMP_TEXT_HEIGHT);
+    lv_obj_set_style_text_align(temperature, LV_TEXT_ALIGN_LEFT, 0);
+    lv_label_set_text_fmt(temperature, "%02d°c", 12);
+    lv_label_set_long_mode(temperature, LV_LABEL_LONG_CLIP);
 
-    //Setup Window
-    /* UG_WindowCreate(&window_main, window_main_objects, WINDOW_MAIN_OBJECTS, NULL); */
-    /* UG_WindowSetTitleTextFont (&window_main, FONT_6X8); */
-    /* UG_WindowSetTitleText(&window_main, "App Title"); */
+    /* voltage = lv_label_create(lv_screen_active()); */
+    /* lv_obj_add_style(voltage, &text_normal, LV_PART_MAIN | LV_STATE_DEFAULT); */
+    /* lv_obj_set_pos(voltage, TEMP_VOLT_TEXT_X, 32); */
+    /* lv_obj_set_size(voltage, TEMP_VOLT_TEXT_WIDTH, 32); */
+    /* lv_obj_set_style_text_align(voltage, LV_TEXT_ALIGN_LEFT, 0); */
+    /* lv_label_set_text_fmt(voltage, "%2d.%1dv", 20, 1); */
+    /* lv_label_set_long_mode(voltage, LV_LABEL_LONG_CLIP); */
 
-    // Buttons
-    /* UG_ButtonCreate(&window_main, &btn0, BTN_ID_0, UGUI_POS(INITIAL_MARGIN, OBJ_Y(0), BTN_WIDTH, BTN_HEIGHT)); */
-    /* UG_ButtonSetFont(&window_main, BTN_ID_0, FONT_6X8); */
-    /* UG_ButtonSetText(&window_main, BTN_ID_0, "Btn 3D"); */
-    /* UG_ButtonSetStyle(&window_main, BTN_ID_0, BTN_STYLE_3D); */
-    /*  */
-    /* UG_ButtonCreate(&window_main, &btn1, BTN_ID_1, UGUI_POS(INITIAL_MARGIN, OBJ_Y(1), BTN_WIDTH, BTN_HEIGHT)); */
-    /* UG_ButtonSetFont(&window_main, BTN_ID_1, FONT_6X8); */
-    /* UG_ButtonSetText(&window_main, BTN_ID_1, "Btn 2D T"); */
-    /* UG_ButtonSetStyle(&window_main, BTN_ID_1, BTN_STYLE_2D|BTN_STYLE_TOGGLE_COLORS); */
-    /*  */
-    /* UG_ButtonCreate(&window_main, &btn2, BTN_ID_2, UGUI_POS(INITIAL_MARGIN, OBJ_Y(2), BTN_WIDTH, BTN_HEIGHT)); */
-    /* UG_ButtonSetFont(&window_main, BTN_ID_2, FONT_6X8); */
-    /* UG_ButtonSetText(&window_main, BTN_ID_2, "Btn 3D Alt"); */
-    /* UG_ButtonSetStyle(&window_main, BTN_ID_2, BTN_STYLE_3D|BTN_STYLE_USE_ALTERNATE_COLORS); */
-    /* UG_ButtonSetAlternateForeColor(&window_main, BTN_ID_2, C_BLACK); */
-    /* UG_ButtonSetAlternateBackColor(&window_main, BTN_ID_2, C_WHITE); */
-    /*  */
-    /* UG_ButtonCreate(&window_main, &btn3, BTN_ID_3, UGUI_POS(INITIAL_MARGIN, OBJ_Y(3), BTN_WIDTH, BTN_HEIGHT)); */
-    /* UG_ButtonSetFont(&window_main, BTN_ID_3, FONT_6X8); */
-    /* UG_ButtonSetText(&window_main, BTN_ID_3, "Btn NoB"); */
-    /* UG_ButtonSetStyle(&window_main, BTN_ID_3, BTN_STYLE_NO_BORDERS|BTN_STYLE_TOGGLE_COLORS); */
-    /*  */
-    /* // Checkboxes */
-    /* UG_CheckboxCreate(&window_main, &chb0, CHB_ID_0, UGUI_POS(INITIAL_MARGIN*2+BTN_WIDTH, OBJ_Y(0)+7, CHB_WIDTH, CHB_HEIGHT)); */
-    /* UG_CheckboxSetFont(&window_main, CHB_ID_0, FONT_6X8); */
-    /* UG_CheckboxSetText(&window_main, CHB_ID_0, "CHB"); */
-    /* UG_CheckboxSetStyle(&window_main, CHB_ID_0, CHB_STYLE_3D); */
-    /* UG_CheckboxSetAlignment(&window_main, CHB_ID_0, ALIGN_TOP_LEFT); */
-    /* #if !defined(UGUI_USE_COLOR_BW) */
-    /* UG_CheckboxSetBackColor(&window_main, CHB_ID_0, C_PALE_TURQUOISE); */
-    /* #endif */
-    /*  */
-    /* UG_CheckboxCreate(&window_main, &chb1, CHB_ID_1, UGUI_POS(INITIAL_MARGIN*2+BTN_WIDTH, OBJ_Y(1)+7, CHB_WIDTH, CHB_HEIGHT)); */
-    /* UG_CheckboxSetFont(&window_main, CHB_ID_1, FONT_6X8); */
-    /* UG_CheckboxSetText(&window_main, CHB_ID_1, "CHB"); */
-    /* UG_CheckboxSetStyle(&window_main, CHB_ID_1, CHB_STYLE_2D|CHB_STYLE_TOGGLE_COLORS); */
-    /* UG_CheckboxSetAlignment(&window_main, CHB_ID_1, ALIGN_CENTER); */
-    /* UG_CheckboxShow(&window_main, CHB_ID_1); */
-    /*  */
-    /* UG_CheckboxCreate(&window_main, &chb2, CHB_ID_2, UGUI_POS(INITIAL_MARGIN*2+BTN_WIDTH, OBJ_Y(2)+7, CHB_WIDTH, CHB_HEIGHT)); */
-    /* UG_CheckboxSetFont(&window_main, CHB_ID_2, FONT_6X8); */
-    /* UG_CheckboxSetText(&window_main, CHB_ID_2, "CHB"); */
-    /* UG_CheckboxSetStyle(&window_main, CHB_ID_2, CHB_STYLE_3D|CHB_STYLE_USE_ALTERNATE_COLORS); */
-    /* UG_CheckboxSetAlignment(&window_main, CHB_ID_2, ALIGN_BOTTOM_LEFT); */
-    /* UG_CheckboxShow(&window_main, CHB_ID_2); */
-    /*  */
-    /* UG_CheckboxCreate(&window_main, &chb3, CHB_ID_3, UGUI_POS(INITIAL_MARGIN*2+BTN_WIDTH, OBJ_Y(3)+7, CHB_WIDTH, CHB_HEIGHT)); */
-    /* UG_CheckboxSetFont(&window_main, CHB_ID_3, FONT_6X8); */
-    /* UG_CheckboxSetText(&window_main, CHB_ID_3, "CHB"); */
-    /* UG_CheckboxSetStyle(&window_main, CHB_ID_3, CHB_STYLE_NO_BORDERS|CHB_STYLE_TOGGLE_COLORS); */
-    /* UG_CheckboxSetAlignment(&window_main, CHB_ID_3, ALIGN_BOTTOM_RIGHT); */
-    /* UG_CheckboxShow(&window_main, CHB_ID_3); */
-    /*  */
-    /* // Texts */
-    /* UG_TextboxCreate(&window_main, &txt0, TXB_ID_0, UGUI_POS(INITIAL_MARGIN*3+BTN_WIDTH+CHB_WIDTH, OBJ_Y(0), 100, 15)); */
-    /* UG_TextboxSetFont(&window_main, TXB_ID_0, FONT_4X6); */
-    /* UG_TextboxSetText(&window_main, TXB_ID_0, "Small TEXT"); */
-    /* #if !defined(UGUI_USE_COLOR_BW) */
-    /* UG_TextboxSetBackColor(&window_main, TXB_ID_0, C_PALE_TURQUOISE); */
-    /* #endif */
-    /*  */
-    /* #<{(| UG_TextboxCreate(&window_main, &txt1, TXB_ID_1, UGUI_POS(INITIAL_MARGIN*3+BTN_WIDTH+CHB_WIDTH, OBJ_Y(1)-15, 100, 30)); |)}># */
-    /* #<{(| UG_TextboxSetFont(&window_main, TXB_ID_1, FONT_12X20); |)}># */
-    /* #<{(| UG_TextboxSetText(&window_main, TXB_ID_1, "Text"); |)}># */
-    /* #<{(| #if !defined(UGUI_USE_COLOR_BW) |)}># */
-    /* #<{(| UG_TextboxSetBackColor(&window_main, TXB_ID_1, C_PALE_TURQUOISE); |)}># */
-    /* #<{(| #endif |)}># */
-    /* #<{(| UG_TextboxSetAlignment(&window_main, TXB_ID_1, ALIGN_TOP_RIGHT); |)}># */
-    /*  */
-    /* #<{(| UG_TextboxCreate(&window_main, &txt2, TXB_ID_2, UGUI_POS(INITIAL_MARGIN*3+BTN_WIDTH+CHB_WIDTH, OBJ_Y(2)-15, 100, 45)); |)}># */
-    /* #<{(| UG_TextboxSetFont(&window_main, TXB_ID_2, FONT_24X40); |)}># */
-    /* #<{(| UG_TextboxSetText(&window_main, TXB_ID_2, "Text"); |)}># */
-    /* #<{(| #if !defined(UGUI_USE_COLOR_BW) |)}># */
-    /* #<{(| UG_TextboxSetBackColor(&window_main, TXB_ID_2, C_PALE_TURQUOISE); |)}># */
-    /* #<{(| #endif |)}># */
-    /*  */
-    /* UG_TextboxCreate(&window_main, &txt3, TXB_ID_3, UGUI_POS(INITIAL_MARGIN*3+BTN_WIDTH+CHB_WIDTH, OBJ_Y(3), 100, 53)); */
-    /* UG_TextboxSetFont(&window_main, TXB_ID_3, FONT_32X53); */
-    /* UG_TextboxSetText(&window_main, TXB_ID_3, "ABC"); */
-    /* #if !defined(UGUI_USE_COLOR_BW) */
-    /* UG_TextboxSetBackColor(&window_main, TXB_ID_3, C_PALE_TURQUOISE); */
-    /* #endif */
-    /*  */
-    /* // Progress Bar */
-    /* UG_ProgressCreate(&window_main, &pgb0, PGB_ID_0, UGUI_POS(INITIAL_MARGIN, OBJ_Y(4)+20, 157, 20)); */
-    /* UG_ProgressSetProgress(&window_main, PGB_ID_0, 35); */
-    /*  */
-    /* UG_ProgressCreate(&window_main, &pgb1, PGB_ID_1, UGUI_POS(159+INITIAL_MARGIN*2, OBJ_Y(4)+25, 156, 10)); */
-    /* UG_ProgressSetStyle(&window_main, PGB_ID_1, PGB_STYLE_2D | PGB_STYLE_FORE_COLOR_MESH); */
-    /* UG_ProgressSetProgress(&window_main, PGB_ID_1, 75); */
+    motor_temperature = lv_label_create(lv_screen_active());
+    lv_obj_add_style(motor_temperature, &text_slim, LV_PART_MAIN | LV_STATE_DEFAULT);
+    lv_obj_set_pos(motor_temperature, MOTOR_TEMP_TEXT_X, MOTOR_TEMP_TEXT_Y);
+    lv_obj_set_size(motor_temperature, MOTOR_TEMP_TEXT_WIDTH, MOTOR_TEMP_TEXT_HEIGHT);
+    lv_obj_set_style_text_align(motor_temperature, LV_TEXT_ALIGN_LEFT, 0);
+    lv_label_set_text_fmt(motor_temperature, "% 3d°c", 123);
+    lv_label_set_long_mode(motor_temperature, LV_LABEL_LONG_CLIP);
 
-}
-bool x11_setup(int width, int height)
-{
-    //Mem Alloc's
-    handle = (x11_data_t *)malloc(sizeof(x11_data_t));
-    if (NULL == handle)
-        return false;
+    // speed, only draw minor since major takes too much memory due to 
+    // drawing taking place in buffers
+    //
+    /* speed_major = lv_label_create(lv_screen_active()); */
+    /* lv_obj_add_style(speed_major, &text_large, LV_PART_MAIN | LV_STATE_DEFAULT); */
+    /* #<{(| lv_obj_set_style_text_font(speed_major, &lv_font_andalemo_144_numeric, 0); |)}># */
+    /* lv_obj_set_pos(speed_major, SPEED_MAJOR_X, SPEED_MAJOR_Y); */
+    /* lv_obj_set_size(speed_major, SPEED_MAJOR_WIDTH, SPEED_MAJOR_HEIGHT); */
+    /* lv_obj_set_style_text_align(speed_major, LV_TEXT_ALIGN_RIGHT, 0); */
+    /* lv_label_set_text_fmt(speed_major, "% 2ld", speed >> 8); */
+    /* lv_label_set_long_mode(speed_major, LV_LABEL_LONG_CLIP); */
 
-    handle->imgBuffer = (UG_U32 *)malloc(((width * simCfg->screenMultiplier) * (height * simCfg->screenMultiplier)) * sizeof(UG_U32));
-    if (NULL == handle->imgBuffer)
-        return false;
-    handle->simX = width;
-    handle->simY = height;
+    speed_minor = lv_label_create(lv_screen_active());
+    lv_obj_add_style(speed_minor, &text_normal, LV_PART_MAIN | LV_STATE_DEFAULT);
+    lv_style_set_pad_top(&powerbar_text_style, 2);
+    lv_obj_set_style_text_font(speed_minor, &lv_font_andalemo_72, 0);
+    lv_obj_set_pos(speed_minor, SPEED_MINOR_X, SPEED_MINOR_Y);
+    lv_obj_set_size(speed_minor, SPEED_MINOR_WIDTH, SPEED_MINOR_HEIGHT);
+    lv_obj_set_style_text_align(speed_minor, LV_TEXT_ALIGN_LEFT, 0);
+    lv_label_set_text_fmt(speed_minor, "%1ld", (speed & 0x000000FF) / 26);
+    lv_label_set_long_mode(speed_minor, LV_LABEL_LONG_CLIP);
 
-    //Setup X
-    unsigned long black,white;
 
-    handle->dis = XOpenDisplay((char *)0);
-    handle->screen = DefaultScreen(handle->dis);
-    black = BlackPixel(handle->dis, handle->screen),
-    white = WhitePixel(handle->dis, handle->screen);
-    handle->win = XCreateSimpleWindow(handle->dis,
-                                  DefaultRootWindow(handle->dis),
-                                  0,
-                                  0,
-                                  width * simCfg->screenMultiplier + (simCfg->screenMargin * 2),
-                                  height * simCfg->screenMultiplier + (simCfg->screenMargin * 2),
-                                  5,
-                                  black,
-                                  simCfg->windowBackColor);
-    XSetStandardProperties(handle->dis, handle->win, "uGUI Window",
-                         "uGUI", None, NULL, 0, NULL);
-    XSelectInput(handle->dis, handle->win,
-               ExposureMask|ButtonPressMask|
-               ButtonReleaseMask|KeyPressMask|Button1MotionMask);
-    handle->gc = XCreateGC(handle->dis, handle->win, 0,0);
-    XSetBackground(handle->dis, handle->gc, white);
-    XSetForeground(handle->dis, handle->gc, black);
-    XClearWindow(handle->dis, handle->win);
-    XMapRaised(handle->dis, handle->win);
-    handle->visual = DefaultVisual(handle->dis, 0);
+    // battery
+    battery = lv_image_create(lv_screen_active());
+    lv_image_set_src(battery, &battery_black);
+    lv_obj_set_pos(battery, 0, 0);
 
-    return true;
-}
+    battery_bar  = lv_bar_create(lv_screen_active());
+    static lv_style_t battery_style_bar, battery_style_bar_indicator;
+    lv_style_set_bg_opa(&battery_style_bar, LV_OPA_COVER);
+    lv_style_set_border_width(&battery_style_bar, 0);
+    lv_style_set_radius(&battery_style_bar, 0);
+    lv_style_init(&battery_style_bar_indicator);
+    lv_style_set_bg_opa(&battery_style_bar_indicator, LV_OPA_COVER);
+    lv_style_set_bg_color(&battery_style_bar_indicator, BATTERY_COLOR_90);
+    lv_style_set_radius(&battery_style_bar_indicator, 0);
 
-// http://www.mi.uni-koeln.de/c/mirror/www.cs.curtin.edu.au/units/cg252-502/notes/lect5h1.html
+    lv_obj_set_pos(battery_bar, BATTERY_BAR_X, BATTERY_BAR_Y); 
+    lv_obj_set_size(battery_bar, BATTERY_BAR_WIDTH, BATTERY_BAR_HEIGHT);
+    lv_bar_set_range(battery_bar, 0, 100);
+    lv_obj_add_style(battery_bar, &battery_style_bar, LV_PART_MAIN);
+    lv_obj_add_style(battery_bar, &battery_style_bar_indicator, LV_PART_INDICATOR);
+    lv_bar_set_value(battery_bar, 100, LV_ANIM_OFF);
 
-//Process Function
-void x11_process(void)
-{
-    XEvent event;
-#define BUFFER_SIZE         ((handle->simX * simCfg->screenMultiplier) * (handle->simY * simCfg->screenMultiplier)) * sizeof(UG_U32)
-    uint32_t *ximage = (uint32_t *)malloc(BUFFER_SIZE);
+    battery_label = lv_label_create(lv_screen_active());
+    lv_obj_add_style(battery_label, &text_slim, LV_PART_MAIN | LV_STATE_DEFAULT);
+    lv_obj_set_pos(battery_label, BATTERY_LABEL_X, BATTERY_LABEL_Y);
+    lv_obj_set_size(battery_label, BATTERY_LABEL_WIDTH, BATTERY_LABEL_HEIGHT);
+    lv_obj_set_style_text_align(battery_label, LV_TEXT_ALIGN_LEFT, 0);
+    lv_label_set_text_fmt(battery_label, "%02ld.%1ldv", 24, 0);
+    lv_label_set_long_mode(battery_label, LV_LABEL_LONG_CLIP);
 
-    //Check for events
-    while (XCheckMaskEvent(handle->dis,
-        ButtonPressMask | ButtonReleaseMask | Button1MotionMask | PointerMotionMask, &event) == true)
-    {
-        #if defined(UGUI_USE_TOUCH)
-        static int mouse_down;
-        switch (event.type)
-        {
-            case ButtonPress:
-                // we are interested only in LEFT button (button 1)
-                if(event.xbutton.button != 1)
-                    break;
-                mouse_down = 1;
-                UG_TouchUpdate((event.xbutton.x - simCfg->screenMargin) / simCfg->screenMultiplier, (event.xbutton.y - simCfg->screenMargin) / simCfg->screenMultiplier, TOUCH_STATE_PRESSED);
-            break;
+    // bottom text values
+    total_distance_text = lv_label_create(lv_screen_active());
+    lv_obj_add_style(total_distance_text, &text_normal, LV_PART_MAIN | LV_STATE_DEFAULT);
+    lv_obj_set_style_text_align(total_distance_text, LV_TEXT_ALIGN_LEFT, 0);
+    lv_label_set_text_fmt(total_distance_text, "%04ld", 0);
+    lv_label_set_long_mode(total_distance_text, LV_LABEL_LONG_CLIP);
+    lv_obj_set_pos(total_distance_text, TOTAL_DISTANCE_TEXT_X, TOTAL_DISTANCE_TEXT_Y);
+    lv_obj_set_size(total_distance_text, TOTAL_DISTANCE_TEXT_WIDTH, TOTAL_DISTANCE_TEXT_HEIGHT);
 
-            case ButtonRelease:
-                // we are interested only in LEFT button (button 1)
-                if(event.xbutton.button != 1)
-                    break;
-                mouse_down = 0;
-                UG_TouchUpdate(-1, -1, TOUCH_STATE_RELEASED);
-            break;
+    trip_distance_text = lv_label_create(lv_screen_active());
+    lv_obj_add_style(trip_distance_text, &text_normal, LV_PART_MAIN | LV_STATE_DEFAULT);
+    lv_obj_set_style_text_align(trip_distance_text, LV_TEXT_ALIGN_LEFT, 0);
+    lv_label_set_text_fmt(trip_distance_text, "%04ld", 0);
+    lv_label_set_long_mode(trip_distance_text, LV_LABEL_LONG_CLIP);
+    lv_obj_set_pos(trip_distance_text, TRIP_DISTANCE_TEXT_X, TRIP_DISTANCE_TEXT_Y);
+    lv_obj_set_size(trip_distance_text, TRIP_DISTANCE_TEXT_WIDTH, TRIP_DISTANCE_TEXT_HEIGHT);
 
-            case MotionNotify:
-                if(mouse_down && ( event.xmotion.state & Button1Mask ))
-                {
-                    UG_TouchUpdate((event.xmotion.x - simCfg->screenMargin) / simCfg->screenMultiplier, (event.xmotion.y - simCfg->screenMargin) / simCfg->screenMultiplier, TOUCH_STATE_PRESSED);
-                }
-            break;
-        }
-        #endif
-    }
-    if (ximage != NULL)
-    {
-        memcpy(ximage, handle->imgBuffer, BUFFER_SIZE);
-        XImage *img = XCreateImage(handle->dis,
-                                   handle->visual,
-                                   24,
-                                   ZPixmap,
-                                   0,
-                                   (char *)ximage,
-                                   handle->simX * simCfg->screenMultiplier,
-                                   handle->simY * simCfg->screenMultiplier,
-                                   32,
-                                   0);
-        XPutImage(handle->dis,
-              handle->win,
-              handle->gc,
-              img,
-              0,
-              0,
-              simCfg->screenMargin,
-              simCfg->screenMargin,
-              handle->simX * simCfg->screenMultiplier,
-              handle->simY * simCfg->screenMultiplier);
-        XDestroyImage(img);
-        XFlush(handle->dis);
-    }
-}
+    trip_time_text = lv_label_create(lv_screen_active());
+    lv_obj_add_style(trip_time_text, &text_normal, LV_PART_MAIN | LV_STATE_DEFAULT);
+    lv_obj_set_style_text_align(trip_time_text, LV_TEXT_ALIGN_LEFT, 0);
+    lv_label_set_text_fmt(trip_time_text, "%04ld", 0);
+    lv_label_set_long_mode(trip_time_text, LV_LABEL_LONG_CLIP);
+    lv_obj_set_pos(trip_time_text, TRIP_TIME_TEXT_X, TRIP_TIME_TEXT_Y);
+    lv_obj_set_size(trip_time_text, TRIP_TIME_TEXT_WIDTH, TRIP_TIME_TEXT_HEIGHT);
+    
+    // bottom graph
+    graph = lv_chart_create(lv_screen_active());
+    lv_chart_set_type(graph, LV_CHART_TYPE_BAR);
+    lv_obj_set_pos(graph, GRAPH_X, GRAPH_Y);
+    lv_obj_set_size(graph, GRAPH_WIDTH, GRAPH_HEIGHT);
+    lv_chart_set_range(graph, LV_CHART_AXIS_PRIMARY_X, 0, GRAPH_WIDTH);
+    lv_chart_set_range(graph, LV_CHART_AXIS_PRIMARY_Y, 0, 30*256);
+    lv_chart_set_axis_tick(graph, LV_CHART_AXIS_PRIMARY_Y, 0, 0, 6, 5, true, 28);
 
-//Internal
-void x11_pset(UG_S16 x, UG_S16 y, UG_COLOR c)
-{
-    UG_U32 tmp = c;
+    static lv_style_t graph_style_main, graph_style_indicator, graph_style_item;
+    lv_style_set_pad_left(&graph_style_main, 0);
+    lv_style_set_pad_right(&graph_style_main, 0);
+    lv_style_set_pad_bottom(&graph_style_main, 3);
+    lv_style_set_pad_top(&graph_style_main, 3);
+    lv_style_set_pad_column(&graph_style_main, 0);
+    lv_style_set_bg_color(&graph_style_main, lv_color_make(0, 0, 0));
+    lv_style_set_bg_opa(&graph_style_main, LV_OPA_COVER);
+    lv_style_set_border_opa(&graph_style_main, LV_OPA_COVER);
+    lv_style_set_border_width(&graph_style_main, 1);
+    lv_style_set_border_color(&graph_style_main, GRAPH_BORDER_COLOR); // whole border 
+    lv_style_set_radius(&graph_style_main, 0); // remove radius
 
-#if defined(UGUI_USE_COLOR_BW)
-    /* Convert B/W to RGB888 */
-    tmp = c == C_WHITE ? 0xFFFFFF : 0x000000;
-#elif defined(UGUI_USE_COLOR_RGB565)
-    /* Convert RGB565 to RGB888 */
-    tmp = _UG_ConvertRGB565ToRGB888(c);
+    lv_style_set_line_width(&graph_style_item, 2);
+    lv_style_set_bg_color(&graph_style_item, GRAPH_LEGEND_COLOR);
+    lv_style_set_pad_column(&graph_style_item, 0);
+
+    lv_obj_add_style(graph, &graph_style_item, LV_PART_ITEMS);
+    lv_obj_add_style(graph, &graph_style_main, LV_PART_MAIN);
+
+    lv_obj_set_style_size(graph, 0, LV_PART_INDICATOR); // disable dots
+    lv_chart_set_div_line_count(graph, 10, 0);
+    lv_chart_set_point_count(graph, GRAPH_WIDTH);
+    lv_chart_set_update_mode(graph, LV_CHART_UPDATE_MODE_SHIFT);
+    graph_series = lv_chart_add_series(graph, GRAPH_LINE_COLOR, LV_CHART_AXIS_PRIMARY_Y);
+    /* lv_chart_set_ext_y_array(graph, graph_series, graph_array); */
+
+    lv_obj_add_event_cb(graph, graph_event_cb, LV_EVENT_DRAW_PART_BEGIN, NULL); // add cb to draw lines more normal
+
+#ifdef DEBUG
+    debug_text = lv_label_create(lv_screen_active());
+    static lv_style_t debug_text_style;
+    lv_style_init(&debug_text_style);
+    lv_style_set_text_font(&debug_text_style, &lv_font_andalemo_16);
+    lv_style_set_text_color(&debug_text_style, lv_color_make(255, 255, 255));
+    lv_style_set_bg_color(&debug_text_style, lv_color_make(0, 0, 220));
+    lv_style_set_bg_opa(&debug_text_style, LV_OPA_COVER);
+    lv_style_set_pad_top(&debug_text_style, 1);
+    lv_obj_add_style(debug_text, &debug_text_style, LV_PART_MAIN | LV_STATE_DEFAULT);
+    lv_obj_set_pos(debug_text, DEBUG_X, DEBUG_Y);
+    lv_obj_set_size(debug_text, DEBUG_WIDTH, DEBUG_HEIGHT);
+    lv_obj_set_style_text_align(debug_text, LV_TEXT_ALIGN_LEFT , 0);
+    lv_label_set_text_fmt(debug_text, "DEBUG DEBUG DEBUG %08X", timer);
+    lv_label_set_long_mode(debug_text, LV_LABEL_LONG_CLIP);
 #endif
 
-    for(UG_U8 i = 0; i < simCfg->screenMultiplier ; i++) {
-        for(UG_U8 j = 0; j < simCfg->screenMultiplier ; j++) {
-            handle->imgBuffer[(simCfg->width * simCfg->screenMultiplier * ((y * simCfg->screenMultiplier) + j)) + (x * simCfg->screenMultiplier) + i] = tmp;
+
+    // timers
+    draw_graph_timer = lv_timer_create(_draw_graph, 1000, NULL); // update every interval period:w
+
+    avg_timer = lv_timer_create(_avg_timer, 100, NULL);
+#ifdef DEBUG
+    sim_timer = lv_timer_create(_sim_update, 100, NULL);
+#endif
+}
+
+void gui_timers_start(void) {
+
+}
+
+void gui_timers_stop(void) {
+}
+
+void gui_update(void) {
+    _draw_speed();
+    _draw_battery();
+    _draw_power();
+    _draw_temperature();
+}
+
+/*
+ * lvgl uses too much memory when drawing large areas, so we dump the images streight into
+ * the framebuffer
+ */
+static void _draw_speed(void) {
+    if (speed != oldspeed) {
+        int32_t tspeed = speed < 0 ? speed * -1 : speed;
+        int32_t tospeed = oldspeed < 0 ? oldspeed * -1 : oldspeed;
+        int32_t speed_major = (tspeed & 0x0000FF00) >> 8;
+        int32_t speed_major_old = (tospeed & 0x0000FF00) >> 8;
+        int32_t spd_minor = (tspeed & 0x000000FF);
+        int32_t spd_minor_old = (tospeed & 0x000000FF);
+        if (speed_major_old % 10 != speed_major % 10) {
+            switch (speed_major % 10) {
+                default:
+                case 0:
+                    lcd_draw_large_text(SPEED_MAJOR_X + SPEED_MAJOR_WIDTH, SPEED_MAJOR_Y, &large_0);
+                    break;
+                case 1:
+                    lcd_draw_large_text(SPEED_MAJOR_X + SPEED_MAJOR_WIDTH, SPEED_MAJOR_Y, &large_1);
+                    break;
+                case 2:
+                    lcd_draw_large_text(SPEED_MAJOR_X + SPEED_MAJOR_WIDTH, SPEED_MAJOR_Y, &large_2);
+                    break;
+                case 3:
+                    lcd_draw_large_text(SPEED_MAJOR_X + SPEED_MAJOR_WIDTH, SPEED_MAJOR_Y, &large_3);
+                    break;
+                case 4:
+                    lcd_draw_large_text(SPEED_MAJOR_X + SPEED_MAJOR_WIDTH, SPEED_MAJOR_Y, &large_4);
+                    break;
+                case 5:
+                    lcd_draw_large_text(SPEED_MAJOR_X + SPEED_MAJOR_WIDTH, SPEED_MAJOR_Y, &large_5);
+                    break;
+                case 6:
+                    lcd_draw_large_text(SPEED_MAJOR_X + SPEED_MAJOR_WIDTH, SPEED_MAJOR_Y, &large_6);
+                    break;
+                case 7:
+                    lcd_draw_large_text(SPEED_MAJOR_X + SPEED_MAJOR_WIDTH, SPEED_MAJOR_Y, &large_7);
+                    break;
+                case 8:
+                    lcd_draw_large_text(SPEED_MAJOR_X + SPEED_MAJOR_WIDTH, SPEED_MAJOR_Y, &large_8);
+                    break;
+                case 9:
+                    lcd_draw_large_text(SPEED_MAJOR_X + SPEED_MAJOR_WIDTH, SPEED_MAJOR_Y, &large_9);
+                    break;
+            }
         }
+        if (speed_major_old / 10 != speed_major / 10) {
+            switch (speed_major / 10) {
+                default:
+                case 0:
+                    lcd_fill(SPEED_MAJOR_X, SPEED_MAJOR_Y, SPEED_MAJOR_X + SPEED_MAJOR_WIDTH, SPEED_MAJOR_Y + SPEED_MAJOR_HEIGHT, 0x0000);
+                    break;
+                case 1:
+                    lcd_draw_large_text( SPEED_MAJOR_X, SPEED_MAJOR_Y, &large_1);
+                    break;
+                case 2:
+                    lcd_draw_large_text( SPEED_MAJOR_X, SPEED_MAJOR_Y, &large_2);
+                    break;
+                case 3:
+                    lcd_draw_large_text( SPEED_MAJOR_X, SPEED_MAJOR_Y, &large_3);
+                    break;
+                case 4:
+                    lcd_draw_large_text( SPEED_MAJOR_X, SPEED_MAJOR_Y, &large_4);
+                    break;
+                case 5:
+                    lcd_draw_large_text( SPEED_MAJOR_X, SPEED_MAJOR_Y, &large_5);
+                    break;
+                case 6:
+                    lcd_draw_large_text( SPEED_MAJOR_X, SPEED_MAJOR_Y, &large_6);
+                    break;
+                case 7:
+                    lcd_draw_large_text( SPEED_MAJOR_X, SPEED_MAJOR_Y, &large_7);
+                    break;
+                case 8:
+                    lcd_draw_large_text( SPEED_MAJOR_X, SPEED_MAJOR_Y, &large_8);
+                    break;
+                case 9:
+                    lcd_draw_large_text( SPEED_MAJOR_X, SPEED_MAJOR_Y, &large_9);
+                    break;
+            }
+        }
+        /* lv_label_set_text_fmt(speed_major, "% 2ld", tspeed >> 8); */
+        if (spd_minor_old != spd_minor) lv_label_set_text_fmt(speed_minor, "%1ld", spd_minor / 26);
+
+    }
+    oldspeed = speed;
+}
+
+void _draw_graph(lv_timer_t *timer) {
+    lv_chart_set_next_value(graph, graph_series, avg_speed);
+}
+
+static void _draw_battery(void) {
+    battery_voltage += (voltage_ebat() - battery_voltage) >> FILTER_SHIFT;
+    if (battery_voltage != battery_voltage_old) {
+        lv_label_set_text_fmt(battery_label, "% 2ld.%1ldv", battery_voltage >> 8, (battery_voltage & 0x000000FF) / 26);
+        battery_voltage_old = battery_voltage;
+    }
+    if (battery_value != battery_value_old) {
+        lv_bar_set_value(battery_bar, battery_value, LV_ANIM_OFF); 
+        if (battery_value < 10) lv_obj_set_style_bg_color(battery_bar, BATTERY_COLOR_10, LV_PART_INDICATOR);
+        else if (battery_value < 20) lv_obj_set_style_bg_color(battery_bar, BATTERY_COLOR_20, LV_PART_INDICATOR);
+        else if (battery_value < 30) lv_obj_set_style_bg_color(battery_bar, BATTERY_COLOR_30, LV_PART_INDICATOR);
+        else if (battery_value < 40) lv_obj_set_style_bg_color(battery_bar, BATTERY_COLOR_40, LV_PART_INDICATOR);
+        else if (battery_value < 50) lv_obj_set_style_bg_color(battery_bar, BATTERY_COLOR_50, LV_PART_INDICATOR);
+        else if (battery_value < 60) lv_obj_set_style_bg_color(battery_bar, BATTERY_COLOR_60, LV_PART_INDICATOR);
+        else if (battery_value < 70) lv_obj_set_style_bg_color(battery_bar, BATTERY_COLOR_70, LV_PART_INDICATOR);
+        else if (battery_value < 80) lv_obj_set_style_bg_color(battery_bar, BATTERY_COLOR_80, LV_PART_INDICATOR);
+        else if (battery_value < 90) lv_obj_set_style_bg_color(battery_bar, BATTERY_COLOR_90, LV_PART_INDICATOR);
+        else lv_obj_set_style_bg_color(battery_bar, BATTERY_COLOR_100 , LV_PART_INDICATOR);
+        battery_value_old = battery_value;
     }
 }
 
-void x11_flush(void)
-{
-    // nop
+
+static void _draw_power(void) {
+    if (power_value == power_value_old) {
+        // do nothing
+    } else if (power_value >= 0 && power_value_old > 0) {
+        lv_bar_set_value(powerbar_positive, power_value, LV_ANIM_OFF);
+        lv_bar_set_value(powerbar_negative, 0, LV_ANIM_OFF);
+        lv_label_set_text_fmt(powerbar_text, "%ld", power_value);
+    } else if (power_value >= 0 && power_value_old < 0) {
+        lv_bar_set_value(powerbar_positive, power_value, LV_ANIM_OFF);
+        lv_bar_set_value(powerbar_negative, 0, LV_ANIM_OFF);
+        lv_label_set_text_fmt(powerbar_text, "%ld", power_value);
+    } else if (power_value < 0 && power_value_old >= 0) {
+        lv_bar_set_value(powerbar_positive, 0, LV_ANIM_OFF);
+        lv_bar_set_value(powerbar_negative, power_value * -1, LV_ANIM_OFF);
+        lv_label_set_text_fmt(powerbar_text, "%ld", power_value);
+    } else if (power_value < 0 && power_value_old < 0) {
+        lv_bar_set_value(powerbar_positive, 0, LV_ANIM_OFF);
+        lv_bar_set_value(powerbar_negative, power_value * -1, LV_ANIM_OFF);
+        lv_label_set_text_fmt(powerbar_text, "%ld", power_value);
+    }
+
+    power_value_old = power_value;
 }
 
-static const char* message_type[] = {
-    "NONE",
-    "WINDOW",
-    "OBJECT"
-};
-static const char* event_type[] = {
-    "NONE",
-    "PRERENDER",
-    "POSTRENDER",
-    "PRESSED",
-    "RELEASED"
-    };
+static void _draw_temperature(void) {
+   if (ext_temperature_old != ext_temperature) {
+       lv_label_set_text_fmt(temperature, "% 2d.%1d°c", ext_temperature >> 8, (ext_temperature & 0x000000FF) / 26);
+   }
 
-void decode_msg(UG_MESSAGE* msg)
-{
-    printf("%s %s for ID %d (SubId %d)\n", 
-        message_type[msg->type],
-        event_type[msg->event],
-        msg->id, msg->sub_id);
+   int_temperature_old = int_temperature;
+   ext_temperature_old = ext_temperature;
 }
 
-void windowHandler(UG_MESSAGE *msg)
-{
-    static UG_U16 x0, y0;
+static void _avg_timer(lv_timer_t *timer) {
+    if (ext_temperature == 0) ext_temperature = ext_temp();
+    if (int_temperature == 0) int_temperature = int_temp();
+    if (avg_speed == 0) avg_speed = speed;
+    if (power_value == 0) avg_power = power_value;
+    ext_temperature += (ext_temp() - ext_temperature) >> FILTER_SHIFT;
+    int_temperature += (int_temp() - int_temperature) >> FILTER_SHIFT;
 
-    decode_msg(msg);
+    avg_speed += (speed - avg_speed) >> FILTER_SHIFT;
+    avg_power += (power_value - avg_power) >> FILTER_SHIFT;
+}
+
+#ifdef DEBUG
+void _sim_update(lv_timer_t *timer) {
+    power_value+=5;
+    battery_value+=1;
+    speed += 96;
+    if (power_value > POWER_MAX) power_value = POWER_MIN;
+    if (speed > (30 << 8)) speed = 0;
+    if (battery_value > 100) battery_value =0;
 }
 #endif
+
+// callbacks lvgl
+static void graph_event_cb(lv_event_t * e)
+{
+    lv_obj_t * obj = lv_event_get_target(e);
+
+    lv_obj_draw_part_dsc_t * dsc = lv_event_get_draw_part_dsc(e);
+    if(dsc->part == LV_PART_MAIN) {
+        if(dsc->line_dsc == NULL || dsc->p1 == NULL || dsc->p2 == NULL) return;
+
+        if(dsc->p1->y == dsc->p2->y) {
+            dsc->line_dsc->color  = GRAPH_DIV_COLOR;
+        }
+    }
+}

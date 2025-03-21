@@ -3,6 +3,7 @@
 
 #ifndef SIM
 #include "at32f415_gpio.h"
+#include "lvgl.h"
 #else
 #include <X11/Xlib.h>
 #include <string.h>
@@ -76,4 +77,15 @@ int32_t int_temp(void);
 int32_t ext_temp(void);
 int32_t NTC_ADC2Temperature(int16_t adc_value);
 
+int32_t voltage_ebat(void);
+int32_t voltage_mcu(void);
+
+void power_enable(void);
+void power_disable(void);
+
+#define BUTTON_ID_UP        0
+#define BUTTON_ID_DOWN      1
+#define BUTTON_ID_POWER     2
+
+void controls_callback(lv_indev_t * indev, lv_indev_data_t * data);
 #endif // __CONTROLS_H__

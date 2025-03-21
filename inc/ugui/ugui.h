@@ -56,8 +56,8 @@ typedef UG_U8                        UG_COLOR;
 /* -- DEFINES                                                                    -- */
 /* -------------------------------------------------------------------------------- */
 /* Internal helpers */
-#define UG_GetFontWidth(f)                            *(f+1)
-#define UG_GetFontHeight(f)                           *(f+2)
+#define UG_GetFontWidth(f)                            (((uint8_t*)f)[0])
+#define UG_GetFontHeight(f)                           (((uint8_t*)f)[1])
 #define swap(a, b)                                    { UG_U16 t=a; a=b; b=t; }
 
 /* Sizing helpers */
@@ -228,7 +228,7 @@ typedef struct
 /* Object structure */
 struct S_OBJECT
 {
-   UG_U8 state;                              /* object state                               */
+   UG_U16 state;                              /* object state                               */
    #ifdef UGUI_USE_TOUCH
    UG_U8 touch_state;                        /* object touch state                         */
    #endif
@@ -268,6 +268,7 @@ struct S_OBJECT
 #ifdef UGUI_USE_TOUCH
    #define OBJ_STATE_TOUCH_ENABLE                     (1<<7)
 #endif
+#define OBJ_STATE_REDRAW_BG                           (1<<8)
 #define OBJ_STATE_INIT                                (OBJ_STATE_FREE | OBJ_STATE_VALID)
 
 #ifdef UGUI_USE_TOUCH
