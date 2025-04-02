@@ -3,15 +3,29 @@
 #include "at32f415_dma.h"
 #include "at32f415_tmr.h"
 #include "at32f415_crm.h"
+#include "config.h"
 
 adc_data_t adc;
+extern volatile uint32_t timer_counter;
 
 uint16_t external_temperature_old_value = 0;
 
-uint32_t power_button_cnt = 0;
-uint32_t up_button_cnt = 0;
-uint32_t down_button_cnt = 0;
-uint32_t nc_button_cnt = 0;
+uint8_t power_button_state = BUTTON_RELEASED;
+uint8_t up_button_state = BUTTON_RELEASED;
+uint8_t down_button_state = BUTTON_RELEASED;
+uint8_t nc_button_state = BUTTON_RELEASED;
+
+uint32_t power_button_start = 0;
+uint32_t up_button_start = 0;
+uint32_t down_button_start = 0;
+uint32_t nc_button_start = 0;
+uint32_t button_backoff = 0, button_backoff_start = 0;
+
+uint8_t power_button_count = 0;
+uint8_t nc_button_count = 0;
+uint8_t down_button_count = 0;
+
+int32_t ext_temp_store = 0; // store temperature adc value in case button is pressed
 
 #define DEBUG
 #ifdef DEBUG 
@@ -35,7 +49,7 @@ static void adc_config(void) {
     adc_ordinary_channel_set(ADC1, ADC_CHANNEL_16, 1, ADC_SAMPLETIME_239_5);
     adc_ordinary_channel_set(ADC1, ADC_CHANNEL_17, 2, ADC_SAMPLETIME_239_5);
     adc_ordinary_channel_set(ADC1, VOLTAGE_DETECT_ADC_CH, 3, ADC_SAMPLETIME_239_5);
-    adc_ordinary_channel_set(ADC1, DOWN_BUTTON_ADC_CH, 4, ADC_SAMPLETIME_239_5);
+    adc_ordinary_channel_set(ADC1, EXT_TEMP_ADC_CH, 4, ADC_SAMPLETIME_239_5);
     adc_ordinary_channel_set(ADC1, NC_BUTTON_ADC_CH, 5, ADC_SAMPLETIME_239_5);
 
     adc_ordinary_conversion_trigger_set(ADC1, ADC12_ORDINARY_TRIG_SOFTWARE, TRUE);
@@ -77,7 +91,8 @@ static void tmr_config(void) {
     crm_periph_clock_enable(CRM_TMR4_PERIPH_CLOCK, TRUE);
     tmr_output_config_type tmr_oc_init_structure;
     /* tmre base configuration */
-    tmr_base_init(TMR4, 1000, 1440); // 1Hz
+
+    tmr_base_init(TMR4,  BUTTON_MEASURE_PERIOD * 1000, TIMER_FREQ(1000000));
     tmr_cnt_dir_set(TMR4, TMR_COUNT_UP);
     tmr_clock_source_div_set(TMR4, TMR_CLOCK_DIV1);
 
@@ -88,15 +103,12 @@ static void tmr_config(void) {
     tmr_oc_init_structure.oc_polarity = TMR_OUTPUT_ACTIVE_LOW;
     tmr_oc_init_structure.oc_output_state = FALSE;
     tmr_output_channel_config(TMR4, TMR_SELECT_CHANNEL_1, &tmr_oc_init_structure);
-    tmr_channel_value_set(TMR4, TMR_SELECT_CHANNEL_1, BUTTON_MEASURE_PERIOD);
-    /* tmr_output_channel_config(TMR4, TMR_SELECT_CHANNEL_2, &tmr_oc_init_structure); */
-    /* tmr_channel_value_set(TMR4, TMR_SELECT_CHANNEL_2, BUTTON_ACTIVE_PERIOD); */
-    /* tmr_output_channel_config(TMR4, TMR_SELECT_CHANNEL_3, &tmr_oc_init_structure); */
-    /* tmr_channel_value_set(TMR4, TMR_SELECT_CHANNEL_3, ch3_val); */
-    /* tmr_output_channel_config(TMR4, TMR_SELECT_CHANNEL_4, &tmr_oc_init_structure); */
-    /* tmr_channel_value_set(TMR4, TMR_SELECT_CHANNEL_4, ch4_val); */
+    tmr_channel_value_set(TMR4, TMR_SELECT_CHANNEL_1, 1000);
     tmr_counter_enable(TMR4, TRUE);
     tmr_interrupt_enable(TMR4, TMR_C1_INT, TRUE);
+    
+    nvic_priority_group_config(NVIC_PRIORITY_GROUP_4);
+    nvic_irq_enable(TMR4_GLOBAL_IRQn, 0, 0);
 }
 
 /**
@@ -154,44 +166,44 @@ void controls_init(void) {
 
     // configure ADC
     //
-    power_enable(); // always enable, user pressed button anyways
     dma_config();
     adc_config();
     tmr_config();
+
 }
 
 void power_enable(void) { POWER_LATCH_GPIO->scr = POWER_LATCH_PIN; }
 void power_disable(void) { POWER_LATCH_GPIO->clr = POWER_LATCH_PIN; }
 
-int up_button_press(void) { return up_button_cnt > BUTTON_COUNT && up_button_cnt < BUTTON_HOLD ? 1 : 0; }
-int down_button_press(void) { return down_button_cnt > BUTTON_COUNT && down_button_cnt < BUTTON_HOLD ? 1 : 0; }
-int power_button_press(void) { return power_button_cnt > BUTTON_COUNT && power_button_cnt < BUTTON_HOLD ? 1 : 0; }
-int nc_button_press(void) { return nc_button_cnt > BUTTON_COUNT && nc_button_cnt < BUTTON_HOLD ? 1 : 0; }
-
-int up_button_hold(void) { return up_button_cnt > BUTTON_HOLD ? up_button_cnt : 0; }
-int down_button_hold(void) { return down_button_cnt > BUTTON_HOLD ? down_button_cnt : 0; }
-int power_button_hold(void) { return power_button_cnt > BUTTON_HOLD ? power_button_cnt : 0; }
-int nc_button_hold(void) { return nc_button_cnt > BUTTON_HOLD ? nc_button_cnt : 0; }
+/* int up_BUTTON_PRESSED(void) { return up_button_cnt > BUTTON_COUNT && up_button_cnt < BUTTON_HOLD ? 1 : 0; } */
+/* int down_BUTTON_PRESSED(void) { return down_button_cnt > BUTTON_COUNT && down_button_cnt < BUTTON_HOLD ? 1 : 0; } */
+/* int power_BUTTON_PRESSED(void) { return power_button_cnt > BUTTON_COUNT && power_button_cnt < BUTTON_HOLD ? 1 : 0; } */
+/* int nc_BUTTON_PRESSED(void) { return nc_button_cnt > BUTTON_COUNT && nc_button_cnt < BUTTON_HOLD ? 1 : 0; } */
+/*  */
+/* int up_button_hold(void) { return up_button_cnt > BUTTON_HOLD ? up_button_cnt : 0; } */
+/* int down_button_hold(void) { return down_button_cnt > BUTTON_HOLD ? down_button_cnt : 0; } */
+/* int power_button_hold(void) { return power_button_cnt > BUTTON_HOLD ? power_button_cnt : 0; } */
+/* int nc_button_hold(void) { return nc_button_cnt > BUTTON_HOLD ? nc_button_cnt : 0; } */
 
 
 static inline int power_button_measure(void) {
     if (POWER_BUTTON_MODE == GPIO_MODE_INPUT) return (POWER_BUTTON_GPIO->idt & (POWER_BUTTON_PIN)) > 0;
-    return adc.power_button == 0;
+    return adc.power_button <= 10;
 }
 
 static inline int down_button_measure(void) {
     if (DOWN_BUTTON_MODE == GPIO_MODE_INPUT) return (DOWN_BUTTON_GPIO->idt & (DOWN_BUTTON_PIN)) == 0;
-    return adc.temperature_ext == 0;
+    return adc.down_button <= 10;
 }
 
 static inline int up_button_measure(void) {
     if (UP_BUTTON_MODE == GPIO_MODE_INPUT) return (UP_BUTTON_GPIO->idt & (UP_BUTTON_PIN)) == 0;
-    return adc.up_button == 0;
+    return adc.up_button <= 10;
 }
 
 static inline int nc_button_measure(void) {
     if (NC_BUTTON_MODE == GPIO_MODE_INPUT) return (NC_BUTTON_GPIO->idt & (NC_BUTTON_PIN)) > 0;
-    return adc.nc_button == 0;
+    return adc.nc_button <= 10;
 }
 
 int32_t int_temp(void) {
@@ -204,48 +216,117 @@ int32_t int_temp(void) {
 int32_t ext_temp(void) {
     // result is in 24.8s format
     // value is stored for when button is pressed as it pulls to ground
-    return NTC_ADC2Temperature(adc.temperature_ext);
+    if (adc.temperature_ext <= 10) {
+        return ext_temp_store;
+    } else {
+        return ext_temp_store = NTC_ADC2Temperature(adc.temperature_ext);
+    }
 }
 
 static inline void measure_buttons(void) {
-    // debounce
-    if (up_button_measure()) up_button_cnt += up_button_measure();
-    else up_button_cnt = 0;
-    if (down_button_measure()) down_button_cnt += down_button_measure();
-    else down_button_cnt = 0;
-    if (nc_button_measure()) nc_button_cnt += nc_button_measure();
-    else nc_button_cnt = 0; 
-    if (power_button_measure()) power_button_cnt += power_button_measure();
-    else power_button_cnt = 0;
+    // trigger adc
+    adc_ordinary_software_trigger_enable(ADC1, TRUE);
+    // button press addition
+    if (timer_counter < button_backoff + button_backoff_start) return;
+    if (up_button_measure()) {
+        if (up_button_state == BUTTON_RELEASED) {
+            up_button_start = timer_counter;
+            up_button_state = BUTTON_DOWN;
+        } else if (up_button_state == BUTTON_DOWN && timer_counter - up_button_start > BUTTON_LONG_PRESS_TIME) {
+            up_button_state = BUTTON_LONG_PRESSED;
+        }
+    } else {
+        if (up_button_state == BUTTON_DOWN && timer_counter - up_button_start > BUTTON_DEBOUNCE_TIME) {
+            up_button_state = up_button_state == BUTTON_DOWN ? BUTTON_PRESSED : BUTTON_RELEASED;
+            up_button_start = 0;
+        } else if (up_button_state != BUTTON_PRESSED) {
+            up_button_state = BUTTON_RELEASED;
+            up_button_start = 0;
+        }
+    }
+
+    if (down_button_measure()) {
+        if (down_button_state == BUTTON_RELEASED) {
+            down_button_start = timer_counter;
+            down_button_state = BUTTON_DOWN;
+        } else if (down_button_state == BUTTON_DOWN && timer_counter - down_button_start > BUTTON_LONG_PRESS_TIME) {
+            down_button_state = BUTTON_LONG_PRESSED;
+        }
+    } else {
+        if (down_button_state == BUTTON_DOWN && timer_counter - down_button_start > BUTTON_DEBOUNCE_TIME) {
+            down_button_state = down_button_state == BUTTON_DOWN ? BUTTON_PRESSED : BUTTON_RELEASED;
+            down_button_start = 0;
+        } else if (down_button_state != BUTTON_PRESSED) {
+            down_button_state = BUTTON_RELEASED;
+            down_button_start = 0;
+        }
+    }
+
+    if (power_button_measure()) {
+        if (power_button_state == BUTTON_RELEASED) {
+            power_button_start = timer_counter;
+            power_button_state = BUTTON_DOWN;
+        } else if (power_button_state == BUTTON_DOWN && timer_counter - power_button_start > BUTTON_LONG_PRESS_TIME) {
+            power_button_state = BUTTON_LONG_PRESSED;
+        }
+    } else {
+        if (power_button_state == BUTTON_DOWN && timer_counter - power_button_start > BUTTON_DEBOUNCE_TIME) {
+            power_button_state = power_button_state == BUTTON_DOWN ? BUTTON_PRESSED : BUTTON_RELEASED;
+            power_button_start = 0;
+        } else if (power_button_state != BUTTON_PRESSED) {
+            power_button_state = BUTTON_RELEASED;
+            power_button_start = 0;
+        }
+    }
+    if (nc_button_measure()) {
+        if (nc_button_state == BUTTON_RELEASED) {
+            nc_button_start = timer_counter;
+            nc_button_state = BUTTON_DOWN;
+        } else if (timer_counter - nc_button_start > BUTTON_LONG_PRESS_TIME) {
+            nc_button_state = BUTTON_LONG_PRESSED;
+        }
+    } else {
+        if (nc_button_state == BUTTON_DOWN && timer_counter - nc_button_start > BUTTON_DEBOUNCE_TIME) {
+            nc_button_state = nc_button_state == BUTTON_DOWN ? BUTTON_PRESSED : BUTTON_RELEASED;
+            nc_button_start = 0;
+        } else if (nc_button_state != BUTTON_PRESSED) {
+            nc_button_state = BUTTON_RELEASED;
+            nc_button_start = 0;
+        }
+    }
+}
+
+void button_release(uint8_t id, uint32_t backoff) {
+    button_backoff_start = timer_counter;
+    button_backoff = backoff;
+    switch(id) {
+        case BUTTON_ID_UP:
+            up_button_state = BUTTON_RELEASED;
+            up_button_start = 0;
+            break;
+        case BUTTON_ID_DOWN:
+            down_button_state = BUTTON_RELEASED;
+            down_button_start = 0;
+            break;
+        case BUTTON_ID_NC:
+            nc_button_state = BUTTON_RELEASED;
+            nc_button_start = 0;
+            break;
+        case BUTTON_ID_POWER:
+            power_button_state = BUTTON_RELEASED;
+            power_button_start = 0;
+            break;
+    }
 }
 
 
 void TMR4_GLOBAL_IRQHandler(void)
 {
-    uint32_t capture = 0;
     if(tmr_interrupt_flag_get(TMR4, TMR_C1_FLAG) != RESET)
     {
         tmr_flag_clear(TMR4, TMR_C1_FLAG );
-        capture = tmr_channel_value_get(TMR4, TMR_SELECT_CHANNEL_1);
-        tmr_channel_value_set(TMR4, TMR_SELECT_CHANNEL_1, capture + BUTTON_MEASURE_PERIOD);
         measure_buttons();
     }
-
-  /* TMR4_CH3 toggling with frequency = 732.4 Hz */
-  /* if(tmr_interrupt_flag_get(TMR4, TMR_C3_FLAG) != RESET) */
-  /* { */
-  /*   tmr_flag_clear(TMR4, TMR_C3_FLAG); */
-  /*   capture = tmr_channel_value_get(TMR4, TMR_SELECT_CHANNEL_3); */
-  /*   tmr_channel_value_set(TMR4, TMR_SELECT_CHANNEL_3, capture + ch3_val); */
-  /* } */
-  /*  */
-  /* TMR4_CH4 toggling with frequency = 1464.8 Hz */
-  /* if(tmr_interrupt_flag_get(TMR4, TMR_C4_FLAG) != RESET) */
-  /* { */
-  /*   tmr_flag_clear(TMR4, TMR_C4_FLAG); */
-  /*   capture = tmr_channel_value_get(TMR4, TMR_SELECT_CHANNEL_4); */
-  /*   tmr_channel_value_set(TMR4, TMR_SELECT_CHANNEL_4, capture + ch4_val); */
-  /* } */
 }
 
 /**
@@ -445,23 +526,15 @@ int32_t NTC_ADC2Temperature(int16_t adc_value){
   return p1 - ( (p1-p2) * (adc_value & 0x0003) ) / 4;
 };
 
-
-// lvgl callback
-void controls_callback(lv_indev_t * indev, lv_indev_data_t * data){
-    // check press in priority order 
-  /*   if (bt_up == 1) { */
-  /*       if (data->btn_id != BUTTON_ID_UP) { */
-  /*           data->btn_id = BUTTON_ID_UP; */
-  /*           data->state = LV_INDEV_STATE_PRESSED; */
-  /*   } */
-  /* if(key_pressed()) data->state = LV_INDEV_STATE_PRESSED; */
-  /* else data->state = LV_INDEV_STATE_RELEASED; */
-}
-
 int32_t voltage_mcu(void) {
     return 0;
 }
 
-int32_t voltage_ebat(void) {
-    return (adc.voltage_battery << 16) / 10150; // 24.8
+int32_t voltage_ebat(void) { // in mv
+    return (adc.voltage_battery << 16) / 2598;//10150; // 24.8
+}
+
+uint8_t buttons_pressed(void) {
+    uint8_t bt = (down_button_state << BUTTON_ID_DOWN) | (up_button_state << BUTTON_ID_UP) | (nc_button_state << BUTTON_ID_NC) | (power_button_state << BUTTON_ID_POWER);
+    return bt;
 }

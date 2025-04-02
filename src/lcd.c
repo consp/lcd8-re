@@ -51,7 +51,7 @@ const ili_cmd ili_startup_cmds[STARTUP_COMMAND_LENGTH] = {
 void lcd_backlight_init(void) {
   /* tmr3 time base configuration */
 
-    tmr_base_init(TMR3, 1000, 14); // 10khz?
+    tmr_base_init(TMR3, 10000-1, TIMER_FREQ(1000000)); // 10khz?
     tmr_cnt_dir_set(TMR3, TMR_COUNT_UP);
     tmr_clock_source_div_set(TMR3, TMR_CLOCK_DIV1);
 
@@ -181,10 +181,10 @@ void lcd_init(void) {
 }
 
 void lcd_backlight(uint32_t value) { // 0-100
-    tmr_channel_value_set(TMR3, TMR_SELECT_CHANNEL_2, value * 10);
+    tmr_channel_value_set(TMR3, TMR_SELECT_CHANNEL_2, value * 100);
 }
 
-static void write_cmd(uint8_t command) {
+static inline void write_cmd(uint8_t command) {
     WRITE_8BIT(command);
     COMMAND;
     //CS_ACTIVE;
@@ -197,7 +197,7 @@ static void write_cmd(uint8_t command) {
     /* CLEAR_DATA(); */
 }
 
-static void write_data(uint16_t data) {
+static inline void write_data(uint16_t data) {
     WRITE_16BIT(data);
     DATA;
     //CS_ACTIVE;
@@ -471,7 +471,7 @@ void lcd_test(void) {
 }
 
 #if LVGL_VERSION_MAJOR == 9
-void lcd_lvgl_flush(lv_display_t *display, const lv_area_t *area, lv_color_t *pixmap) {
+void lcd_lvgl_flush(lv_display_t *display, const lv_area_t *area, uint8_t *pixmap) {
 #else
 void lcd_lvgl_flush(lv_disp_drv_t *display, const lv_area_t *area, lv_color_t *pixmap) { 
 #endif
@@ -482,7 +482,12 @@ void lcd_lvgl_flush(lv_disp_drv_t *display, const lv_area_t *area, lv_color_t *p
     if (area->x1 != area->x2) length *= ((area->x2 - area->x1) + 1);
     lcd_set_address_window(area->x1, area->y1, area->x2, area->y2);
     write_cmd(ILI_MEMORY_WRITE);
-    while(length--) write_data(*pixels++);
+    /* if (length % 32) { */
+    /*     while(length--) write_data(*pixels++); */
+    /* } else { */
+#pragma GCC unroll 8
+        while(length--) write_data(*pixels++);
+    /* } */
 #if LVGL_VERSION_MAJOR == 9
     lv_display_flush_ready(display);
 #else
@@ -492,10 +497,10 @@ void lcd_lvgl_flush(lv_disp_drv_t *display, const lv_area_t *area, lv_color_t *p
 
 
 #if LVGL_VERSION_MAJOR == 9
-void lcd_draw_large_text(uint32_t x, uint32_t y, const lv_image_dsc_t *img) {
+void lcd_draw_large_text(uint32_t x, uint32_t y, const lv_image_dsc_t *img, uint16_t color) {
     if (img->header.cf == LV_COLOR_FORMAT_I1) {
 #else
-void lcd_draw_large_text(uint32_t x, uint32_t y, const lv_img_dsc_t *img) {
+void lcd_draw_large_text(uint32_t x, uint32_t y, const lv_img_dsc_t *img, uint16_t color) {
     if (img->header.cf == LV_IMG_CF_INDEXED_1BIT) {
 #endif
         // images stored as 1bpp, need to iterate over and draw raw
@@ -504,13 +509,18 @@ void lcd_draw_large_text(uint32_t x, uint32_t y, const lv_img_dsc_t *img) {
         uint8_t *data = (uint8_t *) img->data;
         data += 8;
         write_cmd(ILI_MEMORY_WRITE);
+#pragma GCC unroll 8
         while(length--) {
             // convert
-            uint8_t vdata = *data;
-            for (int i = 7; i >= 0; i--) {
-                write_data((vdata & 0x80) ? 0x0000 : 0xFFFF);
-                vdata <<= 1;
-            }
+            register uint32_t vdata = *data;
+            write_data((vdata & 0x80) ? 0x0000 : color);
+            write_data((vdata & 0x40) ? 0x0000 : color);
+            write_data((vdata & 0x20) ? 0x0000 : color);
+            write_data((vdata & 0x10) ? 0x0000 : color);
+            write_data((vdata & 0x08) ? 0x0000 : color);
+            write_data((vdata & 0x04) ? 0x0000 : color);
+            write_data((vdata & 0x02) ? 0x0000 : color);
+            write_data((vdata & 0x01) ? 0x0000 : color);
             data++;
         }
     }

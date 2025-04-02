@@ -15,7 +15,7 @@ Back:
 - U1: MCU AT32F415RCT7, 256k flash
 - U2: C1117-3.3 3.3v LDO
 - U3: XLSEMI XL7015E1 DC/DC converter 0.8A 5-80V
-- U4: 1B0B0G Unknown IC, ~~likely~~ a I2C EEPROM (likely 4k) acts like a standard EEPROM with 2 byte read and 3 byte write. Address is 0x50 looking at the first byte. Only page 1 is ever read.
+- U4: 1B0B0G Unknown IC, ~~likely~~ a I2C EEPROM (512 bytes) acts like a standard EEPROM with 2 byte read and 3 byte write. Address is 0x50 looking at the first byte. Only page 1 is ever read.
 
 - Qn: Either G1 or BG (NPN or PNP fet)
 - Q?: A1013 PNP Transistor (schematic is wrong), 1A -160V. 
@@ -32,6 +32,9 @@ Back:
 - Power enable is a very simple "press button and get power", after which the MCU takes over by triggering PA4 (sense for on button is on PA6). This also means the button is at VBAT and the inputs of the other buttons are not protected so make sure they do not short out.
 - Power enable will not work with an external sink (e.g. a debugger) attached. 
 - The MCU does not like to be power glitched. This will destroy any data in flash memory. (experimentally verified, repeatedly)
+
+- The clock calibration of the internal clock is nonexistant (probably never done), resulting in a 27% in my case (running slow). This also messes up the baudrate calculation and anything over 57k6 will result in bit errors which is probably the reason they stuck with 9k6. Adjusting for this allows higher baudrates.
+- To achieve any baudrates over 9k6 you also need to remove the bodgecap added to the RX line. If the baudrate is properly set (or within about 1%) it is never needed anyway.
 
 ## Display
 The display has the following characteristics:
@@ -73,3 +76,11 @@ My poor attempt at drawing a schematic.
 
 # License
 All stuff not already licenced otherwise is only available under CC-BY-NC-4.0 https://creativecommons.org/licenses/by-nc/4.0/ . For commercial use contact me.
+
+# Attribution
+Temperature icon: <a href="https://www.vecteezy.com/free-vector/temperature">Temperature Vectors by Vecteezy</a>
+Engine icon: <a href="https://www.flaticon.com/free-icons/heat" title="heat icons">Heat icons created by HAJICON - Flaticon</a>
+Brake icon: <a href="https://www.flaticon.com/free-icons/brake" title="brake icons">Brake icons created by Smashicons - Flaticon</a>
+Trip icon: <a href="https://www.flaticon.com/free-icons/trip" title="trip icons">Trip icons created by improstudio - Flaticon</a>
+Other icons: Uicons by <a href="https://www.flaticon.com/uicons">Flaticon</a>
+Headlight and headlight auto: <a href="" title="headlight icons">Headlight icons created by TravisAvery - Flaticon</a>

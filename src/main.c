@@ -31,6 +31,8 @@
 #include "eeprom.h"
 #include "controls.h"
 #include "gui.h"
+#include "uart.h"
+#include "clock.h"
 #include <string.h>
 #include <stdio.h>
 
@@ -47,20 +49,8 @@ __IO uint32_t tx_index = 0, rx_index = 0;
 volatile error_status transfer_status1 = ERROR, transfer_status2 = ERROR, transfer_status3 = ERROR;
 #endif
 
-#ifdef MEMORY_DEBUG
-#ifndef SIM
-uint8_t *debugbuffer = (uint8_t *) 0x20007E00;
-uint16_t *debugbuffer16 = (uint16_t *) 0x20007E00;
-uint32_t *debugbuffer32 = (uint32_t *) 0x20007E00;
-#else
-uint8_t *debugbuffer[2048];
-uint16_t *debugbuffer16;
-uint32_t *debugbuffer32;
-#endif
-#endif
-
 extern uint32_t timer;
-
+uint8_t ding[256];
 extern adc_data_t adc;
 /**
   * @brief  main function.
@@ -71,18 +61,14 @@ int main(void)
 {
 #ifdef MEMORY_DEBUG
 #ifdef SIM
-    memset(debugbuffer, 0xAA, 2048);
+    memset(debugbuffer, 0x55, 2048);
     debugbuffer16 = (uint16_t *) debugbuffer;
     debugbuffer32 = (uint32_t *) debugbuffer;
 #else
-    for (int i = 0; i < 512; i++)  debugbuffer[i] = 0xAA;
+    for (int i = 0; i < 512; i++)  debugbuffer[i] = 0x55;
 #endif
 #endif
 #ifndef SIM
-    __IO uint32_t index = 0;
-
-    /* nvic_priority_group_config(NVIC_PRIORITY_GROUP_4); */
-    /* nvic_irq_enable(TMR4_GLOBAL_IRQn, 0, 0); */
     system_clock_config();
 
     // enable gpio clocks
@@ -90,18 +76,20 @@ int main(void)
     crm_periph_clock_enable(CRM_GPIOB_PERIPH_CLOCK, TRUE); // we use all channels
     crm_periph_clock_enable(CRM_GPIOC_PERIPH_CLOCK, TRUE); // we use all channels
   
-    lcd_init();    // attempt to initialize the lcd, mine responds to ID4 as a ILI9488
+    clock_init(); // clouck source
+    lcd_init();    // attempt to initialize the lcd peripherals
 #endif
 
-    eeprom_init(); // initialize the eeprom for data storage
     controls_init(); // adc and buttons 
+    // ignore inputs for a while
+    button_release(BUTTON_ID_POWER, 2000);
+    power_enable();
+    eeprom_init(); // initialize the eeprom for data storage
+    uart_init(BAUD(57600));      
 
-    lcd_backlight(100);
-    lcd_start();
+    lcd_start(); // start lcd init sequence
 
-    gui_init();
-
-    uint8_t x = 0;
+    gui_init(); // start lvgl
     /*
      * Target is 30 fps, which is overkill
      *
@@ -109,12 +97,30 @@ int main(void)
      * graph takes 34ms so maybe two frames
      * large text takes ~6ms
      */
+    gui_update();
+    uart_send_display_settings();
+#if DEBUG
+    uint32_t x = 0, y = 0;
+    extern volatile uint32_t timer_counter;
+#endif
     while(1) {
-        volatile uint32_t tm = timer_cb();
-        adc_ordinary_software_trigger_enable(ADC1, TRUE);       // trigger adc
         gui_update();                                           // update gui data
         lv_timer_handler();                                     // draw
-        x++;
+        uart_update();
+        button_presses();
+#ifdef DEBUG
+        if (timer_counter - x >= 1000) {
+            lv_mem_monitor_t mon;
+            lv_mem_monitor(&mon);
+            LV_LOG_INFO("Free: %ld/%ld, %d%% used, %d%% frag", mon.free_size, mon.total_size, mon.used_pct, mon.frag_pct);
+            x = timer_counter;
+        }
+        if (timer_counter - y >= 250) {
+            extern uint8_t power_button_state, up_button_state, down_button_state;
+            LV_LOG_INFO("%d %d %d", power_button_state, up_button_state, down_button_state);
+            y = timer_counter;
+        }
+#endif
     }
 }
 

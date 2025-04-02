@@ -25,6 +25,7 @@
 /* includes ------------------------------------------------------------------*/
 #include "at32f415_clock.h"
 #include "delay.h"
+#include "config.h"
 
 /**
   * @brief  config sclk 144 mhz with hick clock source.
@@ -51,17 +52,18 @@ void system_clock_config(void)
   crm_reset();
 
   /* config flash psr register */
-  flash_psr_set(FLASH_WAIT_CYCLE_4);
+  flash_psr_set(FLASH_WAIT_CYCLES); // this is very dubious but might work
 
-  crm_clock_source_enable(CRM_CLOCK_SOURCE_HICK, TRUE);
+  crm_clock_source_enable(CLOCK_SOURCE, TRUE);
 
    /* wait till hick is ready */
-  while(crm_flag_get(CRM_HICK_STABLE_FLAG) != SET)
+  while(crm_flag_get(CRM_HEXT_STABLE_FLAG) != SET)
   {
   }
 
   /* config pll clock resource */
-  crm_pll_config(CRM_PLL_SOURCE_HICK, CRM_PLL_MULT_36); // 4m*37 = 148000000, almost 150mhz which will allow 100ns timer accuracy.
+#
+  crm_pll_config(CLOCK_SOURCE_DIV, PLL_MULTIPL); //  
 
   /* enable pll */
   crm_clock_source_enable(CRM_CLOCK_SOURCE_PLL, TRUE);
@@ -72,13 +74,13 @@ void system_clock_config(void)
   }
 
   /* config ahbclk */
-  crm_ahb_div_set(CRM_AHB_DIV_1);
+  crm_ahb_div_set(AHB_DIVIDER);
 
   /* config apb2clk, the maximum frequency of APB1/APB2 clock is 75 MHz  */
-  crm_apb2_div_set(CRM_APB2_DIV_2);
+  crm_apb2_div_set(APB2_DIVIDER);
 
   /* config apb1clk, the maximum frequency of APB1/APB2 clock is 75 MHz  */
-  crm_apb1_div_set(CRM_APB1_DIV_2);
+  crm_apb1_div_set(APB1_DIVIDER);
 
   /* enable auto step mode */
   crm_auto_step_mode_enable(TRUE);
