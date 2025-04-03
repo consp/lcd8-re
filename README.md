@@ -18,7 +18,7 @@ Back:
 - U4: 1B0B0G Unknown IC, ~~likely~~ a I2C EEPROM (likely 4k) acts like a standard EEPROM with 2 byte read and 3 byte write. Address is 0x50 looking at the first byte. Only page 1 is ever read.
 
 - Qn: Either G1 or BG (NPN or PNP fet)
-- Q?: A1043 Unknown transistor, likely NPN
+- Q?: A1013 PNP Transistor (schematic is wrong), 1A -160V. 
 
 ### Notable things
 - Beware! The Electrolithic caps might be snot-glued in.
