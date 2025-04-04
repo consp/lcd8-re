@@ -6,21 +6,17 @@
 #include "delay.h"
 #include "lvgl.h"
 
-// #define USE_TMR_INT
-
+// functions must be implemented in HAL
 void lcd_init(void);
 void lcd_backlight(uint32_t enable);
-
-/* ugui accelerators */
-#if 0
-void lcd_draw(UG_S16 x, UG_S16 y, UG_COLOR color);
-UG_RESULT lcd_draw_line(UG_S16 x1, UG_S16 y1, UG_S16 x2, UG_S16 y2, UG_COLOR color);
-UG_RESULT lcd_fill(UG_S16 x1, UG_S16 y1, UG_S16 x2, UG_S16 y2, UG_COLOR color);
-void (*lcd_fill_area(UG_S16 x1, UG_S16 y1, UG_S16 x2, UG_S16 y2))(uint32_t, UG_COLOR);
-UG_RESULT lcd_draw_bmp(UG_S16 x, UG_S16 y, UG_BMP *bmp);
+int lcd_start(void);
+#if LVGL_VERSION_MAJOR == 9
+void lcd_draw_large_text(uint32_t x, uint32_t y, const lv_image_dsc_t *img, uint16_t color);
+void lcd_lvgl_flush(lv_display_t *display, const lv_area_t *area, uint8_t *pixmap);
+#else
+void lcd_draw_large_text(uint32_t x, uint32_t y, const lv_img_dsc_t *img, uint16_t color);
+void lcd_lvgl_flush(lv_disp_drv_t *display, const lv_area_t *area, lv_color_t *pixmap);
 #endif
-void lcd_fill(uint32_t x1, uint32_t y1, uint32_t x2, uint32_t y2, uint16_t color);
-void lcd_update(void);
 
 #define PIN_READ    GPIO_PINS_8 
 #define PIN_WRITE   GPIO_PINS_9 
@@ -158,19 +154,4 @@ void lcd_update(void);
  */
 
 
-void set_address_window(uint32_t x, uint32_t y, uint32_t x2, uint32_t y2);
-void fill(uint32_t color, uint32_t len);
-int lcd_start(void);
-void lcd_test(void);
-
-void lcd_command(uint8_t cmd);
-
-
-#if LVGL_VERSION_MAJOR == 9
-void lcd_draw_large_text(uint32_t x, uint32_t y, const lv_image_dsc_t *img, uint16_t color);
-void lcd_lvgl_flush(lv_display_t *display, const lv_area_t *area, uint8_t *pixmap);
-#else
-void lcd_draw_large_text(uint32_t x, uint32_t y, const lv_img_dsc_t *img, uint16_t color);
-void lcd_lvgl_flush(lv_disp_drv_t *display, const lv_area_t *area, lv_color_t *pixmap);
-#endif
 #endif // __LCD_H__

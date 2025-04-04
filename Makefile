@@ -3,7 +3,6 @@
 # target
 ######################################
 TARGET = LCD8H-firmware
-SIM = lcd8-test
 
 ######################################
 # building variables
@@ -17,6 +16,7 @@ else
 OPT = -Ofast
 endif
 
+PLATFORM=LCD8
 LVGL_VERSION = 8
 
 
@@ -31,25 +31,8 @@ BUILD_DIR = build
 ######################################
 # C sources
 C_SOURCES =  \
-src/startup/system_at32f415.c \
-src/drivers/at32f415_crm.c \
-src/drivers/at32f415_crc.c \
-src/drivers/at32f415_dma.c \
-src/drivers/at32f415_tmr.c \
-src/drivers/at32f415_ertc.c \
-src/drivers/at32f415_pwc.c \
-src/drivers/at32f415_adc.c \
-src/drivers/at32f415_usart.c \
-src/drivers/at32f415_gpio.c \
-src/drivers/at32f415_i2c.c \
-src/drivers/at32f415_misc.c \
-src/at32f415_clock.c \
-src/delay.c \
-src/eeprom.c \
-src/uart.c \
-src/lcd.c \
 src/controls.c \
-src/clock.c \
+src/comm.c \
 src/gui.c \
 src/main.c
 
@@ -73,23 +56,39 @@ src/img/icon_headlight_auto.c \
 src/img/icon_trip.c
 # src/img/icon_odo.c
 
+ifeq (${PLATFORM}, LCD8)
+C_SOURCES+= \
+src/startup/system_at32f415.c \
+src/drivers/at32f415_crm.c \
+src/drivers/at32f415_crc.c \
+src/drivers/at32f415_dma.c \
+src/drivers/at32f415_tmr.c \
+src/drivers/at32f415_ertc.c \
+src/drivers/at32f415_pwc.c \
+src/drivers/at32f415_adc.c \
+src/drivers/at32f415_usart.c \
+src/drivers/at32f415_gpio.c \
+src/drivers/at32f415_i2c.c \
+src/drivers/at32f415_misc.c \
+src/hal/lcd8h/at32f415_clock.c \
+src/hal/lcd8h/lcd.c \
+src/hal/lcd8h/uart.c \
+src/hal/lcd8h/delay.c \
+src/hal/lcd8h/clock.c \
+src/hal/lcd8h/eeprom.c \
+src/hal/lcd8h/crc.c 
+endif
+
 # ASM sources
+ifeq (${PLATFORM}, LCD8)
 ASM_SOURCES =  \
 src/startup/startup_at32f415.S
-
-SIM_C_SOURCES = \
-src/delay.c \
-src/eeprom.c \
-src/img.c \
-src/controls.c \
-src/gui.c \
-src/main.c
+endif
 
 LVGL_PATH ?= $(shell pwd)/thirdparty/lvgl
 
 # append files
 C_SOURCES += $(shell find $(LVGL_PATH)/src -type f -name '*.c')
-SIM_C_SOURCES += $(shell find $(LVGL_PATH)/src -type f -name '*.c')
 ASM_SOURCES += $(shell find $(LVGL_PATH)/src -type f -name '*.S') 
 
 
@@ -114,8 +113,6 @@ endif
 HEX = $(CP) -O ihex
 BIN = $(CP) -O binary -S
 
-SIM_CC = gcc
- 
 #######################################
 # CFLAGS
 #######################################
@@ -126,7 +123,7 @@ CPU = -mcpu=cortex-m4
 
 # float-abi
 ifeq ($(DEBUG), 1)
-LTO= -flto
+LTO=
 else
 LTO= -flto
 endif
@@ -144,7 +141,9 @@ C_DEFS =  \
 -DARM_MATH_CM4 '-D__packed=__attribute__((__packed__))' \
 -DLV_VER=$(LVGL_VERSION) \
 -DLV_CONF_INCLUDE_SIMPLE \
+-DPLATFORM_${PLATFORM} \
 -DLV_LVGL_H_INCLUDE_SIMPLE
+
 
 # AS includes
 AS_INCLUDES = \
@@ -168,11 +167,9 @@ C_INCLUDES =  \
 ASFLAGS = $(MCU) $(AS_DEFS) $(AS_INCLUDES) $(OPT) -Wall -fdata-sections -ffunction-sections $(LTO) -Wa,-Iinc/
 
 CFLAGS += $(MCU) $(C_DEFS) $(C_INCLUDES) $(OPT) -Wall -fdata-sections -ffunction-sections -fno-ident -fno-asynchronous-unwind-tables $(LTO)
-SIM_CFLAGS = $(C_INCLUDES) $(OPT) -Wall -DSIM
 
 ifeq ($(DEBUG), 1)
 CFLAGS += -g3 -DDEBUG_UART_PRINT=1 -DDEBUG=1
-SIM_CFLAGS += -g3
 else
 CFLAGS += -Werror
 endif
@@ -194,10 +191,8 @@ LDSCRIPT = src/startup/AT32F415xC_FLASH.ld
 # libraries
 # LIBS = -lc -lm -lnosys -larm_cortexM3l_math
 LIBS = 
-SIM_LIBS = -lm -lX11
 # LIBDIR = -LDrivers/CMSIS
 LDFLAGS = $(MCU) -specs=nano.specs -specs=nosys.specs --specs=rdimon.specs -T$(LDSCRIPT) $(LIBS) -Wl,-Map=$(BUILD_DIR)/$(TARGET).map,--cref -Wl,--gc-sections -Wl,--print-memory-usage $(CFLAGS)
-SIM_LDFLAGS = $(SIM_LIBS) -Wl,--print-memory-usage $(SIM_CFLAGS)
 
 # default action: build all
 all: $(BUILD_DIR)/$(TARGET).elf $(BUILD_DIR)/$(TARGET).hex $(BUILD_DIR)/$(TARGET).bin
@@ -209,9 +204,7 @@ all: $(BUILD_DIR)/$(TARGET).elf $(BUILD_DIR)/$(TARGET).hex $(BUILD_DIR)/$(TARGET
 # list of objects
 
 OBJECTS = $(addprefix $(BUILD_DIR)/,$(notdir $(C_SOURCES:.c=.o)))
-SIM_OBJECTS = $(addprefix $(BUILD_DIR)/sim/,$(notdir $(SIM_C_SOURCES:.c=.o)))
 vpath %.c $(sort $(dir $(C_SOURCES)))
-vpath %.c $(sort $(dir $(SIM_C_SOURCES)))
 # list of ASM program objects
 OBJECTS += $(addprefix $(BUILD_DIR)/,$(notdir $(ASM_SOURCES:.S=.o)))
 vpath %.S $(sort $(dir $(ASM_SOURCES)))
@@ -220,9 +213,6 @@ vpath %.S $(sort $(dir $(ASM_SOURCES)))
 
 $(BUILD_DIR)/%.o: %.c Makefile | $(BUILD_DIR) 
 	$(CC) -c $(CFLAGS) -Wa,-a,-ad,-alms=$(BUILD_DIR)/$(notdir $(<:.c=.lst)) $< -o $@
-
-$(BUILD_DIR)/sim/%.o: %.c Makefile | $(BUILD_DIR)/sim
-	$(SIM_CC) -c $(SIM_CFLAGS) $< -o $@
 
 $(BUILD_DIR)/%.o: %.S Makefile | $(BUILD_DIR)
 	$(AS) -c $(CFLAGS) $< -o $@
@@ -237,9 +227,6 @@ $(BUILD_DIR)/$(TARGET).elf: $(OBJECTS) Makefile
 	$(CC) $(OBJECTS) $(LDFLAGS) -o $@
 	$(SZ) $@
 
-$(BUILD_DIR)/sim/$(SIM): $(SIM_OBJECTS) Makefile
-	$(SIM_CC) $(SIM_OBJECTS) $(SIM_LDFLAGS) -o $@
-
 $(BUILD_DIR)/%.hex: $(BUILD_DIR)/%.elf | $(BUILD_DIR)
 	$(HEX) $< $@
 	
@@ -250,9 +237,6 @@ $(BUILD_DIR)/%.bin: $(BUILD_DIR)/%.elf | $(BUILD_DIR)
 $(BUILD_DIR):
 	mkdir -p $@	
 	
-$(BUILD_DIR)/sim: $(BUILD_DIR)
-	mkdir -p $@	
-
 preprocessor: $(DOBJECTS)
 
 assembler: $(SOBJECTS)
@@ -260,8 +244,6 @@ assembler: $(SOBJECTS)
 flash: $(BUILD_DIR)/$(TARGET).bin
 	pyocd load build/LCD8H-firmware.bin --target stm32f103rc
 
-sim: $(BUILD_DIR)/sim/$(SIM) | $(BUILD_DIR)
-	
 #######################################
 # clean up
 #######################################

@@ -49,7 +49,7 @@ const ili_cmd ili_startup_cmds[STARTUP_COMMAND_LENGTH] = {
 };
 
 void lcd_backlight_init(void) {
-  /* tmr3 time base configuration */
+    crm_periph_clock_enable(CRM_TMR3_PERIPH_CLOCK, TRUE);
 
     tmr_base_init(TMR3, 10000-1, TIMER_FREQ(1000000)); // 10khz?
     tmr_cnt_dir_set(TMR3, TMR_COUNT_UP);
@@ -104,6 +104,9 @@ void lcd_tmr_init(void) {
 
 void lcd_init(void) {
     
+    crm_periph_clock_enable(CRM_GPIOA_PERIPH_CLOCK, TRUE); // we use all channels
+    crm_periph_clock_enable(CRM_GPIOB_PERIPH_CLOCK, TRUE); // we use all channels
+    crm_periph_clock_enable(CRM_GPIOC_PERIPH_CLOCK, TRUE); // we use all channels
   gpio_init_type gpio_initstructure;
   // remap
   crm_periph_clock_enable(CRM_IOMUX_PERIPH_CLOCK, TRUE);

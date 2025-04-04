@@ -1,7 +1,7 @@
 /*******************************************************************************
  * Size: 28 px
  * Bpp: 4
- * Opts: --size 28 -o src/fonts/8.x/ANDALEMO_28.c --bpp 4 --format lvgl --font src/fonts/andalemo.ttf --symbols  0123456789.,- --lv-font-name lv_font_andalemo_28
+ * Opts: --size 28 -o src/fonts/8.x/ANDALEMO_28.c --bpp 4 --format lvgl --font src/fonts/andalemo.ttf --symbols  0123456789.,-: --lv-font-name lv_font_andalemo_28
  ******************************************************************************/
 
 #ifdef LV_LVGL_H_INCLUDE_SIMPLE
@@ -170,7 +170,12 @@ static LV_ATTRIBUTE_LARGE_CONST const uint8_t glyph_bitmap[] = {
     0xc0, 0x1f, 0xdc, 0x8, 0x80, 0x2, 0x39, 0x88,
     0x93, 0x4c, 0x64, 0x2, 0xd8, 0xce, 0xe5, 0x90,
     0xe9, 0x0, 0x5a, 0xa4, 0x0, 0x27, 0xf3, 0x0,
-    0x80
+    0x80,
+
+    /* U+003A ":" */
+    0xb, 0xf6, 0x44, 0x4, 0x28, 0x1, 0x7, 0x6e,
+    0x80, 0x90, 0x3, 0xff, 0x9c, 0x28, 0x3, 0xd7,
+    0x4a, 0x0, 0x44, 0x82, 0x0
 };
 
 
@@ -193,7 +198,8 @@ static const lv_font_fmt_txt_glyph_dsc_t glyph_dsc[] = {
     {.bitmap_index = 509, .adv_w = 269, .box_w = 13, .box_h = 20, .ofs_x = 2, .ofs_y = 0},
     {.bitmap_index = 622, .adv_w = 269, .box_w = 13, .box_h = 20, .ofs_x = 2, .ofs_y = 0},
     {.bitmap_index = 700, .adv_w = 269, .box_w = 13, .box_h = 20, .ofs_x = 2, .ofs_y = 0},
-    {.bitmap_index = 817, .adv_w = 269, .box_w = 13, .box_h = 20, .ofs_x = 2, .ofs_y = 0}
+    {.bitmap_index = 817, .adv_w = 269, .box_w = 13, .box_h = 20, .ofs_x = 2, .ofs_y = 0},
+    {.bitmap_index = 930, .adv_w = 269, .box_w = 4, .box_h = 15, .ofs_x = 6, .ofs_y = 0}
 };
 
 /*---------------------
@@ -212,7 +218,7 @@ static const lv_font_fmt_txt_cmap_t cmaps[] =
         .unicode_list = unicode_list_0, .glyph_id_ofs_list = NULL, .list_length = 4, .type = LV_FONT_FMT_TXT_CMAP_SPARSE_TINY
     },
     {
-        .range_start = 48, .range_length = 10, .glyph_id_start = 5,
+        .range_start = 48, .range_length = 11, .glyph_id_start = 5,
         .unicode_list = NULL, .glyph_id_ofs_list = NULL, .list_length = 0, .type = LV_FONT_FMT_TXT_CMAP_FORMAT0_TINY
     }
 };

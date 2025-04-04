@@ -10,7 +10,15 @@
 #define SPEED_FILTER_SHIFT 2
 #define POWER_FILTER_SHIFT 2
 
-#define PIXEL_BUFFER_LINES 16 // preferably 32 or higher, this save tearing to the graph and nothing else
+#ifdef DEBUG
+#define PIXEL_BUFFER_LINES 8  // can be lower but tearing will increase
+#else
+#ifdef PLATFORM_LCD8
+#define PIXEL_BUFFER_LINES 24 // lower if more mem is required for lvgl
+#else
+#define PIXEL_BUFFER_LINES 32 // reduces tearing if multiple of 32
+#endif
+#endif
 #define PIXEL_BUFFER_SIZE (PIXEL_BUFFER_LINES * 2 * DISPLAY_WIDTH)
 
 #define REFRESH_INTERVAL 33 // refresh interval in us
@@ -33,6 +41,9 @@
 #define WHEEL_CIRCUMFENCE 223
 // change to 1 if lext installed
 #define LEXT_INSTALLED 1
+
+// change to not draw controller mode
+#define DRAW_CONTROLLER_MODE
 
 #define OC // overclock to 240mhz, might not work
 

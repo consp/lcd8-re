@@ -2,7 +2,7 @@
 #include "at32f415_dma.h"
 #include "lvgl.h"
 #include "lv_conf.h"
-#include "eeprom.h"
+#include "crc.h"
 #include <machine/endian.h>
 
 uint8_t uart_rx_buffer[UART_RX_BUFFER_SIZE] = {0};
@@ -11,16 +11,7 @@ volatile int uart_rx_ready = 0;
 volatile int uart_tx_ready = 0;
 uint32_t read_buffer_length = 0;
 
-// externals
-//
-extern int32_t speed, battery_current, battery_voltage_controller, mot_temperature, con_temperature, wheel_circumfence;
-extern uint8_t draw_power_trigger, draw_speed_trigger, draw_temperatures_trigger, brake, controller_mode, draw_battery_voltage_trigger;
-extern settings_t settings;
-
 static void uart_init_dma(void);
-#if DEBUG && DEBUG_UART_PRINT
-void lv_log_callback(const char *c);
-#endif
 
 void uart_init(uint32_t baud)
 {
@@ -167,105 +158,20 @@ void uart_send(const uint8_t *buffer, ssize_t length, int async) {
 }
 int32_t tval = 0;
 
-void uart_update(void) {
-    // parse if available and update variables
+int uart_get_data(uint8_t **data, uint32_t *length) {
     if (uart_rx_ready) {
-        ssize_t length = 0;
         uart_rx_ready = 0;
-        while (length < read_buffer_length) {
-            msg_controller *msg = (msg_controller *) &uart_rx_buffer[length];
-            // calidate crc
-            uint8_t crc = crc_calc_uart((uint8_t *) msg, msg->length);
-            if (msg->crc == crc) {
-                switch (msg->tag) {
-                    case (MSG_VOLTAGE):
-                        battery_voltage_controller = (int32_t) __ntohl(msg->voltage.value);
-                        draw_battery_voltage_trigger = 1;
-                        break;
-                    case (MSG_CURRENT):
-                        battery_current = (int32_t) __ntohl(msg->current.value); 
-                        draw_power_trigger = 1; 
-                        break;
-                    case (MSG_ROTATION):
-                        tval = __ntohs(msg->rotation.value);
-                        if (tval > 0) {
-                            // enable
-                            TMR5->pr = (tval * 100)-1;
-                            speed = (((int32_t)settings.wheel_circumfence) * 36000L) / (tval); 
-                        } else {
-                            TMR5->pr = 0;
-                            speed = 0;
-                        }
-                        draw_speed_trigger = 1;
-                        break;
-                    case (MSG_TEMPERATURE):
-                        mot_temperature = __ntohs(msg->temperature.engine); // in 0.1C
-                        con_temperature = __ntohs(msg->temperature.controller); // in 0.1C 
-                        draw_temperatures_trigger = 1;
-                        break;
-                    case (MSG_CONTROLLER_STATUS):
-                        brake = msg->status.brake;
-                        controller_mode = msg->status.mode;
-                        break;
-                    default:
-                        break;
-                }
-                length += msg->length + 3;
-            } else {
-                length += 3;
-            }
-        }
+        *data = uart_rx_buffer;
+        *length = read_buffer_length;
+
         read_buffer_length = 0;
-        // reset dma
+    
+        dma_channel_enable(DMA1_CHANNEL5, TRUE);
+        return 1;
     }
-
-    dma_channel_enable(DMA1_CHANNEL5, TRUE);
+    return 0;
 }
 
-void uart_send_display_settings(void) {
-    uint8_t data[3 + sizeof(msg_display_settings)] = { MSG_DISPLAY_SETTINGS };
-    msg_display *msg = (msg_display *) data;
-    msg->length = sizeof(msg_display_settings); 
-   
-    msg->settings.max_current = __htons(settings.current_max);
-    msg->settings.wheel_circumfence = __htons(settings.wheel_circumfence);
-    msg->settings.max_speed = settings.speed_assist_max;
-    msg->settings.assist_levels = settings.assist_levels;
-
-    msg->crc = crc_calc_uart((uint8_t *) msg, sizeof(msg_display_settings));
-    
-    uart_send(data, 3 + sizeof(msg_display_settings), 0);
-}
-
-void uart_send_display_status(void) {
-    uint8_t data[3 + sizeof(msg_display_status)] = { MSG_DISPLAY_STATUS };
-    msg_display *msg = (msg_display *) data;
-    msg->length = sizeof(msg_display_status);
-    msg->status.assist_level = settings.assist_last;
-    msg->status.lights = settings.lights_enabled;
-    msg->crc = crc_calc_uart((uint8_t *) msg, sizeof(msg_display_status));
-    
-    uart_send(data, 3 + sizeof(msg_display_status), 0);
-}
-
-void uart_send_controller_settings(void) {
-}
-
-/* int get_msg(uint8_t *buffer, ssize_t *length) { */
-/*     if (!uart_tx_ready) return 0; */
-/*     if (NULL == buffer) return 0; */
-/*     *length = DMA1_CHANNEL5->dtcnt; */
-/*     #<{(| memcpy(buffer, uart_rx_buffer, *length); |)}># */
-/*     DMA1_CHANNEL5->dtcnt = 0; */
-/*     DMA1_CHANNEL5->maddr = (uint32_t ) uart_rx_buffer; */
-/*     uart_rx_ready = 0; */
-/* } */
-
-#if DEBUG && LV_USE_LOG
-void lv_log_callback(const char *c) {
-    uart_send(c, strlen(c), 0);
-}
-#endif
 
 #ifdef DEBUG
 uint32_t divval(void) {

@@ -1,7 +1,7 @@
 /*******************************************************************************
  * Size: 32 px
  * Bpp: 4
- * Opts: --size 32 -o src/fonts/8.x/ANDALEMO_32.c --bpp 4 --format lvgl --font src/fonts/andalemo.ttf --symbols  0123456789.,- --lv-font-name lv_font_andalemo_32
+ * Opts: --size 32 -o src/fonts/8.x/ANDALEMO_32.c --bpp 4 --format lvgl --font src/fonts/andalemo.ttf --symbols  0123456789.,-: --lv-font-name lv_font_andalemo_32
  ******************************************************************************/
 
 #ifdef LV_LVGL_H_INCLUDE_SIMPLE
@@ -197,7 +197,12 @@ static LV_ATTRIBUTE_LARGE_CONST const uint8_t glyph_bitmap[] = {
     0xf, 0x80, 0x2c, 0x3, 0x75, 0xba, 0xaa, 0x3c,
     0x81, 0xd4, 0x2, 0x21, 0x48, 0xaa, 0x38, 0x83,
     0xc0, 0x6, 0x39, 0x42, 0x0, 0x13, 0x64, 0x0,
-    0x60
+    0x60,
+
+    /* U+003A ":" */
+    0xa, 0xfa, 0x4, 0x50, 0x54, 0x0, 0xce, 0x90,
+    0x72, 0x60, 0xf8, 0xc0, 0x1f, 0xfd, 0xe7, 0xb6,
+    0x3, 0x84, 0x93, 0x60, 0x9, 0xd5, 0x40, 0xa8
 };
 
 
@@ -220,7 +225,8 @@ static const lv_font_fmt_txt_glyph_dsc_t glyph_dsc[] = {
     {.bitmap_index = 623, .adv_w = 307, .box_w = 15, .box_h = 22, .ofs_x = 2, .ofs_y = 0},
     {.bitmap_index = 762, .adv_w = 307, .box_w = 14, .box_h = 22, .ofs_x = 3, .ofs_y = 0},
     {.bitmap_index = 855, .adv_w = 307, .box_w = 15, .box_h = 22, .ofs_x = 2, .ofs_y = 0},
-    {.bitmap_index = 1001, .adv_w = 307, .box_w = 15, .box_h = 22, .ofs_x = 2, .ofs_y = 0}
+    {.bitmap_index = 1001, .adv_w = 307, .box_w = 15, .box_h = 22, .ofs_x = 2, .ofs_y = 0},
+    {.bitmap_index = 1138, .adv_w = 307, .box_w = 5, .box_h = 17, .ofs_x = 7, .ofs_y = 0}
 };
 
 /*---------------------
@@ -239,7 +245,7 @@ static const lv_font_fmt_txt_cmap_t cmaps[] =
         .unicode_list = unicode_list_0, .glyph_id_ofs_list = NULL, .list_length = 4, .type = LV_FONT_FMT_TXT_CMAP_SPARSE_TINY
     },
     {
-        .range_start = 48, .range_length = 10, .glyph_id_start = 5,
+        .range_start = 48, .range_length = 11, .glyph_id_start = 5,
         .unicode_list = NULL, .glyph_id_ofs_list = NULL, .list_length = 0, .type = LV_FONT_FMT_TXT_CMAP_FORMAT0_TINY
     }
 };

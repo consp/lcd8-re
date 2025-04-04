@@ -1,7 +1,7 @@
 /*******************************************************************************
  * Size: 16 px
  * Bpp: 4
- * Opts: --size 16 -o src/fonts/8.x/ANDALEMO_16.c --bpp 4 --format lvgl --font src/fonts/andalemo.ttf --symbols  0123456789.,- --lv-font-name lv_font_andalemo_16
+ * Opts: --size 16 -o src/fonts/8.x/ANDALEMO_16.c --bpp 4 --format lvgl --font src/fonts/andalemo.ttf --symbols  0123456789.,-: --lv-font-name lv_font_andalemo_16
  ******************************************************************************/
 
 #ifdef LV_LVGL_H_INCLUDE_SIMPLE
@@ -103,7 +103,11 @@ static LV_ATTRIBUTE_LARGE_CONST const uint8_t glyph_bitmap[] = {
     0x25, 0x0, 0x20, 0x12, 0x4d, 0xff, 0xb4, 0x4,
     0x1b, 0xb9, 0xf2, 0x2, 0x1, 0x8, 0x20, 0x10,
     0x7, 0x53, 0x0, 0x14, 0x89, 0x47, 0x0, 0x9,
-    0xdd, 0xe, 0x8, 0x0
+    0xdd, 0xe, 0x8, 0x0,
+
+    /* U+003A ":" */
+    0x1e, 0x71, 0x42, 0xa, 0x50, 0xf, 0xf5, 0xa8,
+    0xa9, 0x0
 };
 
 
@@ -126,7 +130,8 @@ static const lv_font_fmt_txt_glyph_dsc_t glyph_dsc[] = {
     {.bitmap_index = 220, .adv_w = 154, .box_w = 8, .box_h = 11, .ofs_x = 1, .ofs_y = 0},
     {.bitmap_index = 265, .adv_w = 154, .box_w = 8, .box_h = 11, .ofs_x = 1, .ofs_y = 0},
     {.bitmap_index = 299, .adv_w = 154, .box_w = 8, .box_h = 11, .ofs_x = 1, .ofs_y = 0},
-    {.bitmap_index = 343, .adv_w = 154, .box_w = 8, .box_h = 11, .ofs_x = 1, .ofs_y = 0}
+    {.bitmap_index = 343, .adv_w = 154, .box_w = 8, .box_h = 11, .ofs_x = 1, .ofs_y = 0},
+    {.bitmap_index = 387, .adv_w = 154, .box_w = 3, .box_h = 8, .ofs_x = 3, .ofs_y = 0}
 };
 
 /*---------------------
@@ -145,7 +150,7 @@ static const lv_font_fmt_txt_cmap_t cmaps[] =
         .unicode_list = unicode_list_0, .glyph_id_ofs_list = NULL, .list_length = 4, .type = LV_FONT_FMT_TXT_CMAP_SPARSE_TINY
     },
     {
-        .range_start = 48, .range_length = 10, .glyph_id_start = 5,
+        .range_start = 48, .range_length = 11, .glyph_id_start = 5,
         .unicode_list = NULL, .glyph_id_ofs_list = NULL, .list_length = 0, .type = LV_FONT_FMT_TXT_CMAP_FORMAT0_TINY
     }
 };

@@ -1,7 +1,7 @@
 /*******************************************************************************
  * Size: 12 px
  * Bpp: 4
- * Opts: --size 12 -o src/fonts/8.x/ANDALEMO_12.c --bpp 4 --format lvgl --font src/fonts/andalemo.ttf --symbols  0123456789.,- --lv-font-name lv_font_andalemo_12
+ * Opts: --size 12 -o src/fonts/8.x/ANDALEMO_12.c --bpp 4 --format lvgl --font src/fonts/andalemo.ttf --symbols  0123456789.,-: --lv-font-name lv_font_andalemo_12
  ******************************************************************************/
 
 #ifdef LV_LVGL_H_INCLUDE_SIMPLE
@@ -83,6 +83,10 @@ static LV_ATTRIBUTE_LARGE_CONST const uint8_t glyph_bitmap[] = {
     0x1b, 0xdb, 0x10, 0xae, 0xdd, 0x40, 0x2a, 0x3,
     0x38, 0x2b, 0x81, 0x1, 0x56, 0x62, 0x0, 0xc6,
     0xb2, 0x80, 0x40, 0x29, 0x90, 0x36, 0xe8, 0x1c,
+    0x0,
+
+    /* U+003A ":" */
+    0xe, 0x20, 0xd2, 0x3, 0x0, 0xe3, 0x0, 0x69,
     0x0
 };
 
@@ -106,7 +110,8 @@ static const lv_font_fmt_txt_glyph_dsc_t glyph_dsc[] = {
     {.bitmap_index = 137, .adv_w = 115, .box_w = 6, .box_h = 8, .ofs_x = 1, .ofs_y = 0},
     {.bitmap_index = 161, .adv_w = 115, .box_w = 6, .box_h = 8, .ofs_x = 1, .ofs_y = 0},
     {.bitmap_index = 183, .adv_w = 115, .box_w = 7, .box_h = 8, .ofs_x = 0, .ofs_y = 0},
-    {.bitmap_index = 211, .adv_w = 115, .box_w = 6, .box_h = 8, .ofs_x = 1, .ofs_y = 0}
+    {.bitmap_index = 211, .adv_w = 115, .box_w = 6, .box_h = 8, .ofs_x = 1, .ofs_y = 0},
+    {.bitmap_index = 236, .adv_w = 115, .box_w = 3, .box_h = 6, .ofs_x = 2, .ofs_y = 0}
 };
 
 /*---------------------
@@ -125,7 +130,7 @@ static const lv_font_fmt_txt_cmap_t cmaps[] =
         .unicode_list = unicode_list_0, .glyph_id_ofs_list = NULL, .list_length = 4, .type = LV_FONT_FMT_TXT_CMAP_SPARSE_TINY
     },
     {
-        .range_start = 48, .range_length = 10, .glyph_id_start = 5,
+        .range_start = 48, .range_length = 11, .glyph_id_start = 5,
         .unicode_list = NULL, .glyph_id_ofs_list = NULL, .list_length = 0, .type = LV_FONT_FMT_TXT_CMAP_FORMAT0_TINY
     }
 };

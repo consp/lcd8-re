@@ -153,6 +153,11 @@
 #define ASSIST_WIDTH                    64
 #define ASSIST_HEIGHT                   96 + 16
 
+#define CM_LABEL_X                      320-32
+#define CM_LABEL_Y                      GRAPH_Y + GRAPH_HEIGHT
+#define CM_LABEL_WIDTH                  32
+#define CM_LABEL_HEIGHT                 32
+
 
 #define DEBUG_X                 0
 #define DEBUG_Y                 DISPLAY_HEIGHT - 16
@@ -209,6 +214,6 @@ typedef enum {
     LIGHTS_MODE_AUTOMATIC
 } lights_mode;
 
-#define MAIN_MENU_ITEMS     4
+void gui_increment_trip(void);
 
 #endif // __GUI_H__

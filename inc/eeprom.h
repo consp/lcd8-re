@@ -1,33 +1,11 @@
 #ifndef __EEPROM_H__
 #define __EEPROM_H__
 
-#ifndef SIM
-#include "at32f415_gpio.h"
-#else
-#include <string.h>
-#endif
-#include "delay.h"
-#include "config.h"
+#include <stdint.h>
 
-#define T_LOW  10
-#define T_HIGH 9
-// this will be optimized away by the compiler if constant
-#define SDA(x) x != 0 ? gpio_bits_set(GPIO_BLOCK, SDA_PIN) : gpio_bits_reset(GPIO_BLOCK, SDA_PIN)
-#define SCL(x) x != 0 ? gpio_bits_set(GPIO_BLOCK, SCL_PIN) : gpio_bits_reset(GPIO_BLOCK, SCL_PIN)
-#define DELAY_HIGH delay_us(T_HIGH)
-#define DELAY_LOW delay_us(T_LOW)
-
-#define I2C_READ 1
-#define I2C_WRITE 0
-
-#define GPIO_SET_READ_LOW(x, y)     x->cfglr &= ~(0xF << (y * 4)); x->cfglr |= 0x4 << (y * 4)
-#define GPIO_SET_WRITE_LOW(x, y)    x->cfglr &= ~(0xF << (y * 4)); x->cfglr |= 0x6 << (y * 4)
-
-void i2c_transfer(uint32_t address, uint8_t *values, ssize_t length, uint32_t RWFLAG, uint32_t delay);
-uint8_t eeprom_read_byte(uint32_t byte, uint8_t page);
-void eeprom_read_bytes(uint32_t start, uint8_t page, uint8_t *buffer, uint32_t length);
-void eeprom_write_byte(uint8_t address, uint8_t page, uint8_t byte);
 void eeprom_init(void);
+void eeprom_read_settings(void);
+void eeprom_write_settings(void);
 
 #pragma pack(push, 1)
 typedef struct __attribute__((packed)) {
@@ -63,10 +41,5 @@ typedef struct __attribute__((packed)) {
 } settings_t;
 #pragma pack(pop)
 
-#define CRC_POLYNOMIAL 0x07  // Bluetooth crc8
 
-void eeprom_read_settings(void);
-void eeprom_write_settings(void);
-uint8_t crc_calc(uint8_t *data, ssize_t length);
-uint8_t crc_calc_uart(uint8_t *input, ssize_t length);
 #endif // __EEPROM_H__

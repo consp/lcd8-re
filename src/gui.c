@@ -3,10 +3,12 @@
 #include "lvgl.h"
 #include "controls.h"
 #include "eeprom.h"
+#include "clock.h"
 #include "uart.h"
+#include "comm.h"
 
+extern volatile uint32_t timer_counter;
 uint8_t pixelbuffer[PIXEL_BUFFER_LINES * DISPLAY_WIDTH * 2];
-volatile uint32_t timer_counter = 0;
 uint32_t timer_old = 0;
 
 /*** 
@@ -36,6 +38,8 @@ uint8_t draw_speed_trigger = 0;
 uint8_t draw_assist_trigger = 0;
 uint8_t draw_battery_voltage_trigger = 0;
 uint8_t draw_lights_trigger = 0;
+uint8_t draw_brake_trigger = 0;
+uint8_t draw_controller_mode_trigger = 0;
 modes  mode = MODE_NORMAL, mode_back = MODE_NORMAL;
 
 const lv_point_t fakepoints[4] = { {0, 0}, {1, 1}, {2, 2}, {3, 3}}; // work around the horrible lvgl buttons/key system
@@ -91,6 +95,8 @@ lv_obj_t *graph = NULL;
 lv_chart_series_t *graph_series = NULL;
 lv_chart_cursor_t *graph_cursor = NULL;
 
+lv_obj_t *cm_label = NULL;
+
 lv_anim_t anim_reset_trip;
 
 lv_style_t text_slim, text_normal;
@@ -116,6 +122,8 @@ static void _draw_distances(void);
 static void _draw_time(void);
 static void _draw_assist(void);
 static void _draw_headlights(void);
+static void _draw_brake(void);
+static void _draw_controller_mode(void);
 
 void _draw_graph(lv_timer_t *timer);
 void gui_draw_normal(void);
@@ -139,41 +147,8 @@ lv_timer_t *ms500_timer = NULL;
 // lvgl local
 static void graph_event_pre_cb(lv_event_t * e);
 
-/***
- * LVGL timer functions
- */
-uint32_t timer_cb(void) {
-    return timer_counter;
-}
-
-tmr_output_config_type tmr_output_struct;
 void gui_init(void) {
     // setup timer
-    crm_periph_clock_enable(CRM_TMR1_PERIPH_CLOCK, TRUE);
-    tmr_base_init(TMR1, 10000-1, TIMER_FREQ(1000000)-1); // 1khz
-    tmr_clock_source_div_set(TMR1, TMR_CLOCK_DIV1);
-    tmr_cnt_dir_set(TMR1, TMR_COUNT_UP);
-    tmr_interrupt_enable(TMR1, TMR_OVF_INT, TRUE); // trap on overflow
-
-    tmr_output_enable(TMR1, FALSE);
-    tmr_counter_enable(TMR1, TRUE);
-
-    crm_periph_clock_enable(CRM_TMR5_PERIPH_CLOCK, TRUE);
-    tmr_base_init(TMR5, 0, TIMER_FREQ(10000)); // 1khz
-    tmr_clock_source_div_set(TMR5, TMR_CLOCK_DIV1);
-    tmr_cnt_dir_set(TMR5, TMR_COUNT_UP);
-    tmr_interrupt_enable(TMR5, TMR_OVF_INT, TRUE); // trap on overflow
-    
-    tmr_32_bit_function_enable(TMR5, 1);
-
-    tmr_output_enable(TMR5, FALSE);
-    tmr_counter_enable(TMR5, TRUE);
-
-    nvic_priority_group_config(NVIC_PRIORITY_GROUP_4);
-    nvic_irq_enable(TMR1_OVF_TMR10_IRQn, 0, 0);
-
-    nvic_irq_enable(TMR5_GLOBAL_IRQn, 0, 0);
-
     lv_init();
 
     // set display
@@ -211,30 +186,6 @@ uint8_t p = 0;
 uint32_t inttimer = 0;
 
 
-// use tmr1 for ms interval timer
-//
-void TMR1_OVF_TMR10_IRQHandler(void)
-{
-    if(tmr_interrupt_flag_get(TMR1, TMR_OVF_FLAG) != RESET)
-    {
-        /* lv_tick_inc(1); */
-        timer_counter++;
-        tmr_flag_clear(TMR1, TMR_OVF_FLAG);
-    }
-    // overflow is 10ms
-}
-
-void TMR5_GLOBAL_IRQHandler(void)
-{
-    if(tmr_interrupt_flag_get(TMR5, TMR_OVF_FLAG) != RESET)
-    {
-        tmr_flag_clear(TMR5, TMR_OVF_FLAG);
-        settings.trip_distance += settings.wheel_circumfence;
-        settings.total_distance += settings.wheel_circumfence;
-
-    }
-    // overflow is 10ms
-}
 uint32_t redraw_speed, 
          redraw_temp_int, 
          redraw_temp_ext = 0;
@@ -529,6 +480,12 @@ void gui_draw_normal(void) {
     lv_chart_set_all_value(graph, graph_series, 0);
     lv_obj_add_event_cb(graph, graph_event_pre_cb, LV_EVENT_DRAW_PART_BEGIN, NULL); // add cb to draw lines more normal
                                                                                     //
+    cm_label = lv_label_create(lv_screen_active());
+    lv_obj_add_style(cm_label, &text_slim, LV_PART_MAIN | LV_STATE_DEFAULT);
+    lv_obj_set_pos(cm_label, CM_LABEL_X, CM_LABEL_Y);
+    lv_obj_set_size(cm_label, CM_LABEL_WIDTH, CM_LABEL_HEIGHT);
+    lv_obj_set_style_text_align(cm_label, LV_TEXT_ALIGN_LEFT, 0);
+    lv_label_set_text(cm_label, "X");
 
 #ifdef DEBUG
     /* debug_text = lv_label_create(lv_screen_active()); */
@@ -948,6 +905,8 @@ void gui_update(void) {
             _draw_distances();
             _draw_assist();
             _draw_headlights();
+            _draw_brake();
+            _draw_controller_mode();
             break;
         default:
             break;
@@ -1063,6 +1022,16 @@ static void _draw_battery(void) {
     }
 }
 
+static void _draw_controller_mode(void) {
+    if (draw_controller_mode_trigger) {
+        char *md = "N";
+        if (controller_mode == 1) md = "S";
+        else if (controller_mode == 5) md = "I";
+        else if (controller_mode == 6) md = "P";
+        lv_label_set_text(cm_label, md);
+    }
+}
+
 static void _draw_time(void) {
     if (draw_time_trigger) {
         print_time(trip_time_text, settings.trip_time);
@@ -1114,7 +1083,7 @@ static void _draw_temperature(void) {
 static void _draw_assist(void) {
     if (draw_assist_trigger) {
         lv_roller_set_selected(assist_mode, settings.assist_last, LV_ANIM_ON);
-        uart_send_display_status(); // inform controller
+        comm_send_display_status(); // inform controller
         draw_assist_trigger = 0;
     }
 }
@@ -1138,14 +1107,14 @@ static void _draw_headlights(void) {
 static void _draw_distances(void) {
     if (draw_distances_trigger) {
         if (settings.total_distance < 100000000) {
-            print_digit_text(total_distance_text, (settings.total_distance) / (10000), 3, 1, COLOR_WHITE, COLOR_GREY);
+            print_digit_text(total_distance_text, (settings.total_distance), 3, 1, COLOR_WHITE, COLOR_GREY);
         } else {
-            print_digit_text(total_distance_text, settings.total_distance / (10000), 4, 0, COLOR_WHITE, COLOR_GREY);
+            print_digit_text(total_distance_text, settings.total_distance, 4, 0, COLOR_WHITE, COLOR_GREY);
         }
         if (settings.trip_distance < 100000000) {
-            print_digit_text(trip_distance_text, (settings.trip_distance) / 10000, 3, 1, COLOR_WHITE, COLOR_GREY);
+            print_digit_text(trip_distance_text, (settings.trip_distance), 3, 1, COLOR_WHITE, COLOR_GREY);
         } else {
-            print_digit_text(trip_distance_text, settings.trip_distance / 10000, 4, 0, COLOR_WHITE, COLOR_GREY);
+            print_digit_text(trip_distance_text, settings.trip_distance, 4, 0, COLOR_WHITE, COLOR_GREY);
         }
     }
 }
@@ -1160,8 +1129,8 @@ void print_digit_text(lv_obj_t *object, uint32_t value, uint32_t length, uint32_
     // decimals is in x.x, normal in 32bit
     lv_obj_set_style_text_color(object, active_color, LV_PART_MAIN);
     if (decimals) {
-        decimal_value = (value % 10);
-        value /= 8;
+        decimal_value = (value % 100000) / 10000;
+        value /= 100000;
     }
     if (value / powers[length-1] == 0) {
         cnt += sprintf(string + cnt, "#%02X%02X%02X ", passive_color.ch.red << 3, passive_color.ch.green << 2, passive_color.ch.blue << 3);
@@ -1180,7 +1149,7 @@ void print_digit_text(lv_obj_t *object, uint32_t value, uint32_t length, uint32_
     for (int i = decimals; i > 0; i--) {
         uint32_t tval = decimal_value / powers[i-1];
         decimal_value %= powers[i-1];
-        if (tval != 0 && preval) {
+        if (preval) {
             cnt += sprintf(&string[cnt], "#");
             preval = 0;
         }
@@ -1201,8 +1170,13 @@ void print_time(lv_obj_t *object, uint32_t value) {
         sprintf(string, "%02ld.%02ld", minutes, seconds);
     }
     lv_label_set_text_fmt(object, string); 
-    if (brake) lv_obj_clear_flag(brake_img, LV_OBJ_FLAG_HIDDEN);
-    else lv_obj_add_flag(brake_img, LV_OBJ_FLAG_HIDDEN);
+}
+
+static void _draw_brake(void) {
+    if (draw_brake_trigger) {
+        if (brake) lv_obj_clear_flag(brake_img, LV_OBJ_FLAG_HIDDEN);
+        else lv_obj_add_flag(brake_img, LV_OBJ_FLAG_HIDDEN);
+    }
 }
 
 /**********************************************
@@ -1298,25 +1272,25 @@ void button_presses(void) {
                 case BUTTON_STATE(BUTTON_ID_UP, BUTTON_PRESSED):
                     if (settings.assist_last < settings.assist_levels) settings.assist_last++;
                     button_release(BUTTON_ID_UP, 0);
-                    uart_send_display_status();
+                    comm_send_display_status();
                     draw_assist_trigger = 1;
                     break;
                 case BUTTON_STATE(BUTTON_ID_UP, BUTTON_LONG_PRESSED):
                     settings.lights_mode = LIGHTS_MODE_AUTOMATIC;
-                    uart_send_display_status();
+                    comm_send_display_status();
                     button_release(BUTTON_ID_UP, 150);
                     draw_lights_trigger = 1;
                     break;
                 case BUTTON_STATE(BUTTON_ID_DOWN, BUTTON_PRESSED):
                     if (settings.assist_last > 0) settings.assist_last--;
-                    uart_send_display_status();
+                    comm_send_display_status();
                     draw_assist_trigger = 1;
                     button_release(BUTTON_ID_DOWN, 0);
                     break;
                 case BUTTON_STATE(BUTTON_ID_DOWN, BUTTON_LONG_PRESSED):
                     settings.lights_enabled = ~settings.lights_enabled;
                     settings.lights_mode = LIGHTS_MODE_MANUAL;
-                    uart_send_display_status();
+                    comm_send_display_status();
                     button_release(BUTTON_ID_DOWN, 150);
                     draw_lights_trigger = 1;
                     break;
@@ -1432,9 +1406,9 @@ void button_presses(void) {
                             // save settings
                             eeprom_write_settings();
                             // send settings to controller
-                            uart_send_display_settings();
-                            uart_send_display_status();
-                            uart_send_controller_settings();
+                            comm_send_display_settings();
+                            comm_send_display_status();
+                            comm_send_controller_settings();
                             break;
                         case 0: // goto display settings
                             mode = MODE_SETTINGS_DISPLAY;
@@ -1545,3 +1519,9 @@ void button_presses(void) {
             break;
     }
 }
+
+void gui_increment_trip(void) {
+        settings.trip_distance += settings.wheel_circumfence;
+        settings.total_distance += settings.wheel_circumfence;
+}
+
