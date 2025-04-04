@@ -77,10 +77,3 @@ My poor attempt at drawing a schematic.
 # License
 All stuff not already licenced otherwise is only available under CC-BY-NC-4.0 https://creativecommons.org/licenses/by-nc/4.0/ . For commercial use contact me.
 
-# Attribution
-Temperature icon: <a href="https://www.vecteezy.com/free-vector/temperature">Temperature Vectors by Vecteezy</a>
-Engine icon: <a href="https://www.flaticon.com/free-icons/heat" title="heat icons">Heat icons created by HAJICON - Flaticon</a>
-Brake icon: <a href="https://www.flaticon.com/free-icons/brake" title="brake icons">Brake icons created by Smashicons - Flaticon</a>
-Trip icon: <a href="https://www.flaticon.com/free-icons/trip" title="trip icons">Trip icons created by improstudio - Flaticon</a>
-Other icons: Uicons by <a href="https://www.flaticon.com/uicons">Flaticon</a>
-Headlight and headlight auto: <a href="" title="headlight icons">Headlight icons created by TravisAvery - Flaticon</a>
