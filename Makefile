@@ -8,10 +8,10 @@ TARGET = LCD8H-firmware
 # building variables
 ######################################
 # debug build?
-DEBUG = 0
+DEBUG = 1
 # optimization
 ifeq ($(DEBUG), 1)
-OPT = -Os   
+OPT = -O2
 else
 OPT = -Ofast
 endif

@@ -8,7 +8,12 @@
 #include "comm.h"
 
 extern volatile uint32_t timer_counter;
+#if DMA_WRITE
+uint8_t pixelbuffer[PIXEL_BUFFER_LINES * DISPLAY_WIDTH];
+uint8_t pixelbuffer2[PIXEL_BUFFER_LINES * DISPLAY_WIDTH];
+#else
 uint8_t pixelbuffer[PIXEL_BUFFER_LINES * DISPLAY_WIDTH * 2];
+#endif
 uint32_t timer_old = 0;
 
 /*** 
@@ -154,7 +159,12 @@ void gui_init(void) {
     // set display
 #if LVGL_VERSION_MAJOR == 8
     lv_disp_drv_init(&disp_drv);
+#if DMA_WRITE
+    // double buff
+    lv_disp_draw_buf_init(&draw_buf, pixelbuffer, pixelbuffer2, (PIXEL_BUFFER_LINES * DISPLAY_WIDTH) >> 1);
+#else
     lv_disp_draw_buf_init(&draw_buf, pixelbuffer, NULL, PIXEL_BUFFER_LINES * DISPLAY_WIDTH);
+#endif
     disp_drv.draw_buf = &draw_buf;
     disp_drv.flush_cb = lcd_lvgl_flush;    /*Set your driver function*/
     disp_drv.set_px_cb = NULL;

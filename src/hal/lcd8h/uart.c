@@ -20,6 +20,7 @@ void uart_init(uint32_t baud)
     crm_periph_clock_enable(CRM_USART1_PERIPH_CLOCK, TRUE);
     crm_periph_clock_enable(CRM_GPIOA_PERIPH_CLOCK, TRUE);
 
+    nvic_priority_group_config(NVIC_PRIORITY_GROUP_4);
     /* set default parameter */
     gpio_default_para_init(&gpio_init_struct);
 
@@ -28,18 +29,19 @@ void uart_init(uint32_t baud)
     gpio_init_struct.gpio_out_type  = GPIO_OUTPUT_PUSH_PULL;
     gpio_init_struct.gpio_mode = GPIO_MODE_MUX;
     gpio_init_struct.gpio_pins = GPIO_PINS_9;
-    gpio_init_struct.gpio_pull = GPIO_PULL_DOWN;
+    gpio_init_struct.gpio_pull = GPIO_PULL_UP;
     gpio_init(GPIOA, &gpio_init_struct);
 
     /* configure the usart1_rx  pa10 */
     gpio_init_struct.gpio_drive_strength = GPIO_DRIVE_STRENGTH_STRONGER;
-    gpio_init_struct.gpio_out_type  = GPIO_OUTPUT_PUSH_PULL;
+    gpio_init_struct.gpio_out_type  = GPIO_OUTPUT_OPEN_DRAIN;
     gpio_init_struct.gpio_mode = GPIO_MODE_INPUT;
     gpio_init_struct.gpio_pins = GPIO_PINS_10;
     gpio_init_struct.gpio_pull = GPIO_PULL_NONE;
     gpio_init(GPIOA, &gpio_init_struct);
 
     /*configure usart nvic interrupt */
+
     nvic_irq_enable(USART1_IRQn, 0, 0);
 
     /*configure usart param*/
@@ -52,6 +54,7 @@ void uart_init(uint32_t baud)
     usart_enable(USART1, TRUE);
 
     uart_init_dma();
+    uart_rx_ready = 0;
 
 #if DEBUG && LV_USE_LOG
 #pragma message("Using uart to log LV messages")
@@ -101,6 +104,7 @@ static void uart_init_dma(void) {
 
     nvic_irq_enable(DMA1_Channel5_IRQn, 0, 0);
     /* dma_flexible_config(DMA1, FLEX_CHANNEL5, DMA_FLEXIBLE_UART1_RX); */
+    /* dma_flexible_config(DMA1, FLEX_CHANNEL4, DMA_FLEXIBLE_UART1_TX); */
 
     dma_channel_enable(DMA1_CHANNEL4, FALSE);
     dma_channel_enable(DMA1_CHANNEL5, TRUE);
@@ -158,16 +162,20 @@ void uart_send(const uint8_t *buffer, ssize_t length, int async) {
 }
 int32_t tval = 0;
 
-int uart_get_data(uint8_t **data, uint32_t *length) {
+int uart_get_data(uint8_t *data, uint32_t *length) {
     if (uart_rx_ready) {
         uart_rx_ready = 0;
-        *data = uart_rx_buffer;
         *length = read_buffer_length;
+        if (*length > UART_RX_BUFFER_SIZE) *length = UART_RX_BUFFER_SIZE;
+        memcpy(data, uart_rx_buffer, *length);
 
         read_buffer_length = 0;
     
         dma_channel_enable(DMA1_CHANNEL5, TRUE);
         return 1;
+    } else {
+        // make sure
+        dma_channel_enable(DMA1_CHANNEL5, TRUE);
     }
     return 0;
 }

@@ -55,14 +55,14 @@ void clock_init(void) {
     ertc_bpr_data_write(ERTC_DT1, 0x1234);
 #endif
 
-    crm_periph_clock_enable(CRM_TMR1_PERIPH_CLOCK, TRUE);
-    tmr_base_init(TMR1, 10000-1, TIMER_FREQ(1000000)-1); // 1khz
-    tmr_clock_source_div_set(TMR1, TMR_CLOCK_DIV1);
-    tmr_cnt_dir_set(TMR1, TMR_COUNT_UP);
-    tmr_interrupt_enable(TMR1, TMR_OVF_INT, TRUE); // trap on overflow
+    crm_periph_clock_enable(CRM_TMR4_PERIPH_CLOCK, TRUE);
+    tmr_base_init(TMR4, 10000-1, TIMER_FREQ(1000000)-1); // 1khz
+    tmr_clock_source_div_set(TMR4, TMR_CLOCK_DIV1);
+    tmr_cnt_dir_set(TMR4, TMR_COUNT_UP);
+    tmr_interrupt_enable(TMR4, TMR_OVF_INT, TRUE); // trap on overflow
 
-    tmr_output_enable(TMR1, FALSE);
-    tmr_counter_enable(TMR1, TRUE);
+    tmr_output_enable(TMR4, FALSE);
+    tmr_counter_enable(TMR4, TRUE);
 
     crm_periph_clock_enable(CRM_TMR5_PERIPH_CLOCK, TRUE);
     tmr_base_init(TMR5, 0, TIMER_FREQ(10000)-1); // 1khz
@@ -76,7 +76,7 @@ void clock_init(void) {
     tmr_counter_enable(TMR5, TRUE);
 
     nvic_priority_group_config(NVIC_PRIORITY_GROUP_4);
-    nvic_irq_enable(TMR1_OVF_TMR10_IRQn, 0, 0);
+    nvic_irq_enable(TMR4_GLOBAL_IRQn, 0, 0);
 
     nvic_irq_enable(TMR5_GLOBAL_IRQn, 0, 0);
 
@@ -87,12 +87,12 @@ void clock_get_time(void) {
     ertc_timestamp_get(&time);
 }
 
-void TMR1_OVF_TMR10_IRQHandler(void)
+void TMR4_GLOBAL_IRQHandler(void)
 {
-    if(tmr_interrupt_flag_get(TMR1, TMR_OVF_FLAG) != RESET)
+    if(tmr_interrupt_flag_get(TMR4, TMR_OVF_FLAG) != RESET)
     {
         timer_counter++;
-        tmr_flag_clear(TMR1, TMR_OVF_FLAG);
+        tmr_flag_clear(TMR4, TMR_OVF_FLAG);
     }
 }
 

@@ -10,6 +10,7 @@
 #define SPEED_FILTER_SHIFT 2
 #define POWER_FILTER_SHIFT 2
 
+#define DMA_WRITE 1
 #ifdef DEBUG
 #define PIXEL_BUFFER_LINES 8  // can be lower but tearing will increase
 #else
@@ -52,7 +53,7 @@
 #define CLOCK_SOURCE_DIV     CRM_PLL_SOURCE_HEXT_DIV
 #define FLASH_WAIT_CYCLES    FLASH_WAIT_CYCLE_3 // 3 might work, ymmv
 #define PLL_MULTIPL          CRM_PLL_MULT_64    // 256mhz
-#define AHB_DIVIDER          CRM_AHB_DIV_1      // 256mhz
+#define AHB_DIVIDER          CRM_AHB_DIV_2      // 256mhz
 #define APB2_DIVIDER         CRM_APB2_DIV_2     // 128mhz
 #define APB1_DIVIDER         CRM_APB1_DIV_2     // 128mhz
 #define CLOCK_OFFSET         1                  // ext clock should be stable

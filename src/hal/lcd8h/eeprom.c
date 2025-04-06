@@ -7,23 +7,23 @@
 #include "eeprom.h"
 #include "crc.h"
 
-#define T_LOW  10
-#define T_HIGH 9
+#define T_LOW  100
+#define T_HIGH 90
 // this will be optimized away by the compiler if constant
-#define SDA(x) x != 0 ? gpio_bits_set(GPIOC, GPIO_PINS_6) : gpio_bits_reset(GPIOC, GPIO_PINS_6)
-#define SCL(x) x != 0 ? gpio_bits_set(GPIOC, GPIO_PINS_7) : gpio_bits_reset(GPIOC, GPIO_PINS_7)
+#define SDA(x) if (x != 0) { GPIOC->odt |= GPIO_PINS_6;} else {GPIOC->odt &= ~GPIO_PINS_6;}
+#define SCL(x) if (x != 0) { GPIOC->odt |= GPIO_PINS_7;} else {GPIOC->odt &= ~GPIO_PINS_7;}
 #define DELAY_HIGH delay_us(T_HIGH)
 #define DELAY_LOW delay_us(T_LOW)
 
 #define I2C_READ 1
 #define I2C_WRITE 0
 
-#define GPIO_SET_READ_LOW(x, y)     x->cfglr &= ~(0xF << (y * 4)); x->cfglr |= 0x4 << (y * 4)
-#define GPIO_SET_WRITE_LOW(x, y)    x->cfglr &= ~(0xF << (y * 4)); x->cfglr |= 0x6 << (y * 4)
+#define GPIO_SET_READ_LOW(x, y)     x->cfglr &= ~(0xF << (y * 4)); x->cfglr |= 0x8 << (y * 4); x->scr = 1 << y;
+#define GPIO_SET_WRITE_LOW(x, y)    x->cfglr &= ~(0xF << (y * 4)); x->cfglr |= 0x3 << (y * 4); x->scr = 1 << y;
 
 settings_t settings;
 
-static void i2c_start(void) {
+static inline void i2c_start(void) {
     // only one device on bus, no arbitration needed
     SDA(0);
     DELAY_HIGH;
@@ -43,6 +43,7 @@ static void i2c_stop(void) {
 // always use 32bit, anything else is slower
 static void i2c_write_bit(uint32_t bit) {
     SDA(bit);
+    delay_us(1);
     SCL(1);
     DELAY_HIGH;
     SCL(0);
@@ -80,7 +81,7 @@ static uint8_t i2c_read_byte(void) {
 }
 
 static void i2c_initialize(void) {
-    i2c_stop();
+    /* i2c_stop(); */
 }
 
 void i2c_transfer(uint32_t address, uint8_t *values, ssize_t length, uint32_t RWFLAG, uint32_t delay) {
@@ -130,7 +131,7 @@ void eeprom_write_bytes(uint8_t address, uint8_t page, uint8_t *data, uint32_t l
     while (r && length) {
         i2c_start();
         r = 0;
-        while(!r) r = i2c_write_byte((0x50 | (page & 0x07)) << 1 | I2C_WRITE);
+        while(!r) r = i2c_write_byte(((0x50 | (page & 0x07)) << 1) | I2C_WRITE);
         if (r) {
             r = i2c_write_byte(address);
         }
@@ -160,9 +161,8 @@ uint8_t eeprom_read_current_byte(uint8_t page) {
     return buffer;
 }
 
-void eeprom_read_bytes(uint32_t start, uint8_t page, uint8_t *buffer, uint32_t length) {
+void eeprom_read_bytes(uint8_t address, uint8_t page, uint8_t *buffer, uint32_t length) {
     /* for (uint32_t i = length; i > 0; i--) buffer[i] = 0; */
-    uint8_t address = start & 0x000000FF;
     i2c_transfer(0x50 | ((page & 0x07)), &address, 1, I2C_WRITE, 0);
     buffer[0] = 0;
     i2c_transfer(0x50 | ((page & 0x07)), buffer, length, I2C_READ, 0);
@@ -173,22 +173,23 @@ void eeprom_init(void) {
     gpio_init_type gpio_initstructure;
     crm_periph_clock_enable(CRM_GPIOC_PERIPH_CLOCK, TRUE);
 
+    GPIOC->odt |= (GPIO_PINS_7 | GPIO_PINS_6);
     /* SDA pin PC6 */
-    gpio_initstructure.gpio_out_type       = GPIO_OUTPUT_OPEN_DRAIN;
-    gpio_initstructure.gpio_pull           = GPIO_PULL_NONE; // external pullup
+    gpio_initstructure.gpio_out_type       = GPIO_OUTPUT_PUSH_PULL;
+    gpio_initstructure.gpio_pull           = GPIO_PULL_UP; // external pullup
     gpio_initstructure.gpio_mode           = GPIO_MODE_OUTPUT;
-    gpio_initstructure.gpio_drive_strength = GPIO_DRIVE_STRENGTH_STRONGER;
+    gpio_initstructure.gpio_drive_strength = GPIO_DRIVE_STRENGTH_MAXIMUM;
     gpio_initstructure.gpio_pins           = GPIO_PINS_6;
     gpio_init(GPIOC, &gpio_initstructure);
 
     /* SCL pin PC7 */
-    gpio_initstructure.gpio_out_type       = GPIO_OUTPUT_OPEN_DRAIN;
+    gpio_initstructure.gpio_out_type       = GPIO_OUTPUT_PUSH_PULL;
     gpio_initstructure.gpio_pull           = GPIO_PULL_NONE; // external pullup
     gpio_initstructure.gpio_mode           = GPIO_MODE_OUTPUT;
-    gpio_initstructure.gpio_drive_strength = GPIO_DRIVE_STRENGTH_STRONGER;
+    gpio_initstructure.gpio_drive_strength = GPIO_DRIVE_STRENGTH_MAXIMUM;
     gpio_initstructure.gpio_pins           = GPIO_PINS_7;
     gpio_init(GPIOC, &gpio_initstructure);
-    
+
 
     i2c_initialize();
 
@@ -219,6 +220,7 @@ void eeprom_write_defaults(void) {
     settings.trip_distance = 0;
     settings.total_distance = 0;
     settings.backlight_level = 100;
+    delay_us(100);
     eeprom_write_settings();
 }
 
@@ -226,7 +228,6 @@ void eeprom_read_settings(void) {
     eeprom_read_bytes(0, 0, (uint8_t *) &settings, sizeof(settings_t));
     uint8_t crc = crc_calc((uint8_t *) &settings, sizeof(settings_t) - 1);
     if (settings.crc != crc || settings.header != 0xCAFEBABE) {
-        // set defaults
         eeprom_write_defaults();
     }
 }

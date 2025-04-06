@@ -12,13 +12,14 @@ extern settings_t settings;
 
 void comm_update(void) {
     // parse if available and update variables
-    uint8_t *data = NULL;
+    uint8_t data[UART_RX_BUFFER_SIZE];;
     uint32_t buf_len = 0;
     uint32_t tval = 0;
-    if (uart_get_data(&data, &buf_len)) {
-        ssize_t length = 0;
-        while (length < buf_len) {
-            msg_controller *msg = (msg_controller *) &data[buf_len];
+    if (uart_get_data(data, &buf_len)) {
+        uint32_t length = 0;
+        while (length < buf_len && length < UART_RX_BUFFER_SIZE) {
+            msg_controller *msg = (msg_controller *) &data[length];
+            if (msg->length + length + 3 > UART_RX_BUFFER_SIZE) break;
             // calidate crc
             uint8_t crc = crc_calc_comm((uint8_t *) msg, msg->length);
             if (msg->crc == crc) {

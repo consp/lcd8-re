@@ -88,13 +88,13 @@ static void dma_config(void)
 
 static void tmr_config(void) {
 
-    crm_periph_clock_enable(CRM_TMR4_PERIPH_CLOCK, TRUE);
+    crm_periph_clock_enable(CRM_TMR9_PERIPH_CLOCK, TRUE);
     tmr_output_config_type tmr_oc_init_structure;
     /* tmre base configuration */
 
-    tmr_base_init(TMR4,  BUTTON_MEASURE_PERIOD * 1000, TIMER_FREQ(1000000));
-    tmr_cnt_dir_set(TMR4, TMR_COUNT_UP);
-    tmr_clock_source_div_set(TMR4, TMR_CLOCK_DIV1);
+    tmr_base_init(TMR9,  BUTTON_MEASURE_PERIOD * 1000, TIMER_FREQ(1000000));
+    tmr_cnt_dir_set(TMR9, TMR_COUNT_UP);
+    tmr_clock_source_div_set(TMR9, TMR_CLOCK_DIV1);
 
     /* output compare toggle mode configuration: channel1 */
     tmr_output_default_para_init(&tmr_oc_init_structure);
@@ -102,13 +102,13 @@ static void tmr_config(void) {
     tmr_oc_init_structure.oc_idle_state = FALSE;
     tmr_oc_init_structure.oc_polarity = TMR_OUTPUT_ACTIVE_LOW;
     tmr_oc_init_structure.oc_output_state = FALSE;
-    tmr_output_channel_config(TMR4, TMR_SELECT_CHANNEL_1, &tmr_oc_init_structure);
-    tmr_channel_value_set(TMR4, TMR_SELECT_CHANNEL_1, 1000);
-    tmr_counter_enable(TMR4, TRUE);
-    tmr_interrupt_enable(TMR4, TMR_C1_INT, TRUE);
+    tmr_output_channel_config(TMR9, TMR_SELECT_CHANNEL_1, &tmr_oc_init_structure);
+    tmr_channel_value_set(TMR9, TMR_SELECT_CHANNEL_1, 1000);
+    tmr_counter_enable(TMR9, TRUE);
+    tmr_interrupt_enable(TMR9, TMR_C1_INT, TRUE);
     
     nvic_priority_group_config(NVIC_PRIORITY_GROUP_4);
-    nvic_irq_enable(TMR4_GLOBAL_IRQn, 0, 0);
+    nvic_irq_enable(TMR1_BRK_TMR9_IRQn, 0, 0);
 }
 
 /**
@@ -320,11 +320,11 @@ void button_release(uint8_t id, uint32_t backoff) {
 }
 
 
-void TMR4_GLOBAL_IRQHandler(void)
+void TMR1_BRK_TMR9_IRQHandler(void)
 {
-    if(tmr_interrupt_flag_get(TMR4, TMR_C1_FLAG) != RESET)
+    if(tmr_interrupt_flag_get(TMR9, TMR_C1_FLAG) != RESET)
     {
-        tmr_flag_clear(TMR4, TMR_C1_FLAG );
+        tmr_flag_clear(TMR9, TMR_C1_FLAG );
         measure_buttons();
     }
 }

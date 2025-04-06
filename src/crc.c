@@ -35,13 +35,13 @@ static const uint8_t CRC_TABLE[256] = {
     0xE6, 0xE1, 0xE8, 0xEF, 0xFA, 0xFD, 0xF4, 0xF3
 };
 
-uint8_t crc8ccitt(uint8_t *data, size_t size, uint8_t *preamble, ssize_t preamble_length) {
+uint8_t crc8ccitt(uint8_t *data, ssize_t size, uint8_t *preamble, ssize_t preamble_length) {
 	uint8_t val = 0;
-    if (preamble) {
+    if (preamble && preamble_length > 0) {
         while (preamble_length--) val = CRC_TABLE[val ^ *preamble++];
     }
 
-	while (size--) val = CRC_TABLE[val ^ *data++];
+    if (size > 0) while (size-- > 0) val = CRC_TABLE[val ^ *data++];
 
 	return val;
 }

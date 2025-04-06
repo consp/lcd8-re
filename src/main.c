@@ -36,6 +36,7 @@
 #include "clock.h"
 #include "crc.h"
 #include "comm.h"
+#include "uart.h"
 
 /**
   * @brief  main function.
@@ -46,49 +47,51 @@ int main(void)
 {
     system_clock_config();
   
-    clock_init(); // clouck source
-    lcd_init();    // attempt to initialize the lcd peripherals
+    /* while(1); */
 
     controls_init();                        // init adc and buttons 
-    
-    button_release(BUTTON_ID_POWER, 500);   // ignore inputs for a while
+    button_release(BUTTON_ID_POWER, 1250);  // ignore inputs for a while
     power_enable();                         // keep power on
     crc_init();                             // crc init if HW unit
     eeprom_init();                          // initialize the eeprom for data storage
-    uart_init(BAUD(57600));      
+    while(1);
+    clock_init();                           // clouck source (if available)
+    lcd_init();                             // attempt to initialize the lcd peripherals
+    lcd_start();                            // start lcd init sequence
 
-    lcd_start(); // start lcd init sequence
-
-    gui_init(); // start lvgl
-    /*
-     * Target is 30 fps, which is overkill
-     *
-     * most large items (bar, top line etc) take ~4-5ms
-     * graph takes 34ms so maybe two frames
-     * large text takes ~6ms
-     */
+    gui_init();                             // start lvgl and setup screen
+    uart_init(BAUD(57600));                 // initialize comms
+        
     gui_update();
-    comm_send_display_settings(); // 
+    comm_send_display_settings();  
+    comm_send_display_status();  
+    comm_send_controller_settings();
 #ifdef DEBUG
     uint32_t x = 0, y = 0;
 #endif
+    /* uint32_t x = timer_counter; */
     while(1) {
         gui_update();                                           // update gui data
         lv_timer_handler();                                     // draw
         comm_update();
         button_presses();
+        /* if (timer_counter - x > 250) { */
+        /* uint8_t v[2] = {0xaa, 0xaa}; */
+        /* uart_send(v, 2, 0); */
+        /* x = timer_counter; */
+        /* } */
 #ifdef DEBUG
-        if (timer_counter - x >= 1000) {
-            lv_mem_monitor_t mon;
-            lv_mem_monitor(&mon);
-            LV_LOG_INFO("Free: %ld/%ld, %d%% used, %d%% frag", mon.free_size, mon.total_size, mon.used_pct, mon.frag_pct);
-            x = timer_counter;
-        }
-        if (timer_counter - y >= 250) {
-            extern uint8_t power_button_state, up_button_state, down_button_state;
-            LV_LOG_INFO("%d %d %d", power_button_state, up_button_state, down_button_state);
-            y = timer_counter;
-        }
+        /* if (timer_counter - x >= 1000) { */
+        /*     lv_mem_monitor_t mon; */
+        /*     lv_mem_monitor(&mon); */
+        /*     LV_LOG_INFO("Free: %ld/%ld, %d%% used, %d%% frag", mon.free_size, mon.total_size, mon.used_pct, mon.frag_pct); */
+        /*     x = timer_counter; */
+        /* } */
+        /* if (timer_counter - y >= 250) { */
+        /*     extern uint8_t power_button_state, up_button_state, down_button_state; */
+        /*     LV_LOG_INFO("%d %d %d", power_button_state, up_button_state, down_button_state); */
+        /*     y = timer_counter; */
+        /* } */
 #endif
     }
 }

@@ -4,13 +4,18 @@
 /* #define MEMORY_DEBUG */
 uint16_t dummy = 0;
 
-#ifdef MEMORY_DEBUG
-uint8_t *loc =  (uint8_t *) 0x20004060;
-uint16_t *loc16 =  (uint16_t *) 0x20004080;
-extern uint32_t *debugbuffer32;
+
+#ifdef DMA_WRITE
+
+#if LVGL_VERSION_MAJOR == 9
+static lv_display_t *dp = NULL;
+#else
+static lv_disp_drv_t *dp = NULL;
 #endif
 
-uint32_t delay_slot = 1;
+void dma_write(uint16_t *data, uint32_t length);
+uint16_t dma_test_data[16];
+#endif
 
 typedef struct ili_cmd_t {
     uint8_t cmd;
@@ -63,43 +68,14 @@ void lcd_backlight_init(void) {
     tmr_oc_init_structure.oc_output_state = TRUE;
     tmr_output_channel_config(TMR3, TMR_SELECT_CHANNEL_2, &tmr_oc_init_structure);
     tmr_channel_value_set(TMR3, TMR_SELECT_CHANNEL_2, 0);
-    tmr_output_channel_buffer_enable(TMR3, TMR_SELECT_CHANNEL_4, TRUE);
+    tmr_output_channel_buffer_enable(TMR3, TMR_SELECT_CHANNEL_2, TRUE);
     tmr_period_buffer_enable(TMR3, TRUE);
 
     /* tmr enable counter */
     tmr_counter_enable(TMR3, TRUE);
 }
 
-#ifdef USE_TMR_INT
-tmr_output_config_type tmr_output_struct;
-void *transfer_output = NULL;
-uint32_t transfer_length = 0;
-uint32_t transfer_halfword = 1;
-#endif
-
 void lcd_tmr_init(void) {
-#ifdef USE_TMR_INT
-    crm_periph_clock_enable(CRM_TMR1_PERIPH_CLOCK, TRUE);
-    // need 500ns pulse, 72 cycles at 144hz
-    uint32_t timer_period = 71;
-    tmr_base_init(TMR1, timer_period, 0);
-    tmr_cnt_dir_set(TMR1, TMR_COUNT_UP);
-    tmr_output_default_para_init(&tmr_output_struct);
-    tmr_output_struct.oc_mode = TMR_OUTPUT_CONTROL_PWM_MODE_A;
-    tmr_output_struct.oc_output_state = TRUE;
-    tmr_output_struct.oc_polarity = TMR_OUTPUT_ACTIVE_HIGH;
-    tmr_output_struct.oc_idle_state = TRUE;
-    tmr_output_struct.occ_output_state = FALSE;
-    tmr_output_struct.occ_polarity = TMR_OUTPUT_ACTIVE_HIGH;
-    tmr_output_struct.occ_idle_state = FALSE;
-    tmr_output_channel_config(TMR1, TMR_SELECT_CHANNEL_4, &tmr_output_struct);
-    // pulse after 100ns
-    tmr_channel_value_set(TMR1, TMR_SELECT_CHANNEL_4, 7);
-    tmr_interrupt_enable(TMR2, TMR_OVF_INT, TRUE);
-
-    tmr_output_enable(TMR1, FALSE);
-    tmr_counter_enable(TMR1, FALSE);
-#endif
 }
 
 void lcd_init(void) {
@@ -107,10 +83,10 @@ void lcd_init(void) {
     crm_periph_clock_enable(CRM_GPIOA_PERIPH_CLOCK, TRUE); // we use all channels
     crm_periph_clock_enable(CRM_GPIOB_PERIPH_CLOCK, TRUE); // we use all channels
     crm_periph_clock_enable(CRM_GPIOC_PERIPH_CLOCK, TRUE); // we use all channels
-  gpio_init_type gpio_initstructure;
-  // remap
-  crm_periph_clock_enable(CRM_IOMUX_PERIPH_CLOCK, TRUE);
-  gpio_pin_remap_config(SWJTAG_GMUX_010, TRUE);
+    gpio_init_type gpio_initstructure;
+    // remap
+    crm_periph_clock_enable(CRM_IOMUX_PERIPH_CLOCK, TRUE);
+    gpio_pin_remap_config(SWJTAG_GMUX_010, TRUE);
 
   for (int i = 0; i < 16; i++) {
     gpio_initstructure.gpio_out_type       = GPIO_OUTPUT_PUSH_PULL;
@@ -137,7 +113,7 @@ void lcd_init(void) {
 
     // Read strobe
     gpio_initstructure.gpio_out_type       = GPIO_OUTPUT_PUSH_PULL;
-    gpio_initstructure.gpio_pull           = GPIO_PULL_UP; // external pullup
+    gpio_initstructure.gpio_pull           = GPIO_PULL_NONE; // external pullup
     gpio_initstructure.gpio_mode           = GPIO_MODE_OUTPUT;
     gpio_initstructure.gpio_drive_strength = GPIO_DRIVE_STRENGTH_MAXIMUM;
     gpio_initstructure.gpio_pins           = PIN_READ;
@@ -145,19 +121,15 @@ void lcd_init(void) {
 
     // Write strobe
     gpio_initstructure.gpio_out_type       = GPIO_OUTPUT_PUSH_PULL;
-    gpio_initstructure.gpio_pull           = GPIO_PULL_UP; // external pullup
-#ifdef USE_TMR_INT
-    gpio_initstructure.gpio_mode           = GPIO_MODE_MUX;
-#else
+    gpio_initstructure.gpio_pull           = GPIO_PULL_NONE; // external pullup
     gpio_initstructure.gpio_mode           = GPIO_MODE_OUTPUT;
-#endif
     gpio_initstructure.gpio_drive_strength = GPIO_DRIVE_STRENGTH_MAXIMUM;
     gpio_initstructure.gpio_pins           = PIN_WRITE;
     gpio_init(GPIOC, &gpio_initstructure);
 
     // Command/Data
     gpio_initstructure.gpio_out_type       = GPIO_OUTPUT_PUSH_PULL;
-    gpio_initstructure.gpio_pull           = GPIO_PULL_UP; // external pullup
+    gpio_initstructure.gpio_pull           = GPIO_PULL_NONE; // external pullup
     gpio_initstructure.gpio_mode           = GPIO_MODE_OUTPUT;
     gpio_initstructure.gpio_drive_strength = GPIO_DRIVE_STRENGTH_MAXIMUM;
     gpio_initstructure.gpio_pins           = PIN_CD;
@@ -165,7 +137,7 @@ void lcd_init(void) {
 
     // cs
     gpio_initstructure.gpio_out_type       = GPIO_OUTPUT_PUSH_PULL;
-    gpio_initstructure.gpio_pull           = GPIO_PULL_UP; // external pullup
+    gpio_initstructure.gpio_pull           = GPIO_PULL_NONE; // external pullup
     gpio_initstructure.gpio_mode           = GPIO_MODE_OUTPUT;
     gpio_initstructure.gpio_drive_strength = GPIO_DRIVE_STRENGTH_MAXIMUM;
     gpio_initstructure.gpio_pins           = PIN_CS;
@@ -180,7 +152,130 @@ void lcd_init(void) {
 
     GPIOC->odt |= PIN_READ | PIN_WRITE | PIN_CD | PIN_CS; // force all high
     SET_WRITE();
+    /* CS_ACTIVE; */
+
+    WRITE_IDLE;
+    crm_periph_clock_enable(CRM_DMA2_PERIPH_CLOCK, TRUE);
+    crm_periph_clock_enable(CRM_IOMUX_PERIPH_CLOCK, TRUE);
+    crm_periph_clock_enable(CRM_TMR1_PERIPH_CLOCK, TRUE);
+
+    gpio_pin_remap_config(TMR1_GMUX_0010, TRUE);
+
+#ifdef DMA_WRITE
+    for (int i = 0; i < 16; i+=2) {
+        dma_test_data[i] = 0xFFFF;
+        dma_test_data[i+1] = 0;
+    }
+
+    static dma_init_type dma_init_struct = {0};
+
+    /* tmr_reset(TMR1); */
+    /* tmr enable counter */
+    tmr_counter_enable(TMR3, TRUE);
+    tmr_output_config_type tmr_output_struct;
+    /* tmr_base_init(TMR1, 29, 0); */
+    tmr_base_init(TMR1, 19, 0);
+    tmr_cnt_dir_set(TMR1, TMR_COUNT_UP);
+    tmr_clock_source_div_set(TMR1, TMR_CLOCK_DIV1);
+    tmr_output_default_para_init(&tmr_output_struct);
+    tmr_output_struct.oc_mode = TMR_OUTPUT_CONTROL_PWM_MODE_B;
+    tmr_output_struct.oc_output_state = TRUE;
+    tmr_output_struct.oc_polarity = TMR_OUTPUT_ACTIVE_LOW;
+    tmr_output_struct.oc_idle_state = FALSE;
+    tmr_output_channel_config(TMR1, TMR_SELECT_CHANNEL_4, &tmr_output_struct);
+    /* tmr_channel_value_set(TMR1, TMR_SELECT_CHANNEL_4, 15); */
+    tmr_channel_value_set(TMR1, TMR_SELECT_CHANNEL_4,  9);
+
+    /* tmr_interrupt_enable(TMR1, TMR_OVF_INT, TRUE); */
+
+    tmr_dma_request_enable(TMR1, TMR_C4_DMA_REQUEST, TRUE);
+    /* tmr_dma_request_enable(TMR1, TMR_OVERFLOW_DMA_REQUEST, TRUE); */
+
+    dma_reset(DMA2_CHANNEL1);
+    dma_init_struct.buffer_size = 0;
+    dma_init_struct.direction = DMA_DIR_MEMORY_TO_PERIPHERAL;
+    dma_init_struct.memory_base_addr = 0;
+    dma_init_struct.memory_data_width = DMA_MEMORY_DATA_WIDTH_HALFWORD;
+    dma_init_struct.memory_inc_enable = TRUE;
+    dma_init_struct.peripheral_base_addr = (uint32_t)&GPIOB->odt;
+    dma_init_struct.peripheral_data_width = DMA_PERIPHERAL_DATA_WIDTH_HALFWORD;
+    dma_init_struct.peripheral_inc_enable = FALSE;
+    dma_init_struct.priority = DMA_PRIORITY_HIGH;
+    dma_init_struct.loop_mode_enable = FALSE;
+    dma_init(DMA2_CHANNEL1, &dma_init_struct);
+
+    dma_interrupt_enable(DMA2_CHANNEL1, DMA_FDT_INT, TRUE);
+    nvic_priority_group_config(NVIC_PRIORITY_GROUP_4);
+    nvic_irq_enable(DMA2_Channel1_IRQn, 0, 0);
+    /* nvic_irq_enable(TMR1_OVF_TMR10_IRQn, 1, 0); */
+
+    
+    dma_flexible_config(DMA2, FLEX_CHANNEL1, DMA_FLEXIBLE_TMR1_CH4);
+    /* dma_flexible_config(DMA2, FLEX_CHANNEL1, DMA_FLEXIBLE_TMR1_OVERFLOW); */
+    
+    TMR1->brk_bit.oen = 1;
+
+    /* while(1) { */
+    /*     dma_write(dma_test_data, 16); */
+    /*     delay_us(10); */
+    /* } */
+#endif
+
     CS_ACTIVE;
+}
+#ifdef DMA_WRITE
+void dma_write(uint16_t *data, uint32_t length) {
+    
+    tmr_flag_clear(TMR1, TMR_OVF_FLAG);
+    TMR1->cval = 0;
+    // force first blob
+    /* CS_ACTIVE; */
+    /* GPIOB->odt = *data; */
+    data--; // we need a waste value, doesn't matter what
+    DMA2_CHANNEL1->ctrl_bit.chen = 0;
+    DMA2_CHANNEL1->dtcnt = length;
+    DMA2_CHANNEL1->maddr = (uint32_t) (data);
+
+    GPIOC->cfghr &= (uint32_t)~(0x000000F0);
+    GPIOC->cfghr |= (uint32_t) (0x000000B0);
+    DMA2_CHANNEL1->ctrl_bit.chen = 1;
+    TMR1->ctrl1_bit.tmren = 1;
+    /* tmr_counter_enable(TMR1, TRUE); */
+}
+#endif
+
+
+uint32_t xnt = 0;
+uint32_t xnt2 = 0;
+void TMR1_OVF_TMR10_IRQHandler(void)
+{
+    if(tmr_interrupt_flag_get(TMR1, TMR_OVF_FLAG) != RESET)
+    {
+        xnt++;
+        tmr_flag_clear(TMR1, TMR_OVF_FLAG);
+    }
+}
+
+void DMA2_Channel1_IRQHandler(void)
+{
+    WRITE_IDLE;
+    GPIOC->cfghr &= (uint32_t)~(0x00000080);
+    /* GPIOC->cfghr |= (uint32_t) (0x00000030); */
+    TMR1->ctrl1_bit.tmren = 0;
+    CS_IDLE;
+    DMA2->clr = DMA2_FDT1_FLAG;
+    /* TMR1->brk_bit.oen = 0; */
+
+#if LVGL_VERSION_MAJOR == 9
+    lv_display_flush_ready(dp);
+#else
+    lv_disp_flush_ready(dp);
+#endif
+    CS_ACTIVE;
+}
+
+int memcpy_dma(const uint8_t *target, const uint8_t *source, const uint32_t length) {
+    return 0;
 }
 
 void lcd_backlight(uint32_t value) { // 0-100
@@ -190,13 +285,13 @@ void lcd_backlight(uint32_t value) { // 0-100
 static inline void write_cmd(uint8_t command) {
     WRITE_8BIT(command);
     COMMAND;
-    //CS_ACTIVE;
+    /* CS_ACTIVE; */
     READ_IDLE;
     WRITE_ACTIVE;
     /* DELAY_NOP_6; */
     WRITE_IDLE;
     /* DELAY_NOP_6; */
-    //CS_IDLE;
+    /* CS_IDLE; */
     /* CLEAR_DATA(); */
 }
 
@@ -292,30 +387,6 @@ void lcd_command(uint8_t cmd) {
     write_cmd(cmd);
 }
 
-void write_data_tmr_int(void *data, uint32_t length, uint32_t halfword) {
-#ifdef USE_TMR_INT
-    // set pin to mux
-    WRITE_STROBE_TMR();
-    DATA;
-    //CS_ACTIVE;
-    READ_IDLE;
-    WRITE_IDLE;
-    // initialize transfer
-    transfer_output = (void *) data;
-    transfer_length = length;
-    transfer_halfword = halfword;
-    // setup initial data
-    if (transfer_halfword) {
-        GPIOB->odt = *((uint16_t *) transfer_output++);
-    } else {
-        GPIOB->odt = *((uint8_t *) transfer_output++);
-    }
-    // transfer
-    TMR1->brk_bit.oen = 1;
-    TMR1->ctrl1_bit.tmren = 1; 
-#endif
-}
-
 void lcd_draw_data(uint16_t *data, ssize_t length) {
 #ifdef USE_TMR_INT
     // check if available
@@ -390,10 +461,7 @@ UG_RESULT lcd_draw_bmp(UG_S16 x, UG_S16 y, UG_BMP *bmp) {
 #endif
 
 void lcd_fill_pixels(uint32_t length, uint16_t color) {
-#ifdef USE_TMR_INT 
-#else
     while(length--) write_data(color);
-#endif
 }
 
 void lcd_fill(uint32_t x1, uint32_t y1, uint32_t x2, uint32_t y2, uint16_t color) {
@@ -435,28 +503,6 @@ int lcd_start(void) {
     return 1;
 }
 
-#ifdef USE_TMR_INT
-void TMR1_GLOBAL_IRQHandler(void)
-{
-    if((TMR1->ists & TMR_OVF_FLAG) && (TMR1->iden & TMR_OVF_FLAG)) {
-        TMR1->ists = ~TMR_OVF_FLAG;
-        if (transfer_halfword) {
-            GPIOB->odt = *((uint16_t *) transfer_output++);
-        } else {
-            GPIOB->odt = *((uint8_t *) transfer_output++);
-        }
-        transfer_length--;
-        if (!transfer_length) {
-            //CS_IDLE;
-            WRITE_IDLE;
-            TMR1->brk_bit.oen = 0;
-            TMR1->ctrl1_bit.tmren = 0;
-            WRITE_STROBE_GPIO();
-        }
-    }
-}
-#endif
-
 void lcd_test(void) {
     write_cmd(0x55);
     write_data_8bit(0xAA);
@@ -483,18 +529,27 @@ void lcd_lvgl_flush(lv_disp_drv_t *display, const lv_area_t *area, lv_color_t *p
     if (area->y2 == area->y1) length = 1;
     else length = (area->y2 - area->y1) + 1;
     if (area->x1 != area->x2) length *= ((area->x2 - area->x1) + 1);
+    /* CS_ACTIVE; */
     lcd_set_address_window(area->x1, area->y1, area->x2, area->y2);
     write_cmd(ILI_MEMORY_WRITE);
-    /* if (length % 32) { */
-    /*     while(length--) write_data(*pixels++); */
-    /* } else { */
+#ifdef DMA_WRITE 
+    dp = display;
+    DATA;
+    dma_write(pixels, length);
+/* #if LVGL_VERSION_MAJOR == 9 */
+/*     lv_display_flush_ready(display); */
+/* #else */
+/*     lv_disp_flush_ready(display); */
+/* #endif */
+#else
 #pragma GCC unroll 8
-        while(length--) write_data(*pixels++);
-    /* } */
+    while(length--) write_data(*pixels++);
+
 #if LVGL_VERSION_MAJOR == 9
     lv_display_flush_ready(display);
 #else
     lv_disp_flush_ready(display);
+#endif
 #endif
 }
 
@@ -512,6 +567,8 @@ void lcd_draw_large_text(uint32_t x, uint32_t y, const lv_img_dsc_t *img, uint16
         uint8_t *data = (uint8_t *) img->data;
         data += 8;
         write_cmd(ILI_MEMORY_WRITE);
+/* #ifdef DMA_WRITE */
+/* #else */
 #pragma GCC unroll 8
         while(length--) {
             // convert
@@ -526,5 +583,6 @@ void lcd_draw_large_text(uint32_t x, uint32_t y, const lv_img_dsc_t *img, uint16
             write_data((vdata & 0x01) ? 0x0000 : color);
             data++;
         }
+/* #endif */
     }
 }

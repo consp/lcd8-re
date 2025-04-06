@@ -17,6 +17,6 @@
 
 void uart_init(uint32_t baud);
 void uart_send(const uint8_t *buffer, ssize_t length, int async);
-int uart_get_data(uint8_t **data, uint32_t *length);
+int uart_get_data(uint8_t *data, uint32_t *length);
 
 #endif // __UART_H__
