@@ -45,30 +45,32 @@
 // change to not draw controller mode
 #define DRAW_CONTROLLER_MODE
 
-#define OC // overclock to 240mhz, might not work
+#define OC // overclock to 200mhz, which is the maximum. Higher values will result in 200mhz but evert calculation is broken
 
 #ifdef OC
 #define CLOCK_SOURCE         CRM_CLOCK_SOURCE_HEXT  // you need a stable crystal
-#define CLOCK_SOURCE_DIV     CRM_PLL_SOURCE_HEXT_DIV
+#define CLOCK_SOURCE_DIV     CRM_PLL_SOURCE_HEXT 
+#define CLOCK_SOURCE_FLAG    CRM_HEXT_STABLE_FLAG
 #define FLASH_WAIT_CYCLES    FLASH_WAIT_CYCLE_3 // 3 might work, ymmv
-#define PLL_MULTIPL          CRM_PLL_MULT_64    // 256mhz
-#define AHB_DIVIDER          CRM_AHB_DIV_1      // 256mhz
-#define APB2_DIVIDER         CRM_APB2_DIV_2     // 128mhz
-#define APB1_DIVIDER         CRM_APB1_DIV_2     // 128mhz
+#define PLL_MULTIPL          CRM_PLL_MULT_25    // 200mhz
+#define AHB_DIVIDER          CRM_AHB_DIV_1      // 200mhz
+#define APB2_DIVIDER         CRM_APB2_DIV_2     // 100mhz
+#define APB1_DIVIDER         CRM_APB1_DIV_2     // 100mhz
 #define CLOCK_OFFSET         1                  // ext clock should be stable
-#define BAUD_MULTIPLIER      1.27               // baud rate clock divider is not correct at higher speeds, needs adjustment
-#define EFFECTIVE_CLOCK      (4000000 / CLOCK_OFFSET)
+#define BAUD_MULTIPLIER      1                  //  
+#define EFFECTIVE_CLOCK      (8000000 / CLOCK_OFFSET)
 
 #else
 #define CLOCK_SOURCE         CRM_CLOCK_SOURCE_HICK
 #define CLOCK_SOURCE_DIV     CRM_PLL_SOURCE_HICK
+#define CLOCK_SOURCE_FLAG    CRM_HICK_STABLE_FLAG
 #define FLASH_WAIT_CYCLES    FLASH_WAIT_CYCLE_4 // 
 #define PLL_MULTIPL          CRM_PLL_MULT_36    // 144mhz
 #define AHB_DIVIDER          CRM_AHB_DIV_1      // @cpu
 #define APB2_DIVIDER         CRM_APB2_DIV_2     // 72mhz
 #define APB1_DIVIDER         CRM_APB1_DIV_2     // 72mhz
 #define CLOCK_OFFSET         1
-#define BAUD_MULTIPLIER      14               
+#define BAUD_MULTIPLIER      1                
 #define EFFECTIVE_CLOCK      (4000000 / CLOCK_OFFSET)
 #endif
 

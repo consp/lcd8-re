@@ -57,7 +57,7 @@ void system_clock_config(void)
   crm_clock_source_enable(CLOCK_SOURCE, TRUE);
 
    /* wait till hick is ready */
-  while(crm_flag_get(CRM_HEXT_STABLE_FLAG) != SET)
+  while(crm_flag_get(CLOCK_SOURCE_FLAG) != SET)
   {
   }
 

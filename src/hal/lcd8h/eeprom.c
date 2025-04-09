@@ -176,28 +176,11 @@ void eeprom_read_bytes(uint8_t address, uint8_t page, uint8_t *buffer, uint32_t 
 }
 
 void eeprom_init(void) {
-    gpio_init_type gpio_initstructure;
     crm_periph_clock_enable(CRM_GPIOC_PERIPH_CLOCK, TRUE);
 
     GPIOC->clr = (GPIO_PINS_7 | GPIO_PINS_6);
     GPIO_SET_WRITE_LOW(GPIOC, 7);
     GPIO_SET_WRITE_LOW(GPIOC, 6);
-    /* SDA pin PC6 */
-    /* gpio_initstructure.gpio_out_type       = GPIO_OUTPUT_PUSH_PULL; */
-    /* gpio_initstructure.gpio_pull           = GPIO_PULL_UP; // external pullup */
-    /* gpio_initstructure.gpio_mode           = GPIO_MODE_OUTPUT; */
-    /* gpio_initstructure.gpio_drive_strength = GPIO_DRIVE_STRENGTH_MAXIMUM; */
-    /* gpio_initstructure.gpio_pins           = GPIO_PINS_6; */
-    /* gpio_init(GPIOC, &gpio_initstructure); */
-    /*  */
-    /* #<{(| SCL pin PC7 |)}># */
-    /* gpio_initstructure.gpio_out_type       = GPIO_OUTPUT_PUSH_PULL; */
-    /* gpio_initstructure.gpio_pull           = GPIO_PULL_UP; // external pullup */
-    /* gpio_initstructure.gpio_mode           = GPIO_MODE_OUTPUT; */
-    /* gpio_initstructure.gpio_drive_strength = GPIO_DRIVE_STRENGTH_MAXIMUM; */
-    /* gpio_initstructure.gpio_pins           = GPIO_PINS_7; */
-    /* gpio_init(GPIOC, &gpio_initstructure); */
-
 
     i2c_initialize();
 

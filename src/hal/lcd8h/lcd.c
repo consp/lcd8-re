@@ -162,11 +162,6 @@ void lcd_init(void) {
     gpio_pin_remap_config(TMR1_GMUX_0010, TRUE);
 
 #ifdef DMA_WRITE
-    for (int i = 0; i < 16; i+=2) {
-        dma_test_data[i] = 0xFFFF;
-        dma_test_data[i+1] = 0;
-    }
-
     static dma_init_type dma_init_struct = {0};
 
     /* tmr_reset(TMR1); */
