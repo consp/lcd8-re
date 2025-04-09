@@ -116,7 +116,8 @@ static void tmr_config(void) {
  */
 
 void controls_init(void) {
-
+    // enable clocks
+    crm_periph_clock_enable(CRM_GPIOA_PERIPH_CLOCK, TRUE);
     // configure pins
     //
     gpio_init_type gpio_initstructure;
@@ -170,10 +171,14 @@ void controls_init(void) {
     adc_config();
     tmr_config();
 
+
 }
 
 void power_enable(void) { POWER_LATCH_GPIO->scr = POWER_LATCH_PIN; }
 void power_disable(void) { POWER_LATCH_GPIO->clr = POWER_LATCH_PIN; }
+
+/* void power_enable(void) { POWER_LATCH_GPIO->scr = POWER_LATCH_PIN; } */
+/* void power_disable(void) { POWER_LATCH_GPIO->clr = POWER_LATCH_PIN; } */
 
 /* int up_BUTTON_PRESSED(void) { return up_button_cnt > BUTTON_COUNT && up_button_cnt < BUTTON_HOLD ? 1 : 0; } */
 /* int down_BUTTON_PRESSED(void) { return down_button_cnt > BUTTON_COUNT && down_button_cnt < BUTTON_HOLD ? 1 : 0; } */

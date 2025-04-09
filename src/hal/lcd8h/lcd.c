@@ -242,19 +242,15 @@ void dma_write(uint16_t *data, uint32_t length) {
     TMR1->ctrl1_bit.tmren = 1;
     /* tmr_counter_enable(TMR1, TRUE); */
 }
-#endif
 
 
-uint32_t xnt = 0;
-uint32_t xnt2 = 0;
-void TMR1_OVF_TMR10_IRQHandler(void)
-{
-    if(tmr_interrupt_flag_get(TMR1, TMR_OVF_FLAG) != RESET)
-    {
-        xnt++;
-        tmr_flag_clear(TMR1, TMR_OVF_FLAG);
-    }
-}
+/* void TMR1_OVF_TMR10_IRQHandler(void) */
+/* { */
+/*     if(tmr_interrupt_flag_get(TMR1, TMR_OVF_FLAG) != RESET) */
+/*     { */
+/*         tmr_flag_clear(TMR1, TMR_OVF_FLAG); */
+/*     } */
+/* } */
 
 void DMA2_Channel1_IRQHandler(void)
 {
@@ -273,6 +269,7 @@ void DMA2_Channel1_IRQHandler(void)
 #endif
     CS_ACTIVE;
 }
+#endif
 
 int memcpy_dma(const uint8_t *target, const uint8_t *source, const uint32_t length) {
     return 0;

@@ -11,7 +11,7 @@ TARGET = LCD8H-firmware
 DEBUG = 1
 # optimization
 ifeq ($(DEBUG), 1)
-OPT = -O2
+OPT = -Os
 else
 OPT = -Ofast
 endif

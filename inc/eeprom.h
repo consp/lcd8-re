@@ -37,6 +37,7 @@ typedef struct __attribute__((packed)) {
     uint8_t     lights_enabled;
     uint8_t     lights_mode;
 
+    uint8_t     factory_reset;
     uint8_t     crc;
 } settings_t;
 #pragma pack(pop)

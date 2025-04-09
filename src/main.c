@@ -46,19 +46,29 @@
 int main(void)
 {
     system_clock_config();
-  
-    /* while(1); */
+
+    // set all gpio's to input, just to be sure
+    crm_periph_clock_enable(CRM_GPIOA_PERIPH_CLOCK, TRUE);
+    crm_periph_clock_enable(CRM_GPIOB_PERIPH_CLOCK, TRUE);
+    crm_periph_clock_enable(CRM_GPIOC_PERIPH_CLOCK, TRUE);
+    GPIOA->cfglr = 0x44444444;
+    GPIOA->cfghr = 0x44444444;
+    GPIOA->odt = 0;
+    GPIOA->cfglr = 0x44444444;
+    GPIOB->cfghr = 0x44444444;
+    GPIOB->odt = 0;
+    GPIOC->cfglr = 0x44444444;
+    GPIOC->cfghr = 0x44444444;
+    GPIOC->odt = 0;
 
     controls_init();                        // init adc and buttons 
+    power_enable();
     button_release(BUTTON_ID_POWER, 1250);  // ignore inputs for a while
-    power_enable();                         // keep power on
     crc_init();                             // crc init if HW unit
     eeprom_init();                          // initialize the eeprom for data storage
-    while(1);
     clock_init();                           // clouck source (if available)
     lcd_init();                             // attempt to initialize the lcd peripherals
     lcd_start();                            // start lcd init sequence
-
     gui_init();                             // start lvgl and setup screen
     uart_init(BAUD(57600));                 // initialize comms
         
