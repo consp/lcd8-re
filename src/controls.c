@@ -340,7 +340,7 @@ void TMR1_BRK_TMR9_IRQHandler(void)
 * All credits: https://www.sebulli.com/ntc/index.php?lang=en&points=1024&unit=0.00390625&resolution=12+Bit&circuit=pullup&resistor=10000&r25=10000&beta=3950&test_resistance=10000&tmin=-20&tmax=70
 *
 */
-int NTC_table[1025] = {
+const int NTC_table[1025] = {
   105972, 90128, 74284, 66383, 61277, 57570, 
   54690, 52352, 50395, 48718, 47256, 45963, 
   44806, 43760, 42808, 41936, 41131, 40384, 
