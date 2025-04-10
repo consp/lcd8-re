@@ -396,7 +396,7 @@ void gui_draw_normal(void) {
     total_distance_text = lv_label_create(lv_screen_active());
     lv_obj_add_style(total_distance_text, &text_normal, LV_PART_MAIN | LV_STATE_DEFAULT);
     lv_obj_set_style_text_align(total_distance_text, LV_TEXT_ALIGN_LEFT, 0);
-    lv_label_set_text_fmt(total_distance_text, "%04d", 0);
+    lv_label_set_text_fmt(total_distance_text, "000.0");
     lv_label_set_long_mode(total_distance_text, LV_LABEL_LONG_CLIP);
     lv_obj_set_pos(total_distance_text, TOTAL_DISTANCE_TEXT_X, TOTAL_DISTANCE_TEXT_Y);
     lv_obj_set_size(total_distance_text, TOTAL_DISTANCE_TEXT_WIDTH, TOTAL_DISTANCE_TEXT_HEIGHT);
@@ -408,7 +408,7 @@ void gui_draw_normal(void) {
     trip_distance_text = lv_label_create(lv_screen_active());
     lv_obj_add_style(trip_distance_text, &text_normal, LV_PART_MAIN | LV_STATE_DEFAULT);
     lv_obj_set_style_text_align(trip_distance_text, LV_TEXT_ALIGN_LEFT, 0);
-    lv_label_set_text_fmt(trip_distance_text, "%04d", 0);
+    lv_label_set_text_fmt(trip_distance_text, "000.0");
     lv_label_set_long_mode(trip_distance_text, LV_LABEL_LONG_CLIP);
     lv_obj_set_pos(trip_distance_text, TRIP_DISTANCE_TEXT_X, TRIP_DISTANCE_TEXT_Y);
     lv_obj_set_size(trip_distance_text, TRIP_DISTANCE_TEXT_WIDTH, TRIP_DISTANCE_TEXT_HEIGHT);
@@ -420,7 +420,7 @@ void gui_draw_normal(void) {
     trip_time_text = lv_label_create(lv_screen_active());
     lv_obj_add_style(trip_time_text, &text_normal, LV_PART_MAIN | LV_STATE_DEFAULT);
     lv_obj_set_style_text_align(trip_time_text, LV_TEXT_ALIGN_LEFT, 0);
-    lv_label_set_text_fmt(trip_time_text, "%04d", 0);
+    lv_label_set_text_fmt(trip_time_text, "000.0", 0);
     lv_label_set_long_mode(trip_time_text, LV_LABEL_LONG_CLIP);
     lv_obj_set_pos(trip_time_text, TRIP_TIME_TEXT_X, TRIP_TIME_TEXT_Y);
     lv_obj_set_size(trip_time_text, TRIP_TIME_TEXT_WIDTH, TRIP_TIME_TEXT_HEIGHT);
@@ -1200,9 +1200,9 @@ static void _100ms_timer(lv_timer_t *timer) {
     avg_power += (power_value - avg_power) >> POWER_FILTER_SHIFT;
 
     if (settings.battery_voltage_from_controller) {
-        battery_voltage += (battery_voltage_controller - battery_voltage) >> TEMPERATURE_FILTER_SHIFT;
+        battery_voltage += (battery_voltage_controller - battery_voltage) >> VOLTAGE_FILTER_SHIFT;
     } else {
-        battery_voltage += (voltage_ebat() - battery_voltage) >> TEMPERATURE_FILTER_SHIFT;
+        battery_voltage += (voltage_ebat() - battery_voltage) >> VOLTAGE_FILTER_SHIFT;
     }
 
     settings.trip_time += timer_counter - timer_old;
