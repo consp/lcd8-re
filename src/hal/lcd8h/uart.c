@@ -11,6 +11,9 @@ volatile int uart_rx_ready = 0;
 volatile int uart_tx_ready = 0;
 uint32_t read_buffer_length = 0;
 
+#if LV_USE_LOG
+void lv_log_callback(const char *c);
+#endif
 static void uart_init_dma(void);
 
 void uart_init(uint32_t baud)
@@ -184,5 +187,11 @@ int uart_get_data(uint8_t *data, uint32_t *length) {
 #ifdef DEBUG
 uint32_t divval(void) {
     return USART1->baudr_bit.div;
+}
+#endif
+
+#if LV_USE_LOG
+void lv_log_callback(const char *c) {
+    uart_send(c, strlen(c), 0);
 }
 #endif

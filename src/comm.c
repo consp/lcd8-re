@@ -105,8 +105,3 @@ void comm_send_controller_settings(void) {
 /*     comm_rx_ready = 0; */
 /* } */
 
-#if DEBUG && LV_USE_LOG
-void lv_log_callback(const char *c) {
-    uart_send(c, strlen(c), 0);
-}
-#endif
