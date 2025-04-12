@@ -50,7 +50,7 @@
 #define LV_MEM_CUSTOM 0
 #if LV_MEM_CUSTOM == 0
     /*Size of the memory available for `lv_mem_alloc()` in bytes (>= 2kB)*/
-    #define LV_MEM_SIZE (14U * 1024U)          /*[bytes]*/
+    #define LV_MEM_SIZE (13U * 1024U)          /*[bytes]*/
 
     /*Set an address for the memory pool instead of allocating it as a normal array. Can be in external SRAM too.*/
     #define LV_MEM_ADR 0     /*0: unused*/
@@ -79,10 +79,10 @@
  *====================*/
 
 /*Default display refresh period. LVG will redraw changed areas with this period time*/
-#define LV_DISP_DEF_REFR_PERIOD 15      /*[ms]*/
+#define LV_DISP_DEF_REFR_PERIOD 33      /*[ms]*/
 
 /*Input device read period in milliseconds*/
-#define LV_INDEV_DEF_READ_PERIOD 30     /*[ms]*/
+#define LV_INDEV_DEF_READ_PERIOD 33     /*[ms]*/
 
 /*Use a custom tick source that tells the elapsed time in milliseconds.
  *It removes the need to manually update the tick with `lv_tick_inc()`)*/
@@ -231,7 +231,7 @@
  *-----------*/
 
 /*Enable the log module*/
-#define LV_USE_LOG DEBUG
+#define LV_USE_LOG 0 //DEBUG
 #if LV_USE_LOG
 
     /*How important log should be added:
@@ -280,14 +280,14 @@
  *-----------*/
 
 /*1: Show CPU usage and FPS count*/
-#define LV_USE_PERF_MONITOR 0
+#define LV_USE_PERF_MONITOR MONITOR
 #if LV_USE_PERF_MONITOR
     #define LV_USE_PERF_MONITOR_POS LV_ALIGN_BOTTOM_RIGHT
 #endif
 
 /*1: Show the used memory and the memory fragmentation
  * Requires LV_MEM_CUSTOM = 0*/
-#define LV_USE_MEM_MONITOR 0
+#define LV_USE_MEM_MONITOR MONITOR
 #if LV_USE_MEM_MONITOR
     #define LV_USE_MEM_MONITOR_POS LV_ALIGN_BOTTOM_LEFT
 #endif
@@ -364,7 +364,7 @@
  *https://fonts.google.com/specimen/Montserrat*/
 #define LV_FONT_MONTSERRAT_8  0
 #define LV_FONT_MONTSERRAT_10 0
-#define LV_FONT_MONTSERRAT_12 0
+#define LV_FONT_MONTSERRAT_12 MONITOR
 #define LV_FONT_MONTSERRAT_14 0
 #define LV_FONT_MONTSERRAT_16 0
 #define LV_FONT_MONTSERRAT_18 0
@@ -408,7 +408,11 @@
 #define LV_FONT_CUSTOM_DECLARE LV_FONT_DECLARE(lv_font_andalemo_72) LV_FONT_DECLARE(lv_font_andalemo_28) LV_FONT_DECLARE(lv_font_fry_32) LV_FONT_DECLARE(lv_font_andalemo_12) LV_FONT_DECLARE(lv_font_andalemo_16) LV_FONT_DECLARE(lv_font_andalemo_32)  
 
 /*Always set a default font*/
+#if MONITOR
+#define LV_FONT_DEFAULT &lv_font_montserrat_12
+#else
 #define LV_FONT_DEFAULT &lv_font_andalemo_12
+#endif
 
 /*Enable handling large font and/or fonts with a lot of characters.
  *The limit depends on the font size, font face and bpp.

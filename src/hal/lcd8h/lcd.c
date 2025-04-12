@@ -1,5 +1,7 @@
 #include "lcd.h"
 #include "at32f415_crm.h"
+#include "uart.h"
+#include <cmsis/core/cmsis_gcc.h>
 
 /* #define MEMORY_DEBUG */
 uint16_t dummy = 0;
@@ -12,9 +14,8 @@ static lv_display_t *dp = NULL;
 #else
 static lv_disp_drv_t *dp = NULL;
 #endif
-
-void dma_write(uint16_t *data, uint32_t length);
-uint16_t dma_test_data[16];
+volatile int dma_ready = 1;
+void dma_write(uint16_t *data, uint32_t length, uint32_t final_x, uint32_t final_y);
 #endif
 
 typedef struct ili_cmd_t {
@@ -52,6 +53,11 @@ const ili_cmd ili_startup_cmds[STARTUP_COMMAND_LENGTH] = {
 		/* {ILI_WRITE_CTRL_DISPLAY,            {0x28}, 1}, */
 		/* {ILI_WRITE_DISPLAY_BRIGHTNESS,      {0x7F}, 1}, */
 };
+
+static void write_data_8bit(uint8_t data);
+static void write_cmd(uint8_t data);
+static void write_data(uint16_t data);
+static void lcd_set_address_window(uint32_t x, uint32_t y, uint32_t x2, uint32_t y2);
 
 void lcd_backlight_init(void) {
     crm_periph_clock_enable(CRM_TMR3_PERIPH_CLOCK, TRUE);
@@ -164,12 +170,11 @@ void lcd_init(void) {
 #ifdef DMA_WRITE
     static dma_init_type dma_init_struct = {0};
 
-    /* tmr_reset(TMR1); */
+    tmr_reset(TMR1);
     /* tmr enable counter */
-    tmr_counter_enable(TMR3, TRUE);
     tmr_output_config_type tmr_output_struct;
-    /* tmr_base_init(TMR1, 29, 0); */
-    tmr_base_init(TMR1, 19, 0);
+    tmr_base_init(TMR1, 15, 0);
+    /* tmr_base_init(TMR1, 11, 0); */
     tmr_cnt_dir_set(TMR1, TMR_COUNT_UP);
     tmr_clock_source_div_set(TMR1, TMR_CLOCK_DIV1);
     tmr_output_default_para_init(&tmr_output_struct);
@@ -178,13 +183,13 @@ void lcd_init(void) {
     tmr_output_struct.oc_polarity = TMR_OUTPUT_ACTIVE_LOW;
     tmr_output_struct.oc_idle_state = FALSE;
     tmr_output_channel_config(TMR1, TMR_SELECT_CHANNEL_4, &tmr_output_struct);
-    /* tmr_channel_value_set(TMR1, TMR_SELECT_CHANNEL_4, 15); */
-    tmr_channel_value_set(TMR1, TMR_SELECT_CHANNEL_4,  9);
+    tmr_channel_value_set(TMR1, TMR_SELECT_CHANNEL_4, 12);
+    /* tmr_channel_value_set(TMR1, TMR_SELECT_CHANNEL_4,  8); */
 
     /* tmr_interrupt_enable(TMR1, TMR_OVF_INT, TRUE); */
 
-    tmr_dma_request_enable(TMR1, TMR_C4_DMA_REQUEST, TRUE);
-    /* tmr_dma_request_enable(TMR1, TMR_OVERFLOW_DMA_REQUEST, TRUE); */
+    /* tmr_dma_request_enable(TMR1, TMR_C4_DMA_REQUEST, TRUE); */
+    tmr_dma_request_enable(TMR1, TMR_OVERFLOW_DMA_REQUEST, TRUE);
 
     dma_reset(DMA2_CHANNEL1);
     dma_init_struct.buffer_size = 0;
@@ -202,11 +207,11 @@ void lcd_init(void) {
     dma_interrupt_enable(DMA2_CHANNEL1, DMA_FDT_INT, TRUE);
     nvic_priority_group_config(NVIC_PRIORITY_GROUP_4);
     nvic_irq_enable(DMA2_Channel1_IRQn, 0, 0);
-    /* nvic_irq_enable(TMR1_OVF_TMR10_IRQn, 1, 0); */
+    nvic_irq_enable(TMR1_OVF_TMR10_IRQn, 1, 0);
 
     
-    dma_flexible_config(DMA2, FLEX_CHANNEL1, DMA_FLEXIBLE_TMR1_CH4);
-    /* dma_flexible_config(DMA2, FLEX_CHANNEL1, DMA_FLEXIBLE_TMR1_OVERFLOW); */
+    /* dma_flexible_config(DMA2, FLEX_CHANNEL1, DMA_FLEXIBLE_TMR1_CH4); */
+    dma_flexible_config(DMA2, FLEX_CHANNEL1, DMA_FLEXIBLE_TMR1_OVERFLOW);
     
     TMR1->brk_bit.oen = 1;
 
@@ -219,50 +224,83 @@ void lcd_init(void) {
     CS_ACTIVE;
 }
 #ifdef DMA_WRITE
-void dma_write(uint16_t *data, uint32_t length) {
-    
-    tmr_flag_clear(TMR1, TMR_OVF_FLAG);
+
+uint32_t dma_final_x = 0;
+uint32_t dma_final_y = 0;
+uint16_t *dma_final_bytes = NULL;
+void dma_write(uint16_t *data, uint32_t length, uint32_t final_x, uint32_t final_y) {
+    dma_ready = 0;
+#if X_BACKOFF
+    dma_final_x = final_x - (X_BACKOFF - 1);
+    dma_final_y = final_y;
+    dma_final_bytes = data + length - (1 + X_BACKOFF);
+#endif
+    /* tmr_flag_clear(TMR1, TMR_OVF_FLAG); */
+    tmr_flag_clear(TMR1, TMR_C4_FLAG);
+    GPIOC->clr = 1 << 9;
     TMR1->cval = 0;
     // force first blob
-    /* CS_ACTIVE; */
-    /* GPIOB->odt = *data; */
-    data--; // we need a waste value, doesn't matter what
+    GPIOB->odt = *data; // initial blob
+    data++;
     DMA2_CHANNEL1->ctrl_bit.chen = 0;
-    DMA2_CHANNEL1->dtcnt = length;
+#if X_BACKOFF
+    DMA2_CHANNEL1->dtcnt = length - (1 + X_BACKOFF); // skip first and last
+#else
+    DMA2_CHANNEL1->dtcnt = length - 1; // skip first and last
+#endif
     DMA2_CHANNEL1->maddr = (uint32_t) (data);
-
-    GPIOC->cfghr &= (uint32_t)~(0x000000F0);
+    GPIOC->cfghr &= (uint32_t)~(0x000000F0); // set timer output
     GPIOC->cfghr |= (uint32_t) (0x000000B0);
     DMA2_CHANNEL1->ctrl_bit.chen = 1;
     TMR1->ctrl1_bit.tmren = 1;
-    /* tmr_counter_enable(TMR1, TRUE); */
 }
-
 
 /* void TMR1_OVF_TMR10_IRQHandler(void) */
 /* { */
-/*     if(tmr_interrupt_flag_get(TMR1, TMR_OVF_FLAG) != RESET) */
-/*     { */
-/*         tmr_flag_clear(TMR1, TMR_OVF_FLAG); */
-/*     } */
+/*     // ssytem is high */
+/*     TMR1->ists = ~TMR_OVF_FLAG; */
+/*     if (++tmr_cnt == tmr_end) TMR1->ctrl1_bit.tmren = 0; */
 /* } */
 
+// there is no way to capture the last pulses (as in: block them)
+// So we stop writing 1 blob earlier and finish it manually
+// This costs one setup cycle and one byte burst
 void DMA2_Channel1_IRQHandler(void)
 {
+    __disable_irq();
+    CS_IDLE;
     WRITE_IDLE;
+
     GPIOC->cfghr &= (uint32_t)~(0x00000080);
     /* GPIOC->cfghr |= (uint32_t) (0x00000030); */
     TMR1->ctrl1_bit.tmren = 0;
-    CS_IDLE;
     DMA2->clr = DMA2_FDT1_FLAG;
-    /* TMR1->brk_bit.oen = 0; */
-
+    CS_ACTIVE;
+#if X_BACKOFF
+    // this is a medium-long one, reset column, row is correct
+    write_cmd(ILI_COL_ADDR_SET);
+    write_data_8bit(dma_final_x   >> 8);
+    write_data_8bit(dma_final_x  );
+    write_data_8bit((dma_final_x + (X_BACKOFF - 1)) >> 8);
+    write_data_8bit(dma_final_x + (X_BACKOFF - 1));
+    write_cmd(ILI_PA_ADDR_SET);
+    write_data_8bit(dma_final_y >> 8);
+    write_data_8bit(dma_final_y);
+    write_data_8bit((dma_final_y) >> 8);
+    write_data_8bit(dma_final_y);
+    write_cmd(ILI_MEMORY_WRITE);
+    // unroll to avoid unneeded branches
+#pragma GCC unroll 32
+    for (int i = 0; i < X_BACKOFF; i++) write_data(*dma_final_bytes++);
+#endif
+    dma_ready = 1;
 #if LVGL_VERSION_MAJOR == 9
     lv_display_flush_ready(dp);
 #else
     lv_disp_flush_ready(dp);
 #endif
-    CS_ACTIVE;
+
+    __enable_irq();
 }
 #endif
 
@@ -361,7 +399,7 @@ void read_register(uint8_t command, void *location, uint32_t bits, uint32_t num)
 }
 
 
-void lcd_set_address_window(uint32_t x, uint32_t y, uint32_t x2, uint32_t y2) {
+static void lcd_set_address_window(uint32_t x, uint32_t y, uint32_t x2, uint32_t y2) {
     write_cmd(ILI_COL_ADDR_SET);
     write_data_8bit(x >> 8);
     write_data_8bit(x);
@@ -511,6 +549,8 @@ void lcd_test(void) {
     WRITE_16BIT(0xFFFF);
 }
 
+lv_area_t nar;
+uint32_t nl;
 #if LVGL_VERSION_MAJOR == 9
 void lcd_lvgl_flush(lv_display_t *display, const lv_area_t *area, uint8_t *pixmap) {
 #else
@@ -518,21 +558,17 @@ void lcd_lvgl_flush(lv_disp_drv_t *display, const lv_area_t *area, lv_color_t *p
 #endif
     uint16_t *pixels = (uint16_t *) pixmap;
     uint32_t length = 0;
-    if (area->y2 == area->y1) length = 1;
-    else length = (area->y2 - area->y1) + 1;
-    if (area->x1 != area->x2) length *= ((area->x2 - area->x1) + 1);
-    /* CS_ACTIVE; */
+    length = (area->y2 - area->y1) + 1;
+    length *= ((area->x2 - area->x1) + 1);
+    memcpy(&nar, area, sizeof(lv_area_t));
+    nl = length;
+    
     lcd_set_address_window(area->x1, area->y1, area->x2, area->y2);
     write_cmd(ILI_MEMORY_WRITE);
 #ifdef DMA_WRITE 
     dp = display;
     DATA;
-    dma_write(pixels, length);
-/* #if LVGL_VERSION_MAJOR == 9 */
-/*     lv_display_flush_ready(display); */
-/* #else */
-/*     lv_disp_flush_ready(display); */
-/* #endif */
+    dma_write(pixels, length, area->x2, area->y2);
 #else
 #pragma GCC unroll 8
     while(length--) write_data(*pixels++);
@@ -545,7 +581,6 @@ void lcd_lvgl_flush(lv_disp_drv_t *display, const lv_area_t *area, lv_color_t *p
 #endif
 }
 
-
 #if LVGL_VERSION_MAJOR == 9
 void lcd_draw_large_text(uint32_t x, uint32_t y, const lv_image_dsc_t *img, uint16_t color) {
     if (img->header.cf == LV_COLOR_FORMAT_I1) {
@@ -554,14 +589,59 @@ void lcd_draw_large_text(uint32_t x, uint32_t y, const lv_img_dsc_t *img, uint16
     if (img->header.cf == LV_IMG_CF_INDEXED_1BIT) {
 #endif
         // images stored as 1bpp, need to iterate over and draw raw
+#ifdef DMA_WRITE
+/*
+ * Calculation speed exceeds dma draw time at 8 lines or more
+ * 1.865ms non-dma -Os
+ * 0.72ms non-dma -O3/2/1/fast
+ * 1.1ms per char with 37 lines
+ * 1.07ms per char with 8 lines
+ * 1.12ms per char with 4 lines
+ */
+        // items are 148*88, so 37 cycles
+#define BLOB_LINES 4 
+#define BLOB_SIZE (88*BLOB_LINES)
+        uint16_t blob[BLOB_SIZE]; // expand and dma draw
+        uint16_t blob2[BLOB_SIZE]; // expand and dma draw
+        uint16_t *cb = NULL;
+        uint8_t *data = (uint8_t *) img->data;
+        data += 8;
+        int cycles = 0;
+        cb = (cb == blob) ? blob2 : blob ;
+        while(cycles < 148 / BLOB_LINES) {
+            // expand
+            int32_t i = 0;
+            while(i < BLOB_SIZE) {
+                register uint32_t vdata = *data;
+                cb[i++] = (vdata & 0x80) ? 0x0000 : color;
+                cb[i++] = (vdata & 0x40) ? 0x0000 : color;
+                cb[i++] = (vdata & 0x20) ? 0x0000 : color;
+                cb[i++] = (vdata & 0x10) ? 0x0000 : color;
+                cb[i++] = (vdata & 0x08) ? 0x0000 : color;
+                cb[i++] = (vdata & 0x04) ? 0x0000 : color;
+                cb[i++] = (vdata & 0x02) ? 0x0000 : color;
+                cb[i++] = (vdata & 0x01) ? 0x0000 : color;
+                data++;
+            }
+            // wait
+            while(!dma_ready);
+            // set address
+            lcd_set_address_window(x, y, x + img->header.w - 1, y + (BLOB_LINES - 1) < (y + img->header.h - 1) ? y + (BLOB_LINES - 1) : (y + img->header.h - 1));
+            // send
+            write_cmd(ILI_MEMORY_WRITE);
+            DATA;
+            dma_write(cb, BLOB_SIZE, x + img->header.w - 1, y + (BLOB_LINES - 1) < (y + img->header.h - 1) ? y + (BLOB_LINES - 1) : (y + img->header.h - 1));
+            y += BLOB_LINES;
+            cycles++;
+            cb = (cb == blob) ? blob2 : blob;
+        }
+        while(!dma_ready);
+#else
         lcd_set_address_window(x, y, x + img->header.w - 1, y + img->header.h - 1);
         uint32_t length = (img->header.w * img->header.h) >> 3;
         uint8_t *data = (uint8_t *) img->data;
         data += 8;
         write_cmd(ILI_MEMORY_WRITE);
-/* #ifdef DMA_WRITE */
-/* #else */
-#pragma GCC unroll 8
         while(length--) {
             // convert
             register uint32_t vdata = *data;
@@ -575,6 +655,6 @@ void lcd_draw_large_text(uint32_t x, uint32_t y, const lv_img_dsc_t *img, uint16
             write_data((vdata & 0x01) ? 0x0000 : color);
             data++;
         }
-/* #endif */
+#endif
     }
 }

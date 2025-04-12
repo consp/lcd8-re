@@ -6,6 +6,9 @@
 #include "clock.h"
 #include "uart.h"
 #include "comm.h"
+#include "config.h"
+
+#include <cmsis/core/core_cm4.h>
 
 extern volatile uint32_t timer_counter;
 #if DMA_WRITE
@@ -94,6 +97,7 @@ lv_obj_t *avg_speed_text = NULL;
 lv_obj_t *max_speed_text = NULL;
 lv_obj_t *lights_img = NULL;
 
+lv_obj_t *time_text = NULL;
 lv_obj_t *brake_img = NULL;
 
 lv_obj_t *graph = NULL; 
@@ -168,8 +172,9 @@ void gui_init(void) {
     disp_drv.draw_buf = &draw_buf;
     disp_drv.flush_cb = lcd_lvgl_flush;    /*Set your driver function*/
     disp_drv.set_px_cb = NULL;
+    disp_drv.antialiasing = TRUE;
     disp_drv.hor_res = DISPLAY_WIDTH;   /*Set the horizontal resolution of the disp_drv*/
-    disp_drv.ver_res =DISPLAY_HEIGHT;   /*Set the vertical resolution of the disp_drv*/
+    disp_drv.ver_res = DISPLAY_HEIGHT;   /*Set the vertical resolution of the disp_drv*/
     display = lv_disp_drv_register(&disp_drv);
     /* // ticks */
     /* lv_timer_set_cb(&timer_cb); */
@@ -420,11 +425,19 @@ void gui_draw_normal(void) {
     trip_time_text = lv_label_create(lv_screen_active());
     lv_obj_add_style(trip_time_text, &text_normal, LV_PART_MAIN | LV_STATE_DEFAULT);
     lv_obj_set_style_text_align(trip_time_text, LV_TEXT_ALIGN_LEFT, 0);
-    lv_label_set_text_fmt(trip_time_text, "000.0", 0);
+    lv_label_set_text_fmt(trip_time_text, "000.0");
     lv_label_set_long_mode(trip_time_text, LV_LABEL_LONG_CLIP);
     lv_obj_set_pos(trip_time_text, TRIP_TIME_TEXT_X, TRIP_TIME_TEXT_Y);
     lv_obj_set_size(trip_time_text, TRIP_TIME_TEXT_WIDTH, TRIP_TIME_TEXT_HEIGHT);
     
+    time_text = lv_label_create(lv_screen_active());
+    lv_obj_add_style(time_text, &text_normal, LV_PART_MAIN | LV_STATE_DEFAULT);
+    lv_obj_set_style_text_align(time_text, LV_TEXT_ALIGN_LEFT, 0);
+    lv_label_set_text_fmt(time_text, "00:00");
+    lv_label_set_long_mode(time_text, LV_LABEL_LONG_CLIP);
+    lv_obj_set_pos(time_text, TIME_TEXT_X, TIME_TEXT_Y);
+    lv_obj_set_size(time_text, TIME_TEXT_WIDTH, TIME_TEXT_HEIGHT);
+
     // bottom graph
     graph = lv_chart_create(lv_screen_active());
     lv_chart_set_type(graph, LV_CHART_TYPE_LINE);
@@ -674,19 +687,31 @@ struct item_event_data {
     lv_obj_add_event_cb(it1, item_event_cb, LV_EVENT_GESTURE, &eventdata_ ## index);
 
 #define LIST_ITEM_HIGHLIGHT(index) \
+    lv_obj_remove_style(list_items[index], &item_style, LV_PART_MAIN); \
+    lv_obj_remove_style(list_items[index], &item_style_checked, LV_PART_MAIN); \
     lv_obj_add_style(list_items[index], &item_style_checked, LV_PART_MAIN);\
     lv_obj_add_state(list_items[index], LV_STATE_FOCUSED);\
     for(int i = 0; i < lv_obj_get_child_cnt(list_items[index]); i++) { lv_obj_t * child = lv_obj_get_child(list_items[index], i); lv_obj_add_style(child, &item_style_checked, LV_PART_MAIN); };\
+    for(int i = 0; i < lv_obj_get_child_cnt(list_items[index]); i++) { lv_obj_t * child = lv_obj_get_child(list_items[index], i); lv_obj_remove_style(child, &item_style, LV_PART_MAIN); };\
+    for(int i = 0; i < lv_obj_get_child_cnt(list_items[index]); i++) { lv_obj_t * child = lv_obj_get_child(list_items[index], i); lv_obj_remove_style(child, &item_style_selected, LV_PART_MAIN); };\
     lv_obj_scroll_to_view(list_items[index], LV_ANIM_ON);
 
 #define LIST_ITEM_NORMAL(index)    \
+    lv_obj_remove_style(list_items[index], &item_style_selected, LV_PART_MAIN); \
+    lv_obj_remove_style(list_items[index], &item_style, LV_PART_MAIN); \
     lv_obj_add_style(list_items[index], &item_style, LV_PART_MAIN);\
     for(int i = 0; i < lv_obj_get_child_cnt(list_items[index]); i++) { lv_obj_t * child = lv_obj_get_child(list_items[index], i); lv_obj_add_style(child, &item_style, LV_PART_MAIN); };\
+    for(int i = 0; i < lv_obj_get_child_cnt(list_items[index]); i++) { lv_obj_t * child = lv_obj_get_child(list_items[index], i); lv_obj_remove_style(child, &item_style_checked, LV_PART_MAIN); };\
+    for(int i = 0; i < lv_obj_get_child_cnt(list_items[index]); i++) { lv_obj_t * child = lv_obj_get_child(list_items[index], i); lv_obj_remove_style(child, &item_style_selected, LV_PART_MAIN); };\
     lv_obj_clear_state(list_items[index], LV_STATE_FOCUSED);
 
 #define LIST_ITEM_SELECT(index)    \
+    lv_obj_remove_style(list_items[index], &item_style_checked, LV_PART_MAIN); \
+    lv_obj_remove_style(list_items[index], &item_style, LV_PART_MAIN); \
     lv_obj_add_style(list_items[index], &item_style_selected, LV_PART_MAIN);\
     for(int i = 0; i < lv_obj_get_child_cnt(list_items[index]); i++) { lv_obj_t * child = lv_obj_get_child(list_items[index], i); lv_obj_add_style(child, &item_style_selected, LV_PART_MAIN); };\
+    for(int i = 0; i < lv_obj_get_child_cnt(list_items[index]); i++) { lv_obj_t * child = lv_obj_get_child(list_items[index], i); lv_obj_remove_style(child, &item_style_checked, LV_PART_MAIN); };\
+    for(int i = 0; i < lv_obj_get_child_cnt(list_items[index]); i++) { lv_obj_t * child = lv_obj_get_child(list_items[index], i); lv_obj_remove_style(child, &item_style, LV_PART_MAIN); };\
     lv_obj_add_state(list_items[index], LV_STATE_FOCUSED);
 
 static void item_event_cb(lv_event_t *e) {
@@ -782,12 +807,14 @@ void gui_draw_settings_main(void) {
     lv_style_set_bg_color(&item_style_checked, COLOR_YELLOW);
     lv_style_set_bg_opa(&item_style_checked, LV_OPA_COVER);
     lv_style_set_text_color(&item_style_checked, COLOR_BLACK);
+    lv_style_set_pad_all(&item_style_checked, 0);
     lv_style_set_border_width(&item_style_checked, 0);
 
     lv_style_set_border_color(&item_style_selected, COLOR_BLACK);
     lv_style_set_bg_color(&item_style_selected, COLOR_BLUE);
     lv_style_set_bg_opa(&item_style_selected, LV_OPA_COVER);
     lv_style_set_text_color(&item_style_selected, COLOR_WHITE);
+    lv_style_set_pad_all(&item_style_selected, 0);
     lv_style_set_border_width(&item_style_selected, 0);
 
     lv_style_init(&item_style_checkbox);
@@ -796,6 +823,7 @@ void gui_draw_settings_main(void) {
     lv_style_set_radius(&item_style_checkbox_checked, LV_RADIUS_CIRCLE);
     lv_style_set_bg_color(&item_style_checkbox_checked, lv_palette_main(LV_PALETTE_BLUE));
     lv_style_set_bg_img_src(&item_style_checkbox_checked, NULL);
+    lv_style_set_pad_all(&item_style_selected, 0);
 
     // list etc
     list = lv_obj_create(lv_screen_active());
@@ -816,13 +844,14 @@ void gui_draw_settings_main(void) {
 
     LIST_ITEM_LABEL(0, "DISPLAY");
     LIST_ITEM_LABEL(1, "CONTROLLER");
-    LIST_ITEM_COUNTER(2, "BACKLIGHT", 0, 100, 1, settings.backlight_level, 1, lcd_backlight);
-    LIST_ITEM_LABEL(3, "BACK");
+    LIST_ITEM_LABEL(2, "TIME"); 
+    LIST_ITEM_COUNTER(3, "BACKLIGHT", 1, 100, 1, settings.backlight_level, 1, lcd_backlight);
+    LIST_ITEM_LABEL(4, "BACK");
 
     LIST_ITEM_HIGHLIGHT(0);    
 
     list_item = 0;
-    list_item_max = 4;
+    list_item_max = 5;
 }
 
 void gui_draw_controller_settings(void) {
@@ -845,7 +874,10 @@ void gui_draw_controller_settings(void) {
     LIST_ITEM_COUNTER(0, "SPEED ASSIST MAX.", 0, 100, 1, settings.speed_assist_max, 1, NULL);
     LIST_ITEM_COUNTER(1, "WHEEL CIRC.", 0, 300, 1, settings.wheel_circumfence, 2, NULL);
     LIST_ITEM_COUNTER(2, "CURRENT MAX.", 0, 100000, 100, settings.current_max, 2, NULL);
-    LIST_ITEM_LABEL(3, "BACK");
+    LIST_ITEM_COUNTER(3, "REGEN CUR. MAX.", 0, 100000, 100, settings.regen_current, 2, NULL);
+    LIST_ITEM_COUNTER(4, "PAS TIMEOUT", 0, 32000, 100, settings.pas_timeout, 2, NULL);
+    LIST_ITEM_COUNTER(5, "PAS RAMP", 0, 10000, 100, settings.pas_ramp, 2, NULL);
+    LIST_ITEM_LABEL(6, "BACK");
     /* LIST_ITEM_LABEL(1, "Controller"); */
     /* LIST_ITEM_COUNTER(2, "Backlight", 0, 100, 1, settings.backlight_level, 1, lcd_backlight); */
     /* LIST_ITEM_LABEL(3, "Back"); */
@@ -853,7 +885,41 @@ void gui_draw_controller_settings(void) {
     LIST_ITEM_HIGHLIGHT(0);    
 
     list_item = 0;
-    list_item_max = 4;
+    list_item_max = 7;
+}
+
+static uint8_t hour = 0, min = 0, sec = 0, month = 0, day = 0;
+static uint16_t year = 0;
+void gui_draw_time(void) {
+    list = lv_obj_create(lv_screen_active());
+    lv_obj_set_layout(list, LV_LAYOUT_FLEX);
+    lv_obj_set_flex_flow(list, LV_FLEX_FLOW_COLUMN);
+    lv_obj_set_size(list, DISPLAY_WIDTH, DISPLAY_HEIGHT);
+    lv_obj_set_pos(list, 0, 0);
+    lv_obj_set_style_pad_column(list, 0, LV_PART_MAIN);
+    lv_obj_set_style_pad_row(list, 0, LV_PART_MAIN);
+    lv_obj_add_style(list, &list_style, LV_PART_MAIN);
+    lv_obj_add_style(list, &list_scrollbar, LV_PART_SCROLLBAR);
+    lv_obj_add_flag(list, LV_OBJ_FLAG_SCROLLABLE);
+    lv_obj_set_scroll_dir(list, LV_DIR_VER);
+    lv_obj_set_scrollbar_mode(list, LV_SCROLLBAR_MODE_OFF);
+
+    clock_get_all(&hour, &min, &sec, &year, &month, &day);
+
+    lv_obj_t *it1, *it2, *it3 = NULL;
+
+    LIST_ITEM_COUNTER(0, "HOUR",    0, 23, 1, hour, 1, NULL);
+    LIST_ITEM_COUNTER(1, "MINUTES", 0, 59, 1, min, 1, NULL);
+    LIST_ITEM_COUNTER(2, "SECONDS", 0, 59, 1, sec, 1, NULL);
+    LIST_ITEM_COUNTER(3, "YEAR", 2025, 2099, 1, year, 2, NULL);
+    LIST_ITEM_COUNTER(4, "MONTH",   1, 12, 1, month, 1, NULL);
+    LIST_ITEM_COUNTER(5, "DAY",     1, 31, 1, day, 1, NULL);
+    LIST_ITEM_LABEL(6, "BACK");
+
+    LIST_ITEM_HIGHLIGHT(0);    
+
+    list_item = 0;
+    list_item_max = 7;
 }
 
 void gui_draw_display_settings(void) {
@@ -1045,6 +1111,11 @@ static void _draw_controller_mode(void) {
 static void _draw_time(void) {
     if (draw_time_trigger) {
         print_time(trip_time_text, settings.trip_time);
+
+        uint32_t h = 0, m = 0;
+        clock_get_time(&h, &m);
+        lv_label_set_text_fmt(time_text, "%02ld:%02ld", h, m);
+
         draw_time_trigger = 0;
     }
 }
@@ -1331,7 +1402,7 @@ void button_presses(void) {
                         lcd_backlight(0);
                         delay_ms(250);
                         power_disable();
-                        delay_ms(1500);
+                        //
                     }
                     break;
             }
@@ -1396,30 +1467,18 @@ void button_presses(void) {
                     list_item--;
                     if (list_item < 0) list_item = list_item_max - 1;
                     LIST_ITEM_HIGHLIGHT(list_item);
-                    button_release(BUTTON_ID_UP, 0);
+                    button_release(BUTTON_ID_UP, 250);
                     break;
                 case BUTTON_STATE(BUTTON_ID_DOWN, BUTTON_PRESSED):
                     LIST_ITEM_NORMAL(list_item);
                     list_item++;
                     list_item = ((uint32_t) list_item) % list_item_max;
                     LIST_ITEM_HIGHLIGHT(list_item);
-                    button_release(BUTTON_ID_DOWN, 0);
+                    button_release(BUTTON_ID_DOWN, 250);
                     break;
                 case BUTTON_STATE(BUTTON_ID_POWER, BUTTON_PRESSED):
-                    button_release(BUTTON_ID_POWER, 150);
+                    button_release(BUTTON_ID_POWER, 250);
                     switch(list_item) {
-                        case 3: // back
-                            mode = MODE_NORMAL;
-                            // clean all
-                            lv_obj_clean(lv_screen_active());
-                            gui_draw_normal();
-                            // save settings
-                            eeprom_write_settings();
-                            // send settings to controller
-                            comm_send_display_settings();
-                            comm_send_display_status();
-                            comm_send_controller_settings();
-                            break;
                         case 0: // goto display settings
                             mode = MODE_SETTINGS_DISPLAY;
                             lv_obj_clean(lv_screen_active());
@@ -1430,10 +1489,33 @@ void button_presses(void) {
                             lv_obj_clean(lv_screen_active());
                             gui_draw_controller_settings();
                             break;
-                        case 2: // items
+                        case 2: // goto clock settings
+#if LEXT_INSTALLED
+                            mode = MODE_SETTINGS_CLOCK;
+                            lv_obj_clean(lv_screen_active());
+                            gui_draw_time();
+                            break;
+                        case 3: // items
+#endif
                             mode_back = MODE_SETTINGS_MAIN;
                             mode = MODE_SETTINGS_EVENT_CALLBACK;
                             LIST_ITEM_SELECT(list_item); 
+                            break;
+#if LEXT_INSTALLED 
+                        case 4:
+#else
+                        case 3: // back
+#endif
+                            mode = MODE_NORMAL;
+                            // clean all
+                            lv_obj_clean(lv_screen_active());
+                            gui_draw_normal();
+                            // save settings
+                            eeprom_write_settings();
+                            // send settings to controller
+                            comm_send_display_settings();
+                            comm_send_display_status();
+                            comm_send_controller_settings();
                             break;
                     }
                     break;
@@ -1510,18 +1592,57 @@ void button_presses(void) {
                 case BUTTON_STATE(BUTTON_ID_POWER, BUTTON_PRESSED):
                     button_release(BUTTON_ID_POWER, 150);
                     switch(list_item) {
-                        case 3: // back
+                        case 6: // back
                             mode = MODE_SETTINGS_MAIN;
                             // clean all
                             lv_obj_clean(lv_screen_active());
                             gui_draw_settings_main();
                             break;
-                        case 0:
-                        case 1:
-                        case 2: // items
+                        default:
                             mode_back = MODE_SETTINGS_CONTROLLER;
                             mode = MODE_SETTINGS_EVENT_CALLBACK;
                             LIST_ITEM_SELECT(list_item); 
+                            break;
+                    }
+                    break;
+            }
+            break;
+        case MODE_SETTINGS_CLOCK:
+            switch (code & (BUTTON_MASK(BUTTON_ID_UP) | BUTTON_MASK(BUTTON_ID_DOWN) | BUTTON_MASK(BUTTON_ID_POWER))) {
+                case BUTTON_STATE(BUTTON_ID_DOWN, BUTTON_LONG_PRESSED) | BUTTON_STATE(BUTTON_ID_UP, BUTTON_DOWN):
+                case BUTTON_STATE(BUTTON_ID_UP, BUTTON_LONG_PRESSED) | BUTTON_STATE(BUTTON_ID_DOWN, BUTTON_DOWN):
+                case BUTTON_STATE(BUTTON_ID_UP, BUTTON_LONG_PRESSED) | BUTTON_STATE(BUTTON_ID_DOWN, BUTTON_LONG_PRESSED):
+                    break; // ignore
+                case BUTTON_STATE(BUTTON_ID_UP, BUTTON_PRESSED):
+                    button_release(BUTTON_ID_UP, 50);
+                    LIST_ITEM_NORMAL(list_item);
+                    list_item--;
+                    if (list_item < 0) list_item = list_item_max - 1;
+                    LIST_ITEM_HIGHLIGHT(list_item);
+                    break;
+                case BUTTON_STATE(BUTTON_ID_DOWN, BUTTON_PRESSED):
+                    button_release(BUTTON_ID_DOWN, 50);
+                    LIST_ITEM_NORMAL(list_item);
+                    list_item++;
+                    list_item = ((uint32_t) list_item) % list_item_max;
+                    LIST_ITEM_HIGHLIGHT(list_item);
+                    break;
+                case BUTTON_STATE(BUTTON_ID_POWER, BUTTON_PRESSED):
+                    button_release(BUTTON_ID_POWER, 150);
+                    switch(list_item) {
+                        default:
+                            mode_back = MODE_SETTINGS_CLOCK;
+                            mode = MODE_SETTINGS_EVENT_CALLBACK;
+                            LIST_ITEM_SELECT(list_item); 
+                            break;
+                        case 6: // back
+                            mode = MODE_SETTINGS_MAIN;
+                            // clean all
+                            lv_obj_clean(lv_screen_active());
+                            // set time
+                            clock_set_date((uint32_t) year - 2000, (uint32_t) month, (uint32_t) day, 0);
+                            clock_set_time((uint32_t) hour, (uint32_t) min, (uint32_t) sec);
+                            gui_draw_settings_main();
                             break;
                     }
                     break;

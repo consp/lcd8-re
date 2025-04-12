@@ -45,9 +45,11 @@
   * @param  none
   * @retval none
   */
+extern uint32_t reset_flag;
 void system_clock_config(void)
 {
-
+  reset_flag = crm_flag_get(CRM_SW_RESET_FLAG);
+  crm_flag_clear(CRM_SW_RESET_FLAG);
   /* reset crm */
   crm_reset();
 

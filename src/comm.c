@@ -10,6 +10,9 @@ extern int32_t speed, battery_current, battery_voltage_controller, mot_temperatu
 extern uint8_t draw_power_trigger, draw_speed_trigger, draw_temperatures_trigger, brake, controller_mode, draw_battery_voltage_trigger, draw_brake_trigger, draw_controller_mode_trigger;
 extern settings_t settings;
 
+extern volatile uint32_t timer_counter;
+uint32_t comm_counter = 0;
+
 void comm_update(void) {
     // parse if available and update variables
     uint8_t data[UART_RX_BUFFER_SIZE];;
@@ -64,6 +67,13 @@ void comm_update(void) {
             }
         }
     }
+
+    if (timer_counter - comm_counter > 5000) {
+        /* comm_send_controller_settings(); */
+        /* comm_send_display_settings(); */
+        /* comm_send_display_status(); */
+        comm_counter = timer_counter;
+    }
 }
 
 void comm_send_display_settings(void) {
@@ -75,6 +85,9 @@ void comm_send_display_settings(void) {
     msg->settings.wheel_circumfence = __htons(settings.wheel_circumfence);
     msg->settings.max_speed = settings.speed_assist_max;
     msg->settings.assist_levels = settings.assist_levels;
+    msg->settings.pas_ramp = __htons(settings.pas_ramp);
+    msg->settings.pas_timeout = __htons(settings.pas_timeout);
+    msg->settings.regen_current = __htons(settings.regen_current);
 
     msg->crc = crc_calc_comm((uint8_t *) msg, sizeof(msg_display_settings));
     

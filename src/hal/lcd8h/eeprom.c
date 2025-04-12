@@ -206,12 +206,19 @@ void eeprom_write_defaults(void) {
     settings.lights_enabled = 0;
     settings.lights_mode = 0;
     settings.battery_voltage_from_controller = 0;
+    settings.regen_current = REGEN_CURRENT;
+    settings.pas_timeout = PAS_TIMEOUT;
+    settings.pas_ramp = PAS_RAMP;
 
     settings.trip_time = 0;
     settings.trip_distance = 0;
     settings.total_distance = 0;
     settings.backlight_level = 100;
-
+#if LEXT_INSTALLED
+    // save date and time in case of brownout/powerdown
+    settings.time = ERTC->time;
+    settings.date = ERTC->date;
+#endif
     settings.factory_reset = 0xAA; // mark as factory reset
     eeprom_write_settings();
 }

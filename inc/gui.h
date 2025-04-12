@@ -36,7 +36,7 @@
 /* locations
  */
 #define SPEED_MAJOR_X       0 
-#define SPEED_MAJOR_Y       64 // create some space
+#define SPEED_MAJOR_Y       96 // create some space
 #define SPEED_MAJOR_WIDTH   92 
 #define SPEED_MAJOR_HEIGHT  148
 // #define SPEED_MAJOR_BG_COLOR C_BLACK //C_YELLOW// C_BLACK
@@ -136,6 +136,12 @@
 #define TRIP_TIME_TEXT_WIDTH            96    
 #define TRIP_TIME_TEXT_HEIGHT           32
 
+// #define TIME_IMG_X                      (5 * 32)
+// #define TIME_IMG_Y                      (14 * 32)
+#define TIME_TEXT_X                     (1 * 32)//TIME_IMG_X + 32
+#define TIME_TEXT_Y                     (1 * 32) //TIME_IMG_Y
+#define TIME_TEXT_WIDTH                 96    
+#define TIME_TEXT_HEIGHT                32
 
 #define GRAPH_X                         0 
 #define GRAPH_Y                         POWER_Y + 32
@@ -206,6 +212,7 @@ typedef enum {
     MODE_SETTINGS_MAIN,
     MODE_SETTINGS_CONTROLLER,
     MODE_SETTINGS_DISPLAY,
+    MODE_SETTINGS_CLOCK,
     MODE_SETTINGS_EVENT_CALLBACK
 } modes;
 

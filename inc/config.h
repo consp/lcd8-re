@@ -12,7 +12,7 @@
 #define POWER_FILTER_SHIFT 2
 
 #ifdef DEBUG
-#define PIXEL_BUFFER_LINES 14
+#define PIXEL_BUFFER_LINES 20
 #else
 #ifdef PLATFORM_LCD8
 #define PIXEL_BUFFER_LINES 22 // lower if more mem is required for lvgl
@@ -26,6 +26,9 @@
 
 #define EEPROM_SIZE 512 // device has a 2 page eeprom
 
+/**
+ * default values
+ */
 #define POWER_MAX 250
 #define POWER_MIN -250
 #define SPEED_MAX 25
@@ -39,13 +42,32 @@
 
 #define ASSIST_LEVELS 9
 #define ASSIST_DEFAULT 0
-#define WHEEL_CIRCUMFENCE 223
-// change to 1 if lext installed
+#define WHEEL_CIRCUMFENCE 216
+#define PAS_TIMEOUT 8000
+#define PAS_RAMP 1600
+#define REGEN_CURRENT 5000
+
+/*
+ * if you install a external 32khz crystal the ertc can work
+ * I chose a bog standard one with 2 * 5.6pF caps.
+ * to keep it running the battery will drain.
+ * Adding a tiny battery will not work as the drain current is ~10mA and it's neigh impossible to
+ * detect the power signal in the comperator on PA4 due to it being in the single digit mV range.
+ * I've tried changing the resistors but this does not result in significant changes. I probably
+ * do not understand the circuit and since no device is ever sold with an RTC I guess the original
+ * developers didn't either.
+ *
+ * NOTE: Will result in 10mA drain current. Make sure your BMS has a low voltage detection and cutoff.
+ */
 #define LEXT_INSTALLED 1
 
 // change to not draw controller mode
 #define DRAW_CONTROLLER_MODE
 
+/*
+ * OC will use 200mhz and an external crystal. 
+ * I added an 8MHz crystal and two 17pF caps.
+ */
 #define OC // overclock to 200mhz, which is the maximum. Higher values will result in 200mhz but evert calculation is broken
 
 #ifdef OC
@@ -85,7 +107,26 @@
  * Experimental settings
  *
  * Here be dragons!
+ *
+ * You have been warned.
  */
-// #define DMA_WRITE 1
+
+/* 
+ * enabeling dma might work or not, depending on the quality
+ * of the signal and other "if's"
+ * Due to how the timer works it always overshoots the dma requests
+ * AFAIK there is no way to stop the timer at the end of the 
+ * dma requests in time at speeds over ~5MHz.
+ * Currently it's set to output around 12.5MHz signal rate which is the limit at which misses start to occur.
+ * Due to being unable to stop the timer on time the final pixels (2) will need to be redrawn, costing an additional 840ns in the interrupt at X_BACKOFF = 2.
+ * The advantage being you still het the 1000us of spare time per bigger draw to play with.
+ *
+ * With the small buffers used you will not achieve any speedup (Since SW bitbanging runs about 25%-30% faster). If you somehow become calculation limited it might be worth it.
+ *
+ * Change X_BACKOFF to determine how many pixels will be redrawn. If you see random pixels on the next line or missing black ones on the right edge, use this to fix that issue
+ * This is due to the "ILI9488" not ignoring pixls outside it's range set Page/Column range like per spec. Might be due to it being a knockoff.
+ */
+#define DMA_WRITE 1
+#define X_BACKOFF 3 
 
 #endif // __CONFIG_H__

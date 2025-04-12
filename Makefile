@@ -9,11 +9,12 @@ TARGET = LCD8H-firmware
 ######################################
 # debug build?
 DEBUG = 1
+MONITOR = 1
 # optimization
 ifeq ($(DEBUG), 1)
-OPT = -Os
+OPT = -O1
 else
-OPT = -Ofast
+OPT = -O3   
 endif
 
 PLATFORM=LCD8
@@ -61,9 +62,11 @@ C_SOURCES+= \
 src/startup/system_at32f415.c \
 src/drivers/at32f415_crm.c \
 src/drivers/at32f415_crc.c \
+src/drivers/at32f415_cmp.c \
 src/drivers/at32f415_dma.c \
 src/drivers/at32f415_tmr.c \
 src/drivers/at32f415_ertc.c \
+src/drivers/at32f415_exint.c \
 src/drivers/at32f415_pwc.c \
 src/drivers/at32f415_adc.c \
 src/drivers/at32f415_usart.c \
@@ -128,6 +131,7 @@ else
 LTO= -flto
 endif
 
+
 # mcu
 MCU = $(CPU) -mthumb -mfloat-abi=soft '-D__weak=__attribute__((weak))'
 
@@ -144,6 +148,9 @@ C_DEFS =  \
 -DPLATFORM_${PLATFORM} \
 -DLV_LVGL_H_INCLUDE_SIMPLE
 
+ifeq ($(MONITOR), 1)
+C_DEFS += -DMONITOR=1
+endif
 
 # AS includes
 AS_INCLUDES = \
@@ -242,7 +249,7 @@ preprocessor: $(DOBJECTS)
 assembler: $(SOBJECTS)
 
 flash: $(BUILD_DIR)/$(TARGET).bin
-	pyocd load build/LCD8H-firmware.bin --target stm32f103rc
+	pyocd load -u 69747484 build/LCD8H-firmware.bin --target stm32f103rc
 
 #######################################
 # clean up

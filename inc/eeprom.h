@@ -36,6 +36,12 @@ typedef struct __attribute__((packed)) {
     uint16_t    current_max;
     uint8_t     lights_enabled;
     uint8_t     lights_mode;
+    uint16_t    regen_current;
+    uint16_t    pas_timeout;
+    uint16_t    pas_ramp;
+
+    uint32_t    date;
+    uint32_t    time;
 
     uint8_t     factory_reset;
     uint8_t     crc;

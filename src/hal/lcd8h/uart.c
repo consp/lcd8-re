@@ -52,6 +52,7 @@ void uart_init(uint32_t baud)
     usart_transmitter_enable(USART1, TRUE);
     usart_receiver_enable(USART1, TRUE);
     usart_interrupt_enable(USART1, USART_IDLE_INT, TRUE);
+    usart_interrupt_enable(USART1, USART_TDC_INT, TRUE);
     usart_dma_transmitter_enable(USART1, TRUE);
     usart_dma_receiver_enable(USART1, TRUE);
     usart_enable(USART1, TRUE);
@@ -106,8 +107,10 @@ static void uart_init_dma(void) {
     dma_interrupt_enable(DMA1_CHANNEL5, DMA_FDT_INT, TRUE);
 
     nvic_irq_enable(DMA1_Channel5_IRQn, 0, 0);
-    /* dma_flexible_config(DMA1, FLEX_CHANNEL5, DMA_FLEXIBLE_UART1_RX); */
-    /* dma_flexible_config(DMA1, FLEX_CHANNEL4, DMA_FLEXIBLE_UART1_TX); */
+#ifdef DMA_WRITE
+    dma_flexible_config(DMA1, FLEX_CHANNEL5, DMA_FLEXIBLE_UART1_RX);
+    dma_flexible_config(DMA1, FLEX_CHANNEL4, DMA_FLEXIBLE_UART1_TX);
+#endif
 
     dma_channel_enable(DMA1_CHANNEL4, FALSE);
     dma_channel_enable(DMA1_CHANNEL5, TRUE);
@@ -131,6 +134,9 @@ void USART1_IRQHandler(void)
         dma_channel_enable(DMA1_CHANNEL5, FALSE);
         DMA1_CHANNEL5->maddr = (uint32_t) uart_rx_buffer;
         DMA1_CHANNEL5->dtcnt = UART_RX_BUFFER_SIZE;
+    } else if (usart_interrupt_flag_get(USART1, USART_TDC_FLAG) != RESET) {
+        USART1->sts_bit.tdc = 0;
+        uart_tx_ready = 0;
     }
 }
 
@@ -138,7 +144,6 @@ void DMA1_Channel4_IRQHandler(void)
 {
     if(dma_interrupt_flag_get(DMA1_FDT4_FLAG))
     {
-        uart_tx_ready = 0;
         dma_flag_clear(DMA1_FDT4_FLAG);
         dma_channel_enable(DMA1_CHANNEL4, FALSE);
     }
@@ -154,9 +159,9 @@ void DMA1_Channel5_IRQHandler(void)
         dma_channel_enable(DMA1_CHANNEL5, FALSE);
     }
 }
-
+#include "delay.h"
 void uart_send(const uint8_t *buffer, ssize_t length, int async) {
-    if (!async) while(uart_tx_ready); // wait for available
+    if (!async) while(uart_tx_ready);
     uart_tx_ready = 1;
     memcpy(uart_tx_buffer, buffer, length);
     DMA1_CHANNEL4->maddr = (uint32_t) uart_tx_buffer;

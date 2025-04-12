@@ -58,6 +58,9 @@ typedef struct {
     uint8_t     max_speed;          // in km/h for assist
     uint16_t    wheel_circumfence;  // in mm
     uint8_t     assist_levels;
+    uint16_t    regen_current;
+    uint16_t    pas_timeout;
+    uint16_t    pas_ramp;
 } msg_display_settings;
 
 typedef struct {

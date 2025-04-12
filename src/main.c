@@ -180,42 +180,45 @@ int main(void)
     crc_init();                             // crc init if HW unit
     eeprom_init();                          // initialize the eeprom for data storage
     clock_init();                           // clouck source (if available)
+                                            
+
+
     lcd_init();                             // attempt to initialize the lcd peripherals
     lcd_start();                            // start lcd init sequence
     gui_init();                             // start lvgl and setup screen
     uart_init(BAUD(57600));                 // initialize comms
         
-    gui_update();
     comm_send_display_settings();  
     comm_send_display_status();  
     comm_send_controller_settings();
-#ifdef DEBUG
+#if MONITOR && DEBUG
     uint32_t x = 0, y = 0;
 #endif
-    /* uint32_t x = timer_counter; */
+
     while(1) {
         gui_update();                                           // update gui data
-        lv_timer_handler();                                     // draw
+#if MONITOR && DEBUG
+        uint32_t m = lv_timer_handler();                                     // draw
+        delay_ms(m);
+#else
+        lv_timer_handler();
+#endif
         comm_update();
         button_presses();
-        /* if (timer_counter - x > 250) { */
-        /* uint8_t v[2] = {0xaa, 0xaa}; */
-        /* uart_send(v, 2, 0); */
-        /* x = timer_counter; */
-        /* } */
-#ifdef DEBUG
-        /* if (timer_counter - x >= 1000) { */
-        /*     lv_mem_monitor_t mon; */
-        /*     lv_mem_monitor(&mon); */
-        /*     LV_LOG_INFO("Free: %ld/%ld, %d%% used, %d%% frag", mon.free_size, mon.total_size, mon.used_pct, mon.frag_pct); */
-        /*     x = timer_counter; */
-        /* } */
-        /* if (timer_counter - y >= 250) { */
-        /*     extern uint8_t power_button_state, up_button_state, down_button_state; */
-        /*     LV_LOG_INFO("%d %d %d", power_button_state, up_button_state, down_button_state); */
-        /*     y = timer_counter; */
-        /* } */
+
+#if MONITOR  && DEBUG
+        if (timer_counter - x >= 1000) {
+            lv_mem_monitor_t mon;
+            lv_mem_monitor(&mon);
+            char buf[64];
+            sprintf(buf, "Free: %ld/%ld, %d%% used, %d%% frag, cpu %d%%\n", mon.free_size, mon.total_size, mon.used_pct, mon.frag_pct);
+            uart_send(buf, strlen(buf), 0);
+            x = timer_counter;
+        }
 #endif
     }
 }
 
+void WWDT_IRQHandler(void) {
+    NVIC_SystemReset();
+}

@@ -3,6 +3,7 @@
 #include "at32f415_dma.h"
 #include "at32f415_tmr.h"
 #include "at32f415_crm.h"
+#include "at32f415_exint.h"
 #include "config.h"
 
 adc_data_t adc;
@@ -82,8 +83,44 @@ static void dma_config(void)
     dma_init_struct.priority = DMA_PRIORITY_HIGH;
     dma_init_struct.loop_mode_enable = TRUE;
     dma_init(DMA1_CHANNEL1, &dma_init_struct);
-
+#if DMA_WRITE
+    dma_flexible_config(DMA1, FLEX_CHANNEL1, DMA_FLEXIBLE_ADC1);
+#endif
     dma_channel_enable(DMA1_CHANNEL1, TRUE);
+}
+
+void comperator_init(void) {
+#if 0
+    cmp_init_type cmp_init_struct;
+
+    /* cmp peripheral clock enable */
+    crm_periph_clock_enable(CRM_CMP_PERIPH_CLOCK, TRUE);
+
+    /* cmp1 init: pa1 is used cmp1 inverting input */
+    cmp_default_para_init(&cmp_init_struct);
+    cmp_init_struct.cmp_non_inverting = CMP_NON_INVERTING_PA5_PA7;
+    cmp_init_struct.cmp_inverting = CMP_INVERTING_1_2VREFINT;
+    cmp_init_struct.cmp_output = CMP_OUTPUT_NONE;
+    cmp_init_struct.cmp_polarity = CMP_POL_INVERTING;
+    cmp_init_struct.cmp_speed = CMP_SPEED_SLOW;
+    cmp_init_struct.cmp_hysteresis = CMP_HYSTERESIS_NONE;
+    cmp_init(CMP1_SELECTION, &cmp_init_struct);
+
+    /* enable cmp1 */
+    cmp_enable(CMP1_SELECTION, TRUE);
+
+    exint_init_type exint_init_struct;
+
+    exint_default_para_init(&exint_init_struct);
+    exint_init_struct.line_enable = TRUE;
+    exint_init_struct.line_mode = EXINT_LINE_INTERRUPT;
+    exint_init_struct.line_select = EXINT_LINE_19;
+    exint_init_struct.line_polarity = EXINT_TRIGGER_FALLING_EDGE;
+    exint_init(&exint_init_struct);
+
+    nvic_priority_group_config(NVIC_PRIORITY_GROUP_4);
+    nvic_irq_enable(CMP1_IRQn, 1, 0);
+#endif
 }
 
 static void tmr_config(void) {
@@ -164,6 +201,14 @@ void controls_init(void) {
     gpio_initstructure.gpio_pins           = NC_BUTTON_PIN;
     gpio_init(NC_BUTTON_GPIO, &gpio_initstructure);
 
+#ifdef LEXT_INSTALLED
+    /* gpio_initstructure.gpio_out_type       = GPIO_OUTPUT_PUSH_PULL; // input */
+    /* gpio_initstructure.gpio_pull           = GPIO_PULL_NONE; // external pullup */
+    /* gpio_initstructure.gpio_mode           = GPIO_MODE_MUX; */
+    /* gpio_initstructure.gpio_drive_strength = GPIO_DRIVE_STRENGTH_MAXIMUM; // input */
+    /* gpio_initstructure.gpio_pins           = GPIO_PINS_3; */
+    /* gpio_init(VOLTAGE_DETECT_GPIO, &gpio_initstructure); */
+#endif
 
     // configure ADC
     //
@@ -171,24 +216,50 @@ void controls_init(void) {
     adc_config();
     tmr_config();
 
+    comperator_init();
 
+    /* crm_periph_clock_enable(CRM_IOMUX_PERIPH_CLOCK, TRUE); */
+    /*  */
+    /* gpio_exint_line_config(GPIO_PORT_SOURCE_GPIOA, POWER_BUTTON_PIN); */
+    /* exint_init_type exint_init_struct; */
+    /*  */
+    /* exint_default_para_init(&exint_init_struct); */
+    /* exint_init_struct.line_enable = TRUE; */
+    /* exint_init_struct.line_mode = EXINT_LINE_INTERRUPT; */
+    /* exint_init_struct.line_select = EXINT_LINE_6; */
+    /* exint_init_struct.line_polarity = EXINT_TRIGGER_RISING_EDGE; */
+    /* exint_init(&exint_init_struct); */
+    /*  */
+    /* EXINT->inten |= EXINT_LINE_6; */
+    /* nvic_priority_group_config(NVIC_PRIORITY_GROUP_4); */
+    /* nvic_irq_enable(EXINT9_5_IRQn, 1, 0); */
+    /*  */
 }
 
 void power_enable(void) { POWER_LATCH_GPIO->scr = POWER_LATCH_PIN; }
-void power_disable(void) { POWER_LATCH_GPIO->clr = POWER_LATCH_PIN; }
+void power_disable(void) { 
+    // cap should keep it fed for a while
+    POWER_LATCH_GPIO->clr = POWER_LATCH_PIN; 
+#if LEXT_INSTALLED
+    // keep alive on batt power
+    // if not backup batt installed brownout will happen
+    /* EXINT->inten |= EXINT_LINE_6; */
+    /* pwc_voltage_regulate_set(PWC_REGULATOR_LOW_POWER); // does almost nothing */
+    /* pwc_deep_sleep_mode_enter(PWC_DEEP_SLEEP_ENTER_WFI);  */
+    // goes to deepsleep, power consumption in deepsleep and standby is the same (mostly leakage anyway)
+    // recover on interrupt
 
-/* void power_enable(void) { POWER_LATCH_GPIO->scr = POWER_LATCH_PIN; } */
-/* void power_disable(void) { POWER_LATCH_GPIO->clr = POWER_LATCH_PIN; } */
-
-/* int up_BUTTON_PRESSED(void) { return up_button_cnt > BUTTON_COUNT && up_button_cnt < BUTTON_HOLD ? 1 : 0; } */
-/* int down_BUTTON_PRESSED(void) { return down_button_cnt > BUTTON_COUNT && down_button_cnt < BUTTON_HOLD ? 1 : 0; } */
-/* int power_BUTTON_PRESSED(void) { return power_button_cnt > BUTTON_COUNT && power_button_cnt < BUTTON_HOLD ? 1 : 0; } */
-/* int nc_BUTTON_PRESSED(void) { return nc_button_cnt > BUTTON_COUNT && nc_button_cnt < BUTTON_HOLD ? 1 : 0; } */
-/*  */
-/* int up_button_hold(void) { return up_button_cnt > BUTTON_HOLD ? up_button_cnt : 0; } */
-/* int down_button_hold(void) { return down_button_cnt > BUTTON_HOLD ? down_button_cnt : 0; } */
-/* int power_button_hold(void) { return power_button_cnt > BUTTON_HOLD ? power_button_cnt : 0; } */
-/* int nc_button_hold(void) { return nc_button_cnt > BUTTON_HOLD ? nc_button_cnt : 0; } */
+    /* wait clock stable */
+    /* for(int index = 0; index < 300; index++) */
+    /* { */
+    /*   __NOP(); */
+    /* } */
+    /* pwc_voltage_regulate_set(PWC_REGULATOR_ON); */
+    /*  */
+    /* // reset */
+    /* NVIC_SystemReset(); */
+#endif
+}
 
 
 static inline int power_button_measure(void) {
@@ -543,3 +614,26 @@ uint8_t buttons_pressed(void) {
     uint8_t bt = (down_button_state << BUTTON_ID_DOWN) | (up_button_state << BUTTON_ID_UP) | (nc_button_state << BUTTON_ID_NC) | (power_button_state << BUTTON_ID_POWER);
     return bt;
 }
+
+/* static uint32_t b = 0; */
+/* void EXINT9_5_IRQHandler(void) */
+/* { */
+/*     if(exint_interrupt_flag_get(EXINT_LINE_6) != RESET) */
+/*     { */
+/*         // clear */
+/*         exint_flag_clear(EXINT_LINE_6); */
+/*         b++; */
+/*         // disable */
+/*         #<{(| EXINT->evten &= ~EXINT_LINE_0; |)}># */
+/*         // wakeup */
+/*     } */
+/* } */
+#if 0
+void CMP1_IRQHandler(void)
+{
+    if(exint_interrupt_flag_get(EXINT_LINE_19) != RESET)
+    {
+        exint_flag_clear(EXINT_LINE_19);
+    }
+}
+#endif
