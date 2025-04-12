@@ -8,18 +8,18 @@ Features:
 ## Supported displays
 
 - [KT LCD8H](src/hal/lcd8h/README.md)
-  - OC mode runs the device at ~250mhz which it likely can do (ymmv, disable OC if you use the internal timer or experiment).
+  - OC mode runs the device at 200mhz with external crystal.
     - A external clock source is required (8MHz crystal with two ~18pf 0603 caps) for higher clockspeeds.
-  - Fast ILI9844 communication, original device runs at about 2MH max but the ILI9844 is capable of a lot more, the current implementation does >7MHz at 250MHz clock and about 3-4MHz at 144MHz.
+  - Fast ILI9844 communication, original device runs at about 2MHz max but the ILI9844 is capable of a lot more, the current implementation does ~14MHz at 200MHz bitbanged, and ~12MHz with DMA.
     - Tested with 20cm cable and no issues experienced
+    - Should get you 30 FPS easily.
 - [EB04](src/hal/eb04/README.md)
-  - TBD when it arrives
+  - I was hoping for it to be a bogstandard ARM cortex-M but it's a MediaTek chip with missing SDK due to mediatek being mediatek.
 
 ## Known issues
 
 - KT LCD8H
-  - Default internal clock is not very accurate and the baudrate generator does weird things over 72mhz, you might need to tweak the baudrate multiplier to your display if you use 57k6 baud.
-  - No support for a clock since the displays do not have battery and 32khz crystal. You can install a 32khz crystal if you want but there is no deepsleep support due to lack of battery.
+  - No support for a clock since the displays do not have battery and 32khz crystal. You can install a 32khz crystal if you want but there is no deepsleep support due to lack of battery and the way it's implemented.
   - No support for light automation since no sensor present.
   - Baudrates over 57k6 are not recommended due to the way it's implemented. This causes the "low" signal to be significantly shorter than required on higher baudrates missing the measurepoint.
   - Baudrates over 9k6 need the bodge cap removed. I do not know why it is installed as the signal is fine without it.
