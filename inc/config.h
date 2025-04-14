@@ -56,14 +56,15 @@
  * I've tried changing the resistors but this does not result in significant changes. I probably
  * do not understand the circuit and since no device is ever sold with an RTC I guess the original
  * developers didn't either.
- *
- * NOTE: Will result in 10mA drain current. Make sure your BMS has a low voltage detection and cutoff.
  */
-#define LEXT_INSTALLED 1
+#define LEXT_INSTALLED 0
 
 // change to not draw controller mode
 #define DRAW_CONTROLLER_MODE
 
+// archtecture specifics
+
+#ifdef AT32F415
 /*
  * OC will use 200mhz and an external crystal. 
  * I added an 8MHz crystal and two 17pF caps.
@@ -101,6 +102,7 @@
             (\
                 (2 * (EFFECTIVE_CLOCK) * (1 + PLL_MULTIPL)) / ((1 + (APB2_DIVIDER >> 2)) * (1 + (AHB_DIVIDER >> 3)) * 10) \
             ) / x)
+#endif
 
 
 /*

@@ -1,7 +1,6 @@
 #include <stdio.h>
 #include <stdint.h>
 #ifndef SIM
-#include "at32f415.h"
 #else
 #include <time.h>
 #endif

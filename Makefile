@@ -18,6 +18,9 @@ OPT = -O3
 endif
 
 PLATFORM=LCD8
+CHIP=GD32F303
+# CHIP = AT32F415
+# CHIP=AT32F435
 LVGL_VERSION = 8
 
 
@@ -34,8 +37,15 @@ BUILD_DIR = build
 C_SOURCES =  \
 src/controls.c \
 src/comm.c \
+src/crc.c \
 src/gui.c \
 src/main.c
+
+ifeq ($(CHIP),AT32F415)
+MCU_PATH=at32f415
+else ifeq ($(CHIP),GD32F303)
+MCU_PATH=gd32f303
+endif
 
 # fonts & images
 C_SOURCES += \
@@ -55,37 +65,43 @@ src/img/icon_journey.c \
 src/img/icon_headlight.c \
 src/img/icon_headlight_auto.c \
 src/img/icon_trip.c
-# src/img/icon_odo.c
 
-ifeq (${PLATFORM}, LCD8)
-C_SOURCES+= \
+
+# platform sources
+ifeq ($(PLATFORM),LCD8)
+C_SOURCES +=\
+src/hal/lcd8h/$(MCU_PATH)/sysclock.c \
+src/hal/lcd8h/${MCU_PATH}/lcd.c \
+src/hal/lcd8h/${MCU_PATH}/uart.c \
+src/hal/lcd8h/${MCU_PATH}/delay.c \
+src/hal/lcd8h/${MCU_PATH}/clock.c \
+src/hal/lcd8h/${MCU_PATH}/eeprom.c \
+src/hal/lcd8h/${MCU_PATH}/cntl.c
+endif
+
+ifeq ($(CHIP),AT32F415)
+C_SOURCES += \
 src/startup/system_at32f415.c \
 src/drivers/at32f415_crm.c \
 src/drivers/at32f415_crc.c \
-src/drivers/at32f415_cmp.c \
 src/drivers/at32f415_dma.c \
 src/drivers/at32f415_tmr.c \
 src/drivers/at32f415_ertc.c \
-src/drivers/at32f415_exint.c \
 src/drivers/at32f415_pwc.c \
 src/drivers/at32f415_adc.c \
 src/drivers/at32f415_usart.c \
 src/drivers/at32f415_gpio.c \
 src/drivers/at32f415_i2c.c \
-src/drivers/at32f415_misc.c \
-src/hal/lcd8h/at32f415_clock.c \
-src/hal/lcd8h/lcd.c \
-src/hal/lcd8h/uart.c \
-src/hal/lcd8h/delay.c \
-src/hal/lcd8h/clock.c \
-src/hal/lcd8h/eeprom.c \
-src/hal/lcd8h/crc.c 
+src/drivers/at32f415_misc.c 
+else ifeq ($(CHIP),GD32F303)
 endif
 
+
 # ASM sources
-ifeq (${PLATFORM}, LCD8)
+ifeq ($(CHIP),AT32F415)
 ASM_SOURCES =  \
 src/startup/startup_at32f415.S
+else ifeq ($(CHIP),GD32F303)
 endif
 
 LVGL_PATH ?= $(shell pwd)/thirdparty/lvgl
@@ -125,7 +141,7 @@ CPU = -mcpu=cortex-m4
 # fpu
 
 # float-abi
-ifeq ($(DEBUG), 1)
+ifeq ($(DEBUG),1)
 LTO=
 else
 LTO= -flto
@@ -141,21 +157,27 @@ AS_DEFS = -DLV_VER=$(LVGL_VERSION) -DLV_CONF_INCLUDE_SIMPLE -DLV_LVGL_H_INCLUDE_
 
 # C defines
 C_DEFS =  \
--DAT32F415RCT7 \
 -DARM_MATH_CM4 '-D__packed=__attribute__((__packed__))' \
 -DLV_VER=$(LVGL_VERSION) \
 -DLV_CONF_INCLUDE_SIMPLE \
--DPLATFORM_${PLATFORM} \
+-DPLATFORM_$(PLATFORM) \
 -DLV_LVGL_H_INCLUDE_SIMPLE
 
-ifeq ($(MONITOR), 1)
+ifeq ($(MONITOR),1)
 C_DEFS += -DMONITOR=1
+endif
+
+ifeq ($(CHIP),AT32F415)
+C_DEFS += -DAT32F415RCT7 \
+		  -DAT32F415
+else ifeq ($(CHIP), GD32F303)
+C_DEFS += -DGD32F303
 endif
 
 # AS includes
 AS_INCLUDES = \
 -Iinc/ \
--Iinc/drivers/ \
+-Iinc/drivers/$(CHIP)/ \
 -Iinc/cmsis/core \
 -Iinc/cmsis/device \
 -I$(LVGL_PATH)/src
@@ -167,6 +189,11 @@ C_INCLUDES =  \
 -Iinc/cmsis/core \
 -Iinc/cmsis/device \
 -I$(LVGL_PATH)/src
+
+ifeq ($(PLATFORM),LCD8)
+C_INCLUDES += \
+	-Iinc/hal/lcd8/$(CHIP)
+endif
 
 
 

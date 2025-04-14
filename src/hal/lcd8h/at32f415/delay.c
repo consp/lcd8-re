@@ -1,4 +1,5 @@
 #include "delay.h"
+#include "at32f415.h"
 
 #ifndef SIM
 /* delay macros */

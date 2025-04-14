@@ -1,4 +1,5 @@
 #include "controls.h"
+#include "hal/lcd8/at32f415/cntl.h"
 
 #include "at32f415_dma.h"
 #include "at32f415_tmr.h"
@@ -6,32 +7,21 @@
 #include "at32f415_exint.h"
 #include "config.h"
 
-adc_data_t adc;
+extern adc_data_t adc;
 extern volatile uint32_t timer_counter;
 
-uint16_t external_temperature_old_value = 0;
+extern uint8_t power_button_state ;
+extern uint8_t up_button_state ;
+extern uint8_t down_button_state ;
+extern uint8_t nc_button_state ;
 
-uint8_t power_button_state = BUTTON_RELEASED;
-uint8_t up_button_state = BUTTON_RELEASED;
-uint8_t down_button_state = BUTTON_RELEASED;
-uint8_t nc_button_state = BUTTON_RELEASED;
-
-uint32_t power_button_start = 0;
-uint32_t up_button_start = 0;
-uint32_t down_button_start = 0;
-uint32_t nc_button_start = 0;
-uint32_t button_backoff = 0, button_backoff_start = 0;
-
-uint8_t power_button_count = 0;
-uint8_t nc_button_count = 0;
-uint8_t down_button_count = 0;
+extern uint32_t power_button_start;
+extern uint32_t up_button_start;
+extern uint32_t down_button_start;
+extern uint32_t nc_button_start;
+extern uint32_t button_backoff, button_backoff_start;
 
 int32_t ext_temp_store = 0; // store temperature adc value in case button is pressed
-
-#define DEBUG
-#ifdef DEBUG 
-uint32_t *debug = (uint32_t *) 0x20007D00;
-#endif
 
 /**
  * static functions
@@ -87,40 +77,6 @@ static void dma_config(void)
     dma_flexible_config(DMA1, FLEX_CHANNEL1, DMA_FLEXIBLE_ADC1);
 #endif
     dma_channel_enable(DMA1_CHANNEL1, TRUE);
-}
-
-void comperator_init(void) {
-#if 0
-    cmp_init_type cmp_init_struct;
-
-    /* cmp peripheral clock enable */
-    crm_periph_clock_enable(CRM_CMP_PERIPH_CLOCK, TRUE);
-
-    /* cmp1 init: pa1 is used cmp1 inverting input */
-    cmp_default_para_init(&cmp_init_struct);
-    cmp_init_struct.cmp_non_inverting = CMP_NON_INVERTING_PA5_PA7;
-    cmp_init_struct.cmp_inverting = CMP_INVERTING_1_2VREFINT;
-    cmp_init_struct.cmp_output = CMP_OUTPUT_NONE;
-    cmp_init_struct.cmp_polarity = CMP_POL_INVERTING;
-    cmp_init_struct.cmp_speed = CMP_SPEED_SLOW;
-    cmp_init_struct.cmp_hysteresis = CMP_HYSTERESIS_NONE;
-    cmp_init(CMP1_SELECTION, &cmp_init_struct);
-
-    /* enable cmp1 */
-    cmp_enable(CMP1_SELECTION, TRUE);
-
-    exint_init_type exint_init_struct;
-
-    exint_default_para_init(&exint_init_struct);
-    exint_init_struct.line_enable = TRUE;
-    exint_init_struct.line_mode = EXINT_LINE_INTERRUPT;
-    exint_init_struct.line_select = EXINT_LINE_19;
-    exint_init_struct.line_polarity = EXINT_TRIGGER_FALLING_EDGE;
-    exint_init(&exint_init_struct);
-
-    nvic_priority_group_config(NVIC_PRIORITY_GROUP_4);
-    nvic_irq_enable(CMP1_IRQn, 1, 0);
-#endif
 }
 
 static void tmr_config(void) {
@@ -216,24 +172,6 @@ void controls_init(void) {
     adc_config();
     tmr_config();
 
-    comperator_init();
-
-    /* crm_periph_clock_enable(CRM_IOMUX_PERIPH_CLOCK, TRUE); */
-    /*  */
-    /* gpio_exint_line_config(GPIO_PORT_SOURCE_GPIOA, POWER_BUTTON_PIN); */
-    /* exint_init_type exint_init_struct; */
-    /*  */
-    /* exint_default_para_init(&exint_init_struct); */
-    /* exint_init_struct.line_enable = TRUE; */
-    /* exint_init_struct.line_mode = EXINT_LINE_INTERRUPT; */
-    /* exint_init_struct.line_select = EXINT_LINE_6; */
-    /* exint_init_struct.line_polarity = EXINT_TRIGGER_RISING_EDGE; */
-    /* exint_init(&exint_init_struct); */
-    /*  */
-    /* EXINT->inten |= EXINT_LINE_6; */
-    /* nvic_priority_group_config(NVIC_PRIORITY_GROUP_4); */
-    /* nvic_irq_enable(EXINT9_5_IRQn, 1, 0); */
-    /*  */
 }
 
 void power_enable(void) { POWER_LATCH_GPIO->scr = POWER_LATCH_PIN; }
@@ -369,29 +307,6 @@ static inline void measure_buttons(void) {
             nc_button_state = BUTTON_RELEASED;
             nc_button_start = 0;
         }
-    }
-}
-
-void button_release(uint8_t id, uint32_t backoff) {
-    button_backoff_start = timer_counter;
-    button_backoff = backoff;
-    switch(id) {
-        case BUTTON_ID_UP:
-            up_button_state = BUTTON_RELEASED;
-            up_button_start = 0;
-            break;
-        case BUTTON_ID_DOWN:
-            down_button_state = BUTTON_RELEASED;
-            down_button_start = 0;
-            break;
-        case BUTTON_ID_NC:
-            nc_button_state = BUTTON_RELEASED;
-            nc_button_start = 0;
-            break;
-        case BUTTON_ID_POWER:
-            power_button_state = BUTTON_RELEASED;
-            power_button_start = 0;
-            break;
     }
 }
 
@@ -610,30 +525,3 @@ int32_t voltage_ebat(void) { // in mv
     return (adc.voltage_battery << 16) / 2598;//10150; // 24.8
 }
 
-uint8_t buttons_pressed(void) {
-    uint8_t bt = (down_button_state << BUTTON_ID_DOWN) | (up_button_state << BUTTON_ID_UP) | (nc_button_state << BUTTON_ID_NC) | (power_button_state << BUTTON_ID_POWER);
-    return bt;
-}
-
-/* static uint32_t b = 0; */
-/* void EXINT9_5_IRQHandler(void) */
-/* { */
-/*     if(exint_interrupt_flag_get(EXINT_LINE_6) != RESET) */
-/*     { */
-/*         // clear */
-/*         exint_flag_clear(EXINT_LINE_6); */
-/*         b++; */
-/*         // disable */
-/*         #<{(| EXINT->evten &= ~EXINT_LINE_0; |)}># */
-/*         // wakeup */
-/*     } */
-/* } */
-#if 0
-void CMP1_IRQHandler(void)
-{
-    if(exint_interrupt_flag_get(EXINT_LINE_19) != RESET)
-    {
-        exint_flag_clear(EXINT_LINE_19);
-    }
-}
-#endif

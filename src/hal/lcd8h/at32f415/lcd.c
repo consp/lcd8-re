@@ -1,5 +1,6 @@
-#include "lcd.h"
 #include "at32f415_crm.h"
+#include "lcd.h"
+#include "hal/lcd8/at32f415/lcd.h"
 #include "uart.h"
 #include <cmsis/core/cmsis_gcc.h>
 

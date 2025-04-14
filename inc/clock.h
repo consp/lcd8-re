@@ -2,7 +2,6 @@
 #define __CLOCK_H__
 
 #include "config.h"
-#include "at32f415_ertc.h"
 
 extern volatile uint32_t timer_counter;
 /*
