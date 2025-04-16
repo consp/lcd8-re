@@ -57,14 +57,14 @@
  * do not understand the circuit and since no device is ever sold with an RTC I guess the original
  * developers didn't either.
  */
-#define LEXT_INSTALLED 0
+// #define LEXT_INSTALLED 1
 
 // change to not draw controller mode
 #define DRAW_CONTROLLER_MODE
 
 // archtecture specifics
 
-#ifdef AT32F415
+#if defined(AT32F415)
 /*
  * OC will use 200mhz and an external crystal. 
  * I added an 8MHz crystal and two 17pF caps.
@@ -81,7 +81,6 @@
 #define APB2_DIVIDER         CRM_APB2_DIV_2     // 100mhz
 #define APB1_DIVIDER         CRM_APB1_DIV_2     // 100mhz
 #define CLOCK_OFFSET         1                  // ext clock should be stable
-#define BAUD_MULTIPLIER      1                  //  
 #define EFFECTIVE_CLOCK      (8000000 / CLOCK_OFFSET)
 
 #else
@@ -94,7 +93,6 @@
 #define APB2_DIVIDER         CRM_APB2_DIV_2     // 72mhz
 #define APB1_DIVIDER         CRM_APB1_DIV_2     // 72mhz
 #define CLOCK_OFFSET         1
-#define BAUD_MULTIPLIER      1                
 #define EFFECTIVE_CLOCK      (4000000 / CLOCK_OFFSET)
 #endif
 
@@ -102,7 +100,12 @@
             (\
                 (2 * (EFFECTIVE_CLOCK) * (1 + PLL_MULTIPL)) / ((1 + (APB2_DIVIDER >> 2)) * (1 + (AHB_DIVIDER >> 3)) * 10) \
             ) / x)
+
+#include "at32f415.h"
+#elif defined(GD32F303)
+#include "gd32f30x.h"
 #endif
+
 
 
 /*
@@ -128,7 +131,11 @@
  * Change X_BACKOFF to determine how many pixels will be redrawn. If you see random pixels on the next line or missing black ones on the right edge, use this to fix that issue
  * This is due to the "ILI9488" not ignoring pixls outside it's range set Page/Column range like per spec. Might be due to it being a knockoff.
  */
-#define DMA_WRITE 1
+// #define DMA_WRITE 1
 #define X_BACKOFF 3 
 
+#ifndef TRUE
+#define TRUE 1
+#define FALSE 0
+#endif
 #endif // __CONFIG_H__

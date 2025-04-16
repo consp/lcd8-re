@@ -8,7 +8,9 @@
 #include "comm.h"
 #include "config.h"
 
+#if $PLATFORM != SIM
 #include <cmsis/core/core_cm4.h>
+#endif
 
 extern volatile uint32_t timer_counter;
 #if DMA_WRITE
