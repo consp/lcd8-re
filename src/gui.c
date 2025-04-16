@@ -166,7 +166,6 @@ static void graph_event_pre_cb(lv_event_t * e);
 
 void gui_init(void) {
     // setup timer
-    lv_init();
 
 #ifdef PLATFORM_SIM
     gtkdrv_init();
@@ -1158,11 +1157,11 @@ static void _draw_power(void) {
         } else if (power_value < 0 && power_value_old >= 0) {
             lv_bar_set_value(powerbar_positive, 0, LV_ANIM_OFF);
             lv_bar_set_value(powerbar_negative, power_value * -1, LV_ANIM_ON);
-            lv_label_set_text_fmt(powerbar_text, "%ld", power_value);
+            lv_label_set_text_fmt(powerbar_text, "%d", power_value);
         } else if (power_value < 0 && power_value_old < 0) {
             lv_bar_set_value(powerbar_positive, 0, LV_ANIM_OFF);
             lv_bar_set_value(powerbar_negative, power_value * -1, LV_ANIM_ON);
-            lv_label_set_text_fmt(powerbar_text, "%ld", power_value);
+            lv_label_set_text_fmt(powerbar_text, "%d", power_value);
         }
 
         power_value_old = power_value;

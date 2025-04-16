@@ -44,142 +44,18 @@ void system_clock_config(void);
   * @param  none
   * @retval none
   */
-/* uint32_t cnt = 0; */
-/* uint16_t dmadata[64] = { 0xFFFF, 0x0000, 0xFFFF, 0x0000, 0xFFFF, 0x0000, 0xFFFF, 0x0000, 0xFFFF, 0x0000, 0xFFFF, 0x0000, 0xFFFF, 0x0000, 0xFFFF, 0x0000, 0xFFFF, 0x0000, 0xFFFF, 0x0000, 0xFFFF, 0x0000, 0xFFFF, 0x0000, 0xFFFF, 0x0000, 0xFFFF, 0x0000, 0xFFFF, 0x0000, 0xFFFF, 0x0000, 0xFFFF, 0x0000, 0xFFFF, 0x0000, 0xFFFF, 0x0000, 0xFFFF, 0x0000, 0xFFFF, 0x0000, 0xFFFF, 0x0000, 0xFFFF, 0x0000, 0xFFFF, 0x0000, 0xFFFF, 0x0000, 0xFFFF, 0x0000, 0xFFFF, 0x0000, 0xFFFF, 0x0000, 0xFFFF, 0x0000, 0xFFFF, 0x0000, 0xFFFF, 0x0000, 0xFFFF, 0x0000}; */
-/* void DMA2_Channel1_IRQHandler(void) */
-/* { */
-/*     DMA2->clr = DMA2_FDT1_FLAG; */
-/*     cnt++; */
-/*  */
-/*     DMA2_CHANNEL1->maddr = (uint32_t) dmadata; */
-/*     DMA2_CHANNEL1->dtcnt = 64; */
-/*     DMA2_CHANNEL1->ctrl_bit.chen = 1; */
-/*     TMR2->ctrl1_bit.tmren = 1; */
-/* } */
 int main(void)
 {
-//    system_clock_config();
+    system_clock_config();
 
-    // set all gpio's to input, just to be sure
-    /* crm_periph_clock_enable(CRM_GPIOA_PERIPH_CLOCK, TRUE); */
-    /* crm_periph_clock_enable(CRM_GPIOB_PERIPH_CLOCK, TRUE); */
-    /* crm_periph_clock_enable(CRM_GPIOC_PERIPH_CLOCK, TRUE); */
-    /* #<{(| GPIOA->cfglr = 0x44444444; |)}># */
-    /* GPIOA->cfghr = 0x44444444; */
-    /* GPIOA->odt = 0; */
-    /* GPIOA->cfglr = 0x44444444; */
-    /* GPIOB->cfghr = 0x44444444; */
-    /* GPIOB->odt = 0; */
-    /* GPIOC->cfglr = 0x44444444; */
-    /* GPIOC->cfghr = 0x44444444; */
-    /* GPIOC->odt = 0; */
-    /*  */
-    /* GPIOC->cfglr = 0x33000000; */
-    /* GPIOC->cfghr = 0x00000000; */
-    /* crm_periph_clock_enable(CRM_DMA2_PERIPH_CLOCK, TRUE); */
-    /* crm_periph_clock_enable(CRM_IOMUX_PERIPH_CLOCK, TRUE); */
-    /* crm_periph_clock_enable(CRM_TMR2_PERIPH_CLOCK, TRUE); */
-    /*  */
-    /*     delay_ms(1000); */
-    /* tmr_base_init(TMR2, 99, 0); */
-    /* tmr_clock_source_div_set(TMR2, TMR_CLOCK_DIV4); */
-    /* tmr_cnt_dir_set(TMR2, TMR_COUNT_UP); */
-    /*  */
-    /* #<{(| enable tmr2 overflow dma request |)}># */
-    /* tmr_dma_request_enable(TMR2, TMR_OVERFLOW_DMA_REQUEST, TRUE); */
-    /*  */
-    /* tmr_dma_request_enable(TMR2, TMR_OVERFLOW_DMA_REQUEST, TRUE); */
-    /* static dma_init_type dma_init_struct = {0}; */
-    /* dma_reset(DMA2_CHANNEL1); */
-    /* dma_init_struct.buffer_size = 64; */
-    /* dma_init_struct.direction = DMA_DIR_MEMORY_TO_PERIPHERAL; */
-    /* dma_init_struct.memory_base_addr = (uint32_t) dmadata; */
-    /* dma_init_struct.memory_data_width = DMA_MEMORY_DATA_WIDTH_HALFWORD; */
-    /* dma_init_struct.memory_inc_enable = TRUE; */
-    /* dma_init_struct.peripheral_base_addr = (uint32_t)&GPIOC->odt; */
-    /* dma_init_struct.peripheral_data_width = DMA_PERIPHERAL_DATA_WIDTH_HALFWORD; */
-    /* dma_init_struct.peripheral_inc_enable = FALSE; */
-    /* dma_init_struct.priority = DMA_PRIORITY_HIGH; */
-    /* dma_init_struct.loop_mode_enable = FALSE; */
-    /* dma_init(DMA2_CHANNEL1, &dma_init_struct); */
-    /* dma_interrupt_enable(DMA2_CHANNEL1, DMA_FDT_INT, TRUE); */
-    /* nvic_priority_group_config(NVIC_PRIORITY_GROUP_4); */
-    /* nvic_irq_enable(DMA2_Channel1_IRQn, 0, 0); */
-    /* dma_flexible_config(DMA2, FLEX_CHANNEL1, DMA_FLEXIBLE_TMR2_OVERFLOW); */
-    /* dma_channel_enable(DMA2_CHANNEL1, TRUE); */
-    /* tmr_counter_enable(TMR2, TRUE); */
-    /* while(1) { */
-    /*     GPIOC->odt = 0x0000; */
-    /*     GPIOC->odt = 0xFFFF; */
-    /*     GPIOC->odt = 0x0000; */
-    /*     GPIOC->odt = 0xFFFF; */
-    /*     GPIOC->odt = 0x0000; */
-    /*     GPIOC->odt = 0xFFFF; */
-    /*     GPIOC->odt = 0x0000; */
-    /*     GPIOC->odt = 0xFFFF; */
-    /*     GPIOC->odt = 0x0000; */
-    /*     GPIOC->odt = 0xFFFF; */
-    /*     GPIOC->odt = 0x0000; */
-    /*     GPIOC->odt = 0xFFFF; */
-    /*     GPIOC->odt = 0x0000; */
-    /*     GPIOC->odt = 0xFFFF; */
-    /*     GPIOC->odt = 0x0000; */
-    /*     GPIOC->odt = 0xFFFF; */
-    /*     GPIOC->odt = 0x0000; */
-    /*     GPIOC->odt = 0xFFFF; */
-    /*     GPIOC->odt = 0x0000; */
-    /*     GPIOC->odt = 0xFFFF; */
-    /*     GPIOC->odt = 0x0000; */
-    /*     GPIOC->odt = 0xFFFF; */
-    /*     GPIOC->odt = 0x0000; */
-    /*     GPIOC->odt = 0xFFFF; */
-    /*     GPIOC->odt = 0x0000; */
-    /*     GPIOC->odt = 0xFFFF; */
-    /*     GPIOC->odt = 0x0000; */
-    /*     GPIOC->odt = 0xFFFF; */
-    /*     GPIOC->odt = 0x0000; */
-    /*     GPIOC->odt = 0xFFFF; */
-    /*     GPIOC->odt = 0x0000; */
-    /*     GPIOC->odt = 0xFFFF; */
-    /*     GPIOC->odt = 0x0000; */
-    /*     GPIOC->odt = 0xFFFF; */
-    /*     GPIOC->odt = 0x0000; */
-    /*     GPIOC->odt = 0xFFFF; */
-    /*     GPIOC->odt = 0x0000; */
-    /*     GPIOC->odt = 0xFFFF; */
-    /*     GPIOC->odt = 0x0000; */
-    /*     GPIOC->odt = 0xFFFF; */
-    /*     GPIOC->odt = 0x0000; */
-    /*     GPIOC->odt = 0xFFFF; */
-    /*     GPIOC->odt = 0x0000; */
-    /*     GPIOC->odt = 0xFFFF; */
-    /*     GPIOC->odt = 0x0000; */
-    /*     GPIOC->odt = 0xFFFF; */
-    /*     GPIOC->odt = 0x0000; */
-    /*     GPIOC->odt = 0xFFFF; */
-    /*     GPIOC->odt = 0x0000; */
-    /*     GPIOC->odt = 0xFFFF; */
-    /*     GPIOC->odt = 0x0000; */
-    /*     GPIOC->odt = 0xFFFF; */
-    /*     GPIOC->odt = 0x0000; */
-    /*     GPIOC->odt = 0xFFFF; */
-    /*     GPIOC->odt = 0x0000; */
-    /*     GPIOC->odt = 0xFFFF; */
-    /*     GPIOC->odt = 0x0000; */
-    /*     GPIOC->odt = 0xFFFF; */
-    /*     GPIOC->odt = 0x0000; */
-    /*     GPIOC->odt = 0xFFFF; */
-    /*     GPIOC->odt = 0x0000; */
-    /*     GPIOC->odt = 0xFFFF; */
-    /*     GPIOC->odt = 0x0000; */
-    /*     GPIOC->odt = 0xFFFF; */
-    /* } */
 
     controls_init();                        // init adc and buttons 
     power_enable();
     button_release(BUTTON_ID_POWER, 1250);  // ignore inputs for a while
     crc_init();                             // crc init if HW unit
     eeprom_init();                          // initialize the eeprom for data storage
+    
+    lv_init();
     clock_init();                           // clouck source (if available)
                                             
 
@@ -216,8 +92,8 @@ int main(void)
             lv_mem_monitor_t mon;
             lv_mem_monitor(&mon);
             char buf[64];
-            sprintf(buf, "Free: %ld/%ld, %d%% used, %d%% frag, cpu %d%%\n", mon.free_size, mon.total_size, mon.used_pct, mon.frag_pct);
-            uart_send(buf, strlen(buf), 0);
+            /* sprintf(buf, "Free: %ld/%ld, %d%% used, %d%% frag, cpu %d%%\n", mon.free_size, mon.total_size, mon.used_pct, mon.frag_pct); */
+            /* uart_send(buf, strlen(buf), 0); */
             x = timer_counter;
         }
 #endif

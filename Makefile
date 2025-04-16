@@ -10,6 +10,8 @@ TARGET = LCD8H-firmware
 # debug build?
 DEBUG = 1
 MONITOR = 1
+ASAN = 0
+
 # optimization
 ifeq ($(DEBUG), 1)
 OPT = -O1
@@ -227,7 +229,7 @@ C_DEFS += -DGD32F303 \
 else
 C_DEFS += \
 		  -DUSE_GTK=1 \
-		  -DLV_MEM_SIZE_KB=1024U
+		  -DLV_MEM_SIZE_KB=16384U
 endif
 
 # AS includes
@@ -259,9 +261,10 @@ endif
 
 # compile gcc flags
 ASFLAGS = $(MCU) $(AS_DEFS) $(AS_INCLUDES) $(OPT) -Wall -fdata-sections -ffunction-sections $(LTO) -Wa,-Iinc/
+GTK_CFLAGS := `pkg-config --cflags gtk+-3.0`
 
 ifeq ($(PLATFORM),SIM)
-CFLAGS += `pkg-config --cflags gtk+-3.0` $(C_DEFS) $(C_INCLUDES) $(OPT) -Wall $(LTO)
+CFLAGS += $(GTK_CFLAGS) $(C_DEFS) $(C_INCLUDES) $(OPT) -Wall $(LTO) 
 else
 CFLAGS += $(MCU) $(C_DEFS) $(C_INCLUDES) $(OPT) -Wall -fdata-sections -ffunction-sections -fno-ident -fno-asynchronous-unwind-tables $(LTO)
 endif
@@ -296,15 +299,21 @@ endif
 ifeq ($(PLATFORM),SIM)
 LIBS = \
 	-lm \
-	`pkg-config --libs gtk+-3.0`
+	`pkg-config --libs gtk+-3.0` 
 else
 LIBS = 
 endif
 
+ifeq ($(ASAN),1)
+LIBS_ASAN = -lasan
+CFLAGS_ASAN = -fsanitize=address -fno-omit-frame-pointer -fno-common
+CFLAGS += $(CFLAGS_ASAN)
+endif
+
 ifneq ($(PLATFORM),SIM)
-LDFLAGS = $(MCU) -specs=nano.specs -specs=nosys.specs --specs=rdimon.specs -T$(LDSCRIPT) $(LIBS) -Wl,-Map=$(BUILD_DIR)/$(TARGET).map,--cref -Wl,--gc-sections -Wl,--print-memory-usage $(CFLAGS)
+LDFLAGS = $(MCU) -specs=nano.specs -specs=nosys.specs --specs=rdimon.specs -T$(LDSCRIPT) $(LIBS_ASAN) $(LIBS) -Wl,-Map=$(BUILD_DIR)/$(TARGET).map,--cref -Wl,--gc-sections -Wl,--print-memory-usage $(CFLAGS)
 else
-LDFLAGS = $(LIBS) -Wl,-Map=$(BUILD_DIR)/$(TARGET).map,--cref -Wl,--gc-sections -Wl,--print-memory-usage $(CFLAGS)
+LDFLAGS = $(LIBS_ASAN) $(LIBS) -Wl,-Map=$(BUILD_DIR)/$(TARGET).map,--cref -Wl,--gc-sections -Wl,--print-memory-usage $(CFLAGS)
 endif
 
 # default action: build all

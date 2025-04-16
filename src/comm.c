@@ -75,11 +75,10 @@ void comm_update(void) {
             }
         }
     }
-
     if (timer_counter - comm_counter > 5000) {
-        /* comm_send_controller_settings(); */
-        /* comm_send_display_settings(); */
-        /* comm_send_display_status(); */
+        comm_send_controller_settings();
+        comm_send_display_settings();
+        comm_send_display_status();
         comm_counter = timer_counter;
     }
 }

@@ -134,6 +134,6 @@ int32_t voltage_mcu(void) {
 }
 
 int32_t voltage_ebat(void) { // in mv
-    return 24 << 8; 
+    return 24000; 
 }
 

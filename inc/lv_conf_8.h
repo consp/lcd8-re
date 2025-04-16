@@ -51,7 +51,11 @@
  *=========================*/
 
 /*1: use custom malloc/free, 0: use the built-in `lv_mem_alloc()` and `lv_mem_free()`*/
+#ifdef PLATFORM_SIM
+#define LV_MEM_CUSTOM 1 // lvgl8 causes segfaults in the tlsf selector which I have no intention to fix
+#else
 #define LV_MEM_CUSTOM 0
+#endif
 #if LV_MEM_CUSTOM == 0
     /*Size of the memory available for `lv_mem_alloc()` in bytes (>= 2kB)*/
     #define LV_MEM_SIZE (LV_MEM_SIZE_KB * 1024U)          /*[bytes]*/
@@ -141,8 +145,13 @@
  * "Transformed layers" (where transform_angle/zoom properties are used) use larger buffers
  * and can't be drawn in chunks. So these settings affects only widgets with opacity.
  */
+#ifndef PLATFORM_SIM
 #define LV_LAYER_SIMPLE_BUF_SIZE          (2 * 2 * 320) // two rows (2 * 1024)
 #define LV_LAYER_SIMPLE_FALLBACK_BUF_SIZE (1 * 2 * 320)
+#else
+#define LV_LAYER_SIMPLE_BUF_SIZE          (480 * 2 * 320) // two rows (2 * 1024)
+#define LV_LAYER_SIMPLE_FALLBACK_BUF_SIZE (480 * 2 * 320)
+#endif
 
 /*Default image cache size. Image caching keeps the images opened.
  *If only the built-in image formats are used there is no real advantage of caching. (I.e. if no new image decoder is added)
