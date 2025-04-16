@@ -224,7 +224,7 @@ int main(void)
     }
 }
 
-#if PLATFORM != SIM
+#if !defined(PLATFORM_SIM)
 void WWDT_IRQHandler(void) {
     NVIC_SystemReset();
 }

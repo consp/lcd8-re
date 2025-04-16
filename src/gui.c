@@ -8,16 +8,22 @@
 #include "comm.h"
 #include "config.h"
 
-#if $PLATFORM != SIM
+#if defined($PLATFORM_SIM)
 #include <cmsis/core/core_cm4.h>
 #endif
 
 extern volatile uint32_t timer_counter;
+
+#ifdef PLATFORM_LCD8
 #if DMA_WRITE
 uint8_t pixelbuffer[PIXEL_BUFFER_LINES * DISPLAY_WIDTH];
 uint8_t pixelbuffer2[PIXEL_BUFFER_LINES * DISPLAY_WIDTH];
 #else
 uint8_t pixelbuffer[PIXEL_BUFFER_LINES * DISPLAY_WIDTH * 2];
+#endif
+#else
+#include "gtkdrv.h"
+uint8_t pixelbuffer[DISPLAY_WIDTH * DISPLAY_HEIGHT * sizeof(lv_color_t)];
 #endif
 uint32_t timer_old = 0;
 
@@ -162,17 +168,30 @@ void gui_init(void) {
     // setup timer
     lv_init();
 
+#ifdef PLATFORM_SIM
+    gtkdrv_init();
+#endif
+
     // set display
 #if LVGL_VERSION_MAJOR == 8
     lv_disp_drv_init(&disp_drv);
+#ifdef PLATFORM_LCD8
 #if DMA_WRITE
     // double buff
     lv_disp_draw_buf_init(&draw_buf, pixelbuffer, pixelbuffer2, (PIXEL_BUFFER_LINES * DISPLAY_WIDTH) >> 1);
 #else
     lv_disp_draw_buf_init(&draw_buf, pixelbuffer, NULL, PIXEL_BUFFER_LINES * DISPLAY_WIDTH);
 #endif
+#else
+    lv_disp_draw_buf_init(&draw_buf, pixelbuffer, NULL, DISPLAY_HEIGHT * DISPLAY_WIDTH);
+#endif
+
     disp_drv.draw_buf = &draw_buf;
+#ifdef PLATFORM_SIM
+    disp_drv.flush_cb = gtkdrv_flush_cb;
+#else
     disp_drv.flush_cb = lcd_lvgl_flush;    /*Set your driver function*/
+#endif
     disp_drv.set_px_cb = NULL;
     disp_drv.antialiasing = TRUE;
     disp_drv.hor_res = DISPLAY_WIDTH;   /*Set the horizontal resolution of the disp_drv*/
@@ -238,7 +257,7 @@ void gui_draw_normal(void) {
 
     lv_obj_set_pos(powerbar_positive, POWER_REGEN_WIDTH + POWER_BAR_WIDTH, POWER_Y + POWER_BORDER); 
     lv_obj_set_size(powerbar_positive, POWER_NORMAL_WIDTH, POWER_HEIGHT - (POWER_BORDER * 2));
-    lv_bar_set_range(powerbar_positive, 0, settings.power_max);
+    lv_bar_set_range(powerbar_positive, 1, settings.power_max); // using 0 as starting point causes devision by zero exceptions on sim
     lv_obj_add_style(powerbar_positive, &powerbar_style_normal, LV_PART_MAIN);
     lv_obj_add_style(powerbar_positive, &powerbar_style_normal_indicator, LV_PART_INDICATOR);
     lv_bar_set_value(powerbar_positive, 50, LV_ANIM_OFF);
@@ -258,7 +277,7 @@ void gui_draw_normal(void) {
     lv_obj_set_pos(powerbar_negative, POWER_BORDER, POWER_Y + POWER_BORDER); 
     lv_obj_set_size(powerbar_negative, POWER_REGEN_WIDTH - POWER_BORDER, POWER_HEIGHT - (POWER_BORDER * 2));
     lv_obj_set_style_base_dir(powerbar_negative, LV_BASE_DIR_RTL, 0);
-    lv_bar_set_range(powerbar_negative, 0, settings.power_min * -1);
+    lv_bar_set_range(powerbar_negative, 1, settings.power_min * -1); // using 0 as starting point causes devision by zero exceptions on sim
     lv_obj_add_style(powerbar_negative, &powerbar_style_negative, LV_PART_MAIN);
     lv_obj_add_style(powerbar_negative, &powerbar_style_negative_indicator, LV_PART_INDICATOR);
     lv_bar_set_value(powerbar_negative, 100, LV_ANIM_OFF);

@@ -22,7 +22,11 @@
 #include "ugui/ugui_sim.h"
 #endif
 
+#if PLATFORM_SIM
+#define RGB565(x, y, z)     (lv_color_t) { .full = ((x << 16) | (y << 8) | (z)) }
+#else
 #define RGB565(x, y, z)     (lv_color_t) { .full = (((x & 0b11111000) << 8) | ((y & 0b11111100) << 3) | (z >> 3)) }
+#endif
         //lv_color_make(r, g, b) 
 
 #define COLOR_WHITE         RGB565(255, 255, 255)

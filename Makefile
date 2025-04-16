@@ -86,14 +86,16 @@ src/hal/lcd8h/${MCU_PATH}/clock.c \
 src/hal/lcd8h/${MCU_PATH}/eeprom.c \
 src/hal/lcd8h/${MCU_PATH}/cntl.c
 else ifeq (${PLATFORM},SIM)
+# lcd driver is replaced by gtk, large numers need fake item
 C_SOURCES += \
 	src/hal/sim/sysclock.c \
-	src/hal/sim/lcd.c \
 	src/hal/sim/uart.c \
+	src/hal/sim/lcd.c \
 	src/hal/sim/delay.c \
 	src/hal/sim/clock.c \
 	src/hal/sim/eeprom.c \
-	src/hal/sim/cntl.c
+	src/hal/sim/cntl.c \
+	thirdparty/lv_drivers/gtkdrv/gtkdrv.c
 endif
 
 ifeq ($(CHIP),at32f415)
@@ -198,10 +200,10 @@ AS_DEFS = -DLV_VER=$(LVGL_VERSION) -DLV_CONF_INCLUDE_SIMPLE -DLV_LVGL_H_INCLUDE_
 
 # C defines
 C_DEFS =  \
--DLV_VER=$(LVGL_VERSION) \
--DLV_CONF_INCLUDE_SIMPLE \
--DPLATFORM_$(PLATFORM) \
--DLV_LVGL_H_INCLUDE_SIMPLE
+	-DLV_VER=$(LVGL_VERSION) \
+	-DLV_CONF_INCLUDE_SIMPLE \
+	-DPLATFORM_$(PLATFORM) \
+	-DLV_LVGL_H_INCLUDE_SIMPLE
 
 ifeq ($(MONITOR),1)
 C_DEFS += -DMONITOR=1
@@ -211,16 +213,21 @@ ifeq ($(CHIP),at32f415)
 C_DEFS += -DAT32F415RCT7 \
 		  -DAT32F415 \
 		  -DARM_MATH_CM4 '-D__packed=__attribute__((__packed__))' \
+		  -DLV_MEM_SIZE_KB=13U
 else ifeq ($(CHIP),at32f435)
 C_DEFS += -DAT32F435RMT7 \
 		  -DAT32F435 \
-		  -DARM_MATH_CM4 '-D__packed=__attribute__((__packed__))' \
+		  -DARM_MATH_CM4 '-D__packed=__attribute__((__packed__))'\
+		  -DLV_MEM_SIZE_KB=96U
 else ifeq ($(CHIP),gd32f303)
 C_DEFS += -DGD32F303 \
 		  -DGD32F30X_XD \
 		  -DARM_MATH_CM4 '-D__packed=__attribute__((__packed__))' \
+		  -DLV_MEM_SIZE_KB=32U
 else
-C_DEFS += -DSIM
+C_DEFS += \
+		  -DUSE_GTK=1 \
+		  -DLV_MEM_SIZE_KB=1024U
 endif
 
 # AS includes
@@ -254,10 +261,11 @@ endif
 ASFLAGS = $(MCU) $(AS_DEFS) $(AS_INCLUDES) $(OPT) -Wall -fdata-sections -ffunction-sections $(LTO) -Wa,-Iinc/
 
 ifeq ($(PLATFORM),SIM)
-	CFLAGS += $(pkg-config --cflags gtk+-3.0)
+CFLAGS += `pkg-config --cflags gtk+-3.0` $(C_DEFS) $(C_INCLUDES) $(OPT) -Wall $(LTO)
+else
+CFLAGS += $(MCU) $(C_DEFS) $(C_INCLUDES) $(OPT) -Wall -fdata-sections -ffunction-sections -fno-ident -fno-asynchronous-unwind-tables $(LTO)
 endif
 
-CFLAGS += $(MCU) $(C_DEFS) $(C_INCLUDES) $(OPT) -Wall -fdata-sections -ffunction-sections -fno-ident -fno-asynchronous-unwind-tables $(LTO)
 
 ifeq ($(DEBUG), 1)
 CFLAGS += -g3 -DDEBUG_UART_PRINT=1 -DDEBUG=1
@@ -288,13 +296,16 @@ endif
 ifeq ($(PLATFORM),SIM)
 LIBS = \
 	-lm \
-	-lpthread \
-	$(pkg-config --libs gtk+-3.0)
+	`pkg-config --libs gtk+-3.0`
 else
 LIBS = 
 endif
-# LIBDIR = -LDrivers/CMSIS
+
+ifneq ($(PLATFORM),SIM)
 LDFLAGS = $(MCU) -specs=nano.specs -specs=nosys.specs --specs=rdimon.specs -T$(LDSCRIPT) $(LIBS) -Wl,-Map=$(BUILD_DIR)/$(TARGET).map,--cref -Wl,--gc-sections -Wl,--print-memory-usage $(CFLAGS)
+else
+LDFLAGS = $(LIBS) -Wl,-Map=$(BUILD_DIR)/$(TARGET).map,--cref -Wl,--gc-sections -Wl,--print-memory-usage $(CFLAGS)
+endif
 
 # default action: build all
 ifeq ($(PLATFORM),SIM)

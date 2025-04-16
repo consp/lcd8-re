@@ -25,7 +25,11 @@
  *====================*/
 
 /*Color depth: 1 (1 byte per pixel), 8 (RGB332), 16 (RGB565), 32 (ARGB8888)*/
+#ifdef PLATFORM_SIM
+#define LV_COLOR_DEPTH 32
+#else
 #define LV_COLOR_DEPTH 16
+#endif
 
 /*Swap the 2 bytes of RGB565 color. Useful if the display has an 8-bit interface (e.g. SPI)*/
 #define LV_COLOR_16_SWAP 0
@@ -50,7 +54,7 @@
 #define LV_MEM_CUSTOM 0
 #if LV_MEM_CUSTOM == 0
     /*Size of the memory available for `lv_mem_alloc()` in bytes (>= 2kB)*/
-    #define LV_MEM_SIZE (13U * 1024U)          /*[bytes]*/
+    #define LV_MEM_SIZE (LV_MEM_SIZE_KB * 1024U)          /*[bytes]*/
 
     /*Set an address for the memory pool instead of allocating it as a normal array. Can be in external SRAM too.*/
     #define LV_MEM_ADR 0     /*0: unused*/
@@ -87,7 +91,7 @@
 /*Use a custom tick source that tells the elapsed time in milliseconds.
  *It removes the need to manually update the tick with `lv_tick_inc()`)*/
 #define LV_TICK_CUSTOM 1
-#if defined(LV_TICK_CUSTOM) && !defined(SIM)
+#ifndef PLATFORM_SIM 
 #define LV_TICK_CUSTOM_INCLUDE "gui.h"         /*Header for the system time function*/
 #define LV_TICK_CUSTOM_SYS_TIME_EXPR (timer_cb()) /*Expression evaluating to current system time in ms*/
 #else // SIM
@@ -793,5 +797,10 @@
 /*--END OF LV_CONF_H--*/
 
 #endif /*LV_CONF_H*/
+
+#ifdef PLATFORM_SIM
+#define LV_VER_RES_MAX 480
+#define LV_HOR_RES_MAX 320
+#endif
 
 #endif /*End of "Content enable"*/

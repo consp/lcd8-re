@@ -4,6 +4,14 @@
 #include "clock.h"
 #include "crc.h"
 
+#ifdef PLATFORM_SIM 
+#include <arpa/inet.h>
+#define __ntohs     ntohs
+#define __htons     htons
+#define __ntohl     ntohl
+#define __htonl     htonl
+#endif
+
 // externals
 //
 extern int32_t speed, battery_current, battery_voltage_controller, mot_temperature, con_temperature, wheel_circumfence;
