@@ -10,10 +10,10 @@ void lcd_init(void);
 void lcd_backlight(uint32_t enable);
 int lcd_start(void);
 #if LVGL_VERSION_MAJOR == 9
-void lcd_draw_large_text(uint32_t x, uint32_t y, const lv_image_dsc_t *img, uint16_t color);
+void lcd_draw_large_text(uint32_t x, uint32_t y, const lv_image_dsc_t *img, lv_color_t color);
 void lcd_lvgl_flush(lv_display_t *display, const lv_area_t *area, uint8_t *pixmap);
 #else
-void lcd_draw_large_text(uint32_t x, uint32_t y, const lv_img_dsc_t *img, uint16_t color);
+void lcd_draw_large_text(uint32_t x, uint32_t y, const lv_img_dsc_t *img, lv_color_t color);
 void lcd_lvgl_flush(lv_disp_drv_t *display, const lv_area_t *area, lv_color_t *pixmap);
 #endif
 
