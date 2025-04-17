@@ -48,32 +48,32 @@ int main(void)
 {
     system_clock_config();
 
-
-    controls_init();                        // init adc and buttons 
-    power_enable();
-    button_release(BUTTON_ID_POWER, 1250);  // ignore inputs for a while
-    crc_init();                             // crc init if HW unit
-    eeprom_init();                          // initialize the eeprom for data storage
-    
     lv_init();
+#ifdef PLATFORM_SIM
+    gtkdrv_init();
+#endif
+
+    eeprom_init();                          // initialize the eeprom for data storage
     clock_init();                           // clouck source (if available)
-                                            
-
-
+    crc_init();                             // crc init if HW unit
     lcd_init();                             // attempt to initialize the lcd peripherals
+    uart_init(57600);                       // initialize comms
     
     lcd_backlight(100);
     lcd_start();                            // start lcd init sequence
 
     gui_init();                             // start lvgl and setup screen
-    uart_init(57600);                 // initialize comms
+    
+    controls_init();                        // init adc and buttons 
+    power_enable();
+    button_release(BUTTON_ID_POWER, 1250);  // ignore inputs for a while
         
     comm_send_display_settings();  
     comm_send_display_status();  
     comm_send_controller_settings();
-#if MONITOR && DEBUG
+/* #if MONITOR && DEBUG */
     uint32_t x = 0, y = 0;
-#endif
+/* #endif */
 
     gui_update();                                           // update gui data
     while(1) {
@@ -87,16 +87,15 @@ int main(void)
         comm_update();
         button_presses();
 
-#if MONITOR  && DEBUG
+/* #if MONITOR & LVGL_LOG */
         if (timer_counter - x >= 1000) {
             lv_mem_monitor_t mon;
             lv_mem_monitor(&mon);
             char buf[64];
-            /* sprintf(buf, "Free: %ld/%ld, %d%% used, %d%% frag, cpu %d%%\n", mon.free_size, mon.total_size, mon.used_pct, mon.frag_pct); */
-            /* uart_send(buf, strlen(buf), 0); */
+            LV_LOG_INFO("Free: %ld/%ld, %d%% used, %d%% frag, cpu %d%%\n", mon.free_size, mon.total_size, mon.used_pct, mon.frag_pct);
             x = timer_counter;
         }
-#endif
+/* #endif */
     }
 }
 

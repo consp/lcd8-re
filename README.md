@@ -1,11 +1,11 @@
-# Gui based on lvgl for eBike displays running the EBiCS firmware
+# Gui based on lvgl for eBike displays running the [EBiCS firmware](https://github.com/EBiCS/EBiCS_Firmware/)
 
 Features:
 * customisable (obviously ...)
 * Faster update rates than any factory device
 * Custom communication protocol to be able to edit settings of the controller on the fly
 
-## Supported displays
+## Supported platforms 
 
 - [KT LCD8H](src/hal/lcd8h/README.md)
   - OC mode runs the device at 200mhz with external crystal.
@@ -13,8 +13,11 @@ Features:
   - Fast ILI9844 communication, original device runs at about 2MHz max but the ILI9844 is capable of a lot more, the current implementation does ~14MHz at 200MHz bitbanged, and ~12MHz with DMA.
     - Tested with 20cm cable and no issues experienced
     - Should get you 30 FPS easily.
+  - Support for an upgrade to AT32F435, the chip is pin compatible but has 386kb memory and potentially a lot more flash (up to 4MB).
 - [EB04](src/hal/eb04/README.md)
-  - I was hoping for it to be a bogstandard ARM cortex-M but it's a MediaTek chip with missing SDK due to mediatek being mediatek.
+  - I was hoping for it to be a bogstandard ARM cortex-M but it's a MediaTek chip with missing SDK due to mediatek being mediatek. I also fried mine since the RX/TX ports are not protected effectively.
+- SIM
+  - X11/Wayland GTK build to simulate it on a pc, stdin and stdout are the serial ports RX and TX. (remember to disable canonical mode if writing something yourself)
 
 ## Known issues
 
@@ -23,6 +26,10 @@ Features:
   - No support for light automation since no sensor present.
   - Baudrates over 57k6 are not recommended due to the way it's implemented. This causes the "low" signal to be significantly shorter than required on higher baudrates missing the measurepoint.
   - Baudrates over 9k6 need the bodge cap removed. I do not know why it is installed as the signal is fine without it.
+- EB04
+  - It's a MediaTek IoT/SmartWatch chip with required MT Labs support, which no longer exists.
+- SIM
+  - It's a sim, memory usage is inaccurate.
 
 # Attribution
 Temperature icon: [Temperature Vectors by Vecteezy](https://www.vecteezy.com/free-vector/temperature)

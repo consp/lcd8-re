@@ -167,10 +167,6 @@ static void graph_event_pre_cb(lv_event_t * e);
 void gui_init(void) {
     // setup timer
 
-#ifdef PLATFORM_SIM
-    gtkdrv_init();
-#endif
-
     // set display
 #if LVGL_VERSION_MAJOR == 8
     lv_disp_drv_init(&disp_drv);
@@ -196,8 +192,6 @@ void gui_init(void) {
     disp_drv.hor_res = DISPLAY_WIDTH;   /*Set the horizontal resolution of the disp_drv*/
     disp_drv.ver_res = DISPLAY_HEIGHT;   /*Set the vertical resolution of the disp_drv*/
     display = lv_disp_drv_register(&disp_drv);
-    /* // ticks */
-    /* lv_timer_set_cb(&timer_cb); */
 #else
     display = lv_display_create(DISPLAY_WIDTH, DISPLAY_HEIGHT);
     lv_display_set_buffers(display, pixelbuffer, NULL, PIXEL_BUFFER_SIZE, LV_DISPLAY_RENDER_MODE_PARTIAL);
@@ -205,7 +199,6 @@ void gui_init(void) {
 
     // ticks
     lv_tick_set_cb(&timer_cb);
-    
 #endif
     // input
     mode = MODE_NORMAL;
@@ -757,9 +750,7 @@ static void item_event_cb(lv_event_t *e) {
     }
 
     lv_obj_t *cb = lv_event_get_current_target(e);
-    LV_LOG_INFO("A");
     if (lv_obj_check_type(cb, &lv_checkbox_class)) {
-        LV_LOG_INFO("B");
         if (lv_obj_has_state(cb, LV_STATE_CHECKED)) {
             lv_obj_clear_state(cb, LV_STATE_CHECKED);
             t = 0;
@@ -864,14 +855,20 @@ void gui_draw_settings_main(void) {
 
     LIST_ITEM_LABEL(0, "DISPLAY");
     LIST_ITEM_LABEL(1, "CONTROLLER");
+#if LEXT_INSTALLED
     LIST_ITEM_LABEL(2, "TIME"); 
     LIST_ITEM_COUNTER(3, "BACKLIGHT", 1, 100, 1, settings.backlight_level, 1, lcd_backlight);
     LIST_ITEM_LABEL(4, "BACK");
+    list_item_max = 5;
+#else
+    LIST_ITEM_COUNTER(2, "BACKLIGHT", 1, 100, 1, settings.backlight_level, 1, lcd_backlight);
+    LIST_ITEM_LABEL(3, "BACK");
+    list_item_max = 4;
+#endif
 
     LIST_ITEM_HIGHLIGHT(0);    
 
     list_item = 0;
-    list_item_max = 5;
 }
 
 void gui_draw_controller_settings(void) {
@@ -908,9 +905,12 @@ void gui_draw_controller_settings(void) {
     list_item_max = 7;
 }
 
+#if LEXT_INSTALLED
 static uint8_t hour = 0, min = 0, sec = 0, month = 0, day = 0;
 static uint16_t year = 0;
+#endif
 void gui_draw_time(void) {
+#if LEXT_INSTALLED
     list = lv_obj_create(lv_screen_active());
     lv_obj_set_layout(list, LV_LAYOUT_FLEX);
     lv_obj_set_flex_flow(list, LV_FLEX_FLOW_COLUMN);
@@ -940,6 +940,7 @@ void gui_draw_time(void) {
 
     list_item = 0;
     list_item_max = 7;
+#endif
 }
 
 void gui_draw_display_settings(void) {
@@ -1202,6 +1203,7 @@ static void _draw_headlights(void) {
                 lv_obj_add_flag(lights_img, LV_OBJ_FLAG_HIDDEN);
             }
         }
+        draw_lights_trigger = 0;
     }
 }
 
@@ -1628,6 +1630,7 @@ void button_presses(void) {
             }
             break;
         case MODE_SETTINGS_CLOCK:
+#if LEXT_INSTALLED
             switch (code & (BUTTON_MASK(BUTTON_ID_UP) | BUTTON_MASK(BUTTON_ID_DOWN) | BUTTON_MASK(BUTTON_ID_POWER))) {
                 case BUTTON_STATE(BUTTON_ID_DOWN, BUTTON_LONG_PRESSED) | BUTTON_STATE(BUTTON_ID_UP, BUTTON_DOWN):
                 case BUTTON_STATE(BUTTON_ID_UP, BUTTON_LONG_PRESSED) | BUTTON_STATE(BUTTON_ID_DOWN, BUTTON_DOWN):
@@ -1667,6 +1670,7 @@ void button_presses(void) {
                     }
                     break;
             }
+#endif
             break;
     }
 }

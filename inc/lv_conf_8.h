@@ -52,7 +52,7 @@
 
 /*1: use custom malloc/free, 0: use the built-in `lv_mem_alloc()` and `lv_mem_free()`*/
 #ifdef PLATFORM_SIM
-#define LV_MEM_CUSTOM 1 // lvgl8 causes segfaults in the tlsf selector which I have no intention to fix
+#define LV_MEM_CUSTOM 0 // lvgl8 causes segfaults in the tlsf selector which I have no intention to fix
 #else
 #define LV_MEM_CUSTOM 0
 #endif
@@ -244,9 +244,9 @@
  *-----------*/
 
 /*Enable the log module*/
-#define LV_USE_LOG 0 //DEBUG
+#define LV_USE_LOG DEBUG && LVGL_LOG
+// #define LV_USE_LOG 1 
 #if LV_USE_LOG
-
     /*How important log should be added:
     *LV_LOG_LEVEL_TRACE       A lot of logs to give detailed information
     *LV_LOG_LEVEL_INFO        Log important events
@@ -263,7 +263,7 @@
     /*Enable/disable LV_LOG_TRACE in modules that produces a huge number of logs*/
     #define LV_LOG_TRACE_MEM        0
     #define LV_LOG_TRACE_TIMER      0
-    #define LV_LOG_TRACE_INDEV      0 
+    #define LV_LOG_TRACE_INDEV      1 
     #define LV_LOG_TRACE_DISP_REFR  0
     #define LV_LOG_TRACE_EVENT      0
     #define LV_LOG_TRACE_OBJ_CREATE 0

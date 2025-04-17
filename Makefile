@@ -7,30 +7,43 @@ TARGET = LCD8H-firmware
 ######################################
 # building variables
 ######################################
-# debug build?
-DEBUG = 1
-MONITOR = 1
-ASAN = 0
+# build as debug, if disabled all others are as well
+DEBUG=1
+# log to console/uart
+LVGL_LOG=1
+# print monitoring info on display and/or logs
+MONITOR=1
+# use libasan in sim build (memory error detection)
+ASAN=1
+
+
+## Select platform, SIM uses DRM and requires linux/X11/Wayland/Gtk
+# PLATFORM=LCD8
+PLATFORM=SIM
+
+## Select chip If you replace the chip on the board (e.g. at32f415 to at32f435) you can have more memory etc.
+# CHIP = gd32f303
+# CHIP = at32f415
+CHIP = at32f435
+
+## Select lvgl version, note: lvgl 9 requires >= 64kb of memory
+LVGL_VERSION = 8
+# LVGL_VERSION = 9
+
+
+#######################################
+# Selectors needed for other parts
+#######################################
+ifeq ($(PLATFORM),SIM)
+CHIP = sim
+endif
 
 # optimization
-ifeq ($(DEBUG), 1)
+ifeq ($(DEBUG),1)
 OPT = -O1
 else
 OPT = -O3   
 endif
-
-# PLATFORM=LCD8
-PLATFORM=SIM
-
-CHIP = sim
-# CHIP=gd32f303
-# CHIP = at32f415
-# CHIP=AT32F435
-
-
-LVGL_VERSION = 8
-# LVGL_VERSION = 9
-
 
 #######################################
 # paths
@@ -208,7 +221,8 @@ C_DEFS =  \
 	-DLV_LVGL_H_INCLUDE_SIMPLE
 
 ifeq ($(MONITOR),1)
-C_DEFS += -DMONITOR=1
+C_DEFS += \
+	-DMONITOR=1
 endif
 
 ifeq ($(CHIP),at32f415)
@@ -230,6 +244,10 @@ else
 C_DEFS += \
 		  -DUSE_GTK=1 \
 		  -DLV_MEM_SIZE_KB=16384U
+endif
+
+ifeq ($(LVGL_LOG),1)
+C_DEFS += -DLVGL_LOG=1
 endif
 
 # AS includes
@@ -271,7 +289,7 @@ endif
 
 
 ifeq ($(DEBUG), 1)
-CFLAGS += -g3 -DDEBUG_UART_PRINT=1 -DDEBUG=1
+CFLAGS += -g3 -DDEBUG=1
 else
 CFLAGS += -Werror
 endif

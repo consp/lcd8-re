@@ -1,15 +1,17 @@
-#include "uart.h"
-#include "lvgl.h"
-#include "lv_conf.h"
-#include "crc.h"
-
 #include <stdio.h>
+#include <stdlib.h>
 #include <unistd.h>
 #include <string.h>
 #include <fcntl.h>  
 #include <termios.h>
 #include <signal.h>
 #include <sys/select.h>
+
+#include "uart.h"
+#include "lvgl.h"
+#include "lv_conf.h"
+#include "crc.h"
+
 
 uint8_t uart_rx_buffer[UART_RX_BUFFER_SIZE] = {0};
 uint8_t uart_tx_buffer[UART_TX_BUFFER_SIZE] = {0};
@@ -18,11 +20,12 @@ volatile int uart_tx_ready = 0;
 uint32_t read_buffer_length = 0;
 
 #if LV_USE_LOG
+#pragma message("Providing log callback, do not attach to a motor")
 void lv_log_callback(const char *c);
 #endif
 
 void sig_handler(int sig) {
-    struct termios attr;
+    /* struct termios attr; */
     switch (sig) {
         case SIGSEGV:
         case SIGKILL:
@@ -46,10 +49,13 @@ void uart_init(uint32_t baud)
     /* tcgetattr(STDIN_FILENO, &attr); */
     /* attr.c_lflag &= ~(ICANON | ECHO); */
     /* tcsetattr(STDIN_FILENO, TCSANOW, &attr); */
-    /*  */
+
     setvbuf(stdout, (char *)NULL, _IONBF, 0); 
-    /*  */
     signal(SIGSEGV, sig_handler);
+
+#if LV_USE_LOG
+    lv_log_register_print_cb(lv_log_callback);
+#endif
 }
 
 
@@ -69,7 +75,6 @@ int uart_get_data(uint8_t *data, uint32_t *length) {
     select(STDIN_FILENO+1, &fds, NULL, NULL, &tv);
     if (FD_ISSET(0, &fds)) {
         ssize_t rv = read(STDIN_FILENO, uart_rx_buffer, UART_RX_BUFFER_SIZE); 
-        /* ssize_t rv = fread(uart_rx_buffer, sizeof(uint8_t), UART_RX_BUFFER_SIZE, stdin);  */
         if (rv > 0) {
             *length = rv;
             memcpy(data, uart_rx_buffer, *length);
@@ -88,6 +93,6 @@ uint32_t divval(void) {
 
 #if LV_USE_LOG
 void lv_log_callback(const char *c) {
-    uart_send(c, strlen(c), 0);
+    uart_send((uint8_t *) c, strlen(c), 0);
 }
 #endif

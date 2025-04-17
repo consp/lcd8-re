@@ -1,5 +1,8 @@
 #include "controls.h"
 #include "config.h"
+#include "lvgl.h"
+#include "gtkdrv.h"
+#include "gui.h"
 
 extern adc_data_t adc;
 extern volatile uint32_t timer_counter;
@@ -15,6 +18,7 @@ extern uint32_t down_button_start;
 extern uint32_t nc_button_start;
 extern uint32_t button_backoff, button_backoff_start;
 
+lv_timer_t *lp_timer = NULL;
 int32_t ext_temp_store = 0; // store temperature adc value in case button is pressed
 
 /**
@@ -24,12 +28,86 @@ int32_t ext_temp_store = 0; // store temperature adc value in case button is pre
 /**
  * public functions
  */
+uint32_t lpcnt = 0;
 
+static void cb_handler(lv_event_t * e) {
+    lv_indev_t *i = lv_indev_get_act();
+    uint32_t key = i->proc.types.keypad.last_key;
+    uint32_t state = i->proc.types.keypad.last_state;
+
+    // state is always pressed, lvgl 8.x is crap with keys
+    // you can only capture release of "enter"
+    switch (key) {
+        case 113:
+            up_button_state = BUTTON_PRESSED;
+            break;
+        case 119:
+            up_button_state = BUTTON_LONG_PRESSED;
+            lpcnt = timer_counter;
+            break;
+        case 97: 
+            power_button_state = BUTTON_PRESSED;
+            break;
+        case 115:
+            power_button_state = BUTTON_LONG_PRESSED;
+            lpcnt = timer_counter;
+            break;
+        case 122:
+            down_button_state = BUTTON_PRESSED;
+            break;
+        case 120:
+            down_button_state = BUTTON_LONG_PRESSED;
+            lpcnt = timer_counter;
+            break;
+        case 100:
+            up_button_state = BUTTON_LONG_PRESSED;
+            down_button_state = BUTTON_LONG_PRESSED;
+            lpcnt = timer_counter;
+            break;
+    }
+}
+
+static void _lp_timer(lv_timer_t *t) {
+    if (timer_counter - lpcnt > 1000 && lpcnt != 0) {
+        up_button_state = BUTTON_RELEASED;
+        down_button_state = BUTTON_RELEASED;
+        power_button_state = BUTTON_RELEASED;
+        lpcnt = 0;
+    }
+}
+
+
+lv_indev_drv_t indev_drv_kb;
+lv_indev_t *indev = NULL;
+lv_group_t * g = NULL;
 void controls_init(void) {
+    lv_indev_drv_init(&indev_drv_kb);
+    indev_drv_kb.type = LV_INDEV_TYPE_KEYPAD;
+    indev_drv_kb.read_cb = gtkdrv_keyboard_read_cb;
+    indev = lv_indev_drv_register(&indev_drv_kb);
+
+    // register keypresses
+    g = lv_group_create();
+    lv_group_set_default(g);
+    /* lv_label_t *tmplabel = lv_label_create(lv_screen_active()); */
+    /* lv_obj_set_pos(tmplabel, 0, 0); */
+    /* lv_obj_set_size(tmplabel, 1, 1); */
+    lv_obj_add_event_cb(lv_screen_active(), cb_handler, LV_EVENT_KEY, NULL);
+    lv_obj_add_event_cb(lv_screen_active(), cb_handler, LV_EVENT_RELEASED, NULL);
+    lv_group_add_obj(lv_group_get_default(), lv_screen_active());
+    /* lv_group_focus_obj(lv_screen_active()); */
+    lv_indev_set_group(indev, lv_group_get_default());
+
+    lv_group_focus_obj(lv_screen_active());
+    LV_LOG_INFO("%08x, %08x", lv_group_get_default(), indev);
+
+    
+    lp_timer = lv_timer_create(_lp_timer, 100, NULL);
 }
 
 void power_enable(void) {  }
 void power_disable(void) { 
+    abort();
 }
 
 
