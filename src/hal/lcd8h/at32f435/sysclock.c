@@ -132,7 +132,7 @@ void extend_sram(void)
     /* erase user system data bytes */
     flash_user_system_data_erase();
     /* change sram size */
-    flash_eopb0_config(FLASH_EOPB0_SRAM_512K);
+    flash_eopb0_config(FLASH_EOPB0_SRAM_448K);
 
     /* system reset */
     nvic_system_reset();
