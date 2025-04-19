@@ -22,8 +22,8 @@ typedef struct {
         uint16_t up_button;
     };
     uint16_t nc_button; // can be used as light detector?
-    uint16_t down_button; // normally not read
     uint16_t power_button; // normally not read
+    uint16_t down_button; // normally not read
 } adc_data_t;
 
 void controls_init(void);

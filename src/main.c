@@ -24,9 +24,17 @@
 
 #include <string.h>
 #include <stdio.h>
-#if  defined(PLATFORM_LCD8) && defined(AT32F415)
+
+#ifndef PLATFORM_SIM
+#if defined(AT32F415)
+#include "at32f415.h"
 #include "at32f415_clock.h"
+#elif defined(AT32F435)
+#include "at32f435_437.h"
 #endif
+#include <cmsis/core/core_cm4.h>
+#endif
+
 #include "lcd.h"
 #include "delay.h"
 #include "eeprom.h"
@@ -37,7 +45,6 @@
 #include "crc.h"
 #include "comm.h"
 #include "uart.h"
-
 void system_clock_config(void);
 /**
   * @brief  main function.
@@ -48,25 +55,31 @@ int main(void)
 {
     system_clock_config();
 
+                                            //
+    delay_init();
     lv_init();
 #ifdef PLATFORM_SIM
     gtkdrv_init();
 #endif
 
+    controls_init();                        // init adc and buttons 
+    power_enable();
+    button_release(BUTTON_ID_POWER, 1250);  // ignore inputs for a while
+                                            //
     eeprom_init();                          // initialize the eeprom for data storage
     clock_init();                           // clouck source (if available)
+                                            //
+                                            //
     crc_init();                             // crc init if HW unit
     lcd_init();                             // attempt to initialize the lcd peripherals
     uart_init(57600);                       // initialize comms
+    
     
     lcd_backlight(100);
     lcd_start();                            // start lcd init sequence
 
     gui_init();                             // start lvgl and setup screen
     
-    controls_init();                        // init adc and buttons 
-    power_enable();
-    button_release(BUTTON_ID_POWER, 1250);  // ignore inputs for a while
         
     comm_send_display_settings();  
     comm_send_display_status();  
@@ -80,7 +93,7 @@ int main(void)
         gui_update();                                           // update gui data
 #if MONITOR && DEBUG
         uint32_t m = lv_timer_handler();                                     // draw
-        delay_ms(m);
+        /* delay_ms(m); */
 #else
         lv_timer_handler();
 #endif

@@ -583,10 +583,10 @@ void lcd_lvgl_flush(lv_disp_drv_t *display, const lv_area_t *area, lv_color_t *p
 }
 
 #if LVGL_VERSION_MAJOR == 9
-void lcd_draw_large_text(uint32_t x, uint32_t y, const lv_image_dsc_t *img, uint16_t color) {
+void lcd_draw_large_text(uint32_t x, uint32_t y, const lv_image_dsc_t *img, lv_color_t color) {
     if (img->header.cf == LV_COLOR_FORMAT_I1) {
 #else
-void lcd_draw_large_text(uint32_t x, uint32_t y, const lv_img_dsc_t *img, uint16_t color) {
+void lcd_draw_large_text(uint32_t x, uint32_t y, const lv_img_dsc_t *img, lv_color_t color) {
     if (img->header.cf == LV_IMG_CF_INDEXED_1BIT) {
 #endif
         // images stored as 1bpp, need to iterate over and draw raw
@@ -614,14 +614,14 @@ void lcd_draw_large_text(uint32_t x, uint32_t y, const lv_img_dsc_t *img, uint16
             int32_t i = 0;
             while(i < BLOB_SIZE) {
                 register uint32_t vdata = *data;
-                cb[i++] = (vdata & 0x80) ? 0x0000 : color;
-                cb[i++] = (vdata & 0x40) ? 0x0000 : color;
-                cb[i++] = (vdata & 0x20) ? 0x0000 : color;
-                cb[i++] = (vdata & 0x10) ? 0x0000 : color;
-                cb[i++] = (vdata & 0x08) ? 0x0000 : color;
-                cb[i++] = (vdata & 0x04) ? 0x0000 : color;
-                cb[i++] = (vdata & 0x02) ? 0x0000 : color;
-                cb[i++] = (vdata & 0x01) ? 0x0000 : color;
+                cb[i++] = (vdata & 0x80) ? 0x0000 : color.full;
+                cb[i++] = (vdata & 0x40) ? 0x0000 : color.full;
+                cb[i++] = (vdata & 0x20) ? 0x0000 : color.full;
+                cb[i++] = (vdata & 0x10) ? 0x0000 : color.full;
+                cb[i++] = (vdata & 0x08) ? 0x0000 : color.full;
+                cb[i++] = (vdata & 0x04) ? 0x0000 : color.full;
+                cb[i++] = (vdata & 0x02) ? 0x0000 : color.full;
+                cb[i++] = (vdata & 0x01) ? 0x0000 : color.full;
                 data++;
             }
             // wait
@@ -646,14 +646,14 @@ void lcd_draw_large_text(uint32_t x, uint32_t y, const lv_img_dsc_t *img, uint16
         while(length--) {
             // convert
             register uint32_t vdata = *data;
-            write_data((vdata & 0x80) ? 0x0000 : color);
-            write_data((vdata & 0x40) ? 0x0000 : color);
-            write_data((vdata & 0x20) ? 0x0000 : color);
-            write_data((vdata & 0x10) ? 0x0000 : color);
-            write_data((vdata & 0x08) ? 0x0000 : color);
-            write_data((vdata & 0x04) ? 0x0000 : color);
-            write_data((vdata & 0x02) ? 0x0000 : color);
-            write_data((vdata & 0x01) ? 0x0000 : color);
+            write_data((vdata & 0x80) ? 0x0000 : color.full);
+            write_data((vdata & 0x40) ? 0x0000 : color.full);
+            write_data((vdata & 0x20) ? 0x0000 : color.full);
+            write_data((vdata & 0x10) ? 0x0000 : color.full);
+            write_data((vdata & 0x08) ? 0x0000 : color.full);
+            write_data((vdata & 0x04) ? 0x0000 : color.full);
+            write_data((vdata & 0x02) ? 0x0000 : color.full);
+            write_data((vdata & 0x01) ? 0x0000 : color.full);
             data++;
         }
 #endif

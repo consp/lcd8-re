@@ -14,16 +14,16 @@
 
 extern volatile uint32_t timer_counter;
 
-#ifdef PLATFORM_LCD8
+#ifdef PLATFORM_LCD8 
 #if DMA_WRITE
-uint8_t pixelbuffer[PIXEL_BUFFER_LINES * DISPLAY_WIDTH];
-uint8_t pixelbuffer2[PIXEL_BUFFER_LINES * DISPLAY_WIDTH];
+uint8_t RAMHIGH pixelbuffer[PIXEL_BUFFER_LINES * DISPLAY_WIDTH];
+uint8_t RAMHIGH pixelbuffer2[PIXEL_BUFFER_LINES * DISPLAY_WIDTH];
 #else
-uint8_t pixelbuffer[PIXEL_BUFFER_LINES * DISPLAY_WIDTH * 2];
+uint8_t RAMHIGH pixelbuffer[PIXEL_BUFFER_LINES * DISPLAY_WIDTH * 2];
 #endif
 #else
 #include "gtkdrv.h"
-uint8_t pixelbuffer[DISPLAY_WIDTH * DISPLAY_HEIGHT * sizeof(lv_color_t)];
+uint8_t RAMHIGH pixelbuffer[DISPLAY_WIDTH * DISPLAY_HEIGHT * sizeof(lv_color_t)];
 #endif
 uint32_t timer_old = 0;
 

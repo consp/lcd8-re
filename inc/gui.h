@@ -40,7 +40,7 @@
 /* locations
  */
 #define SPEED_MAJOR_X       0 
-#define SPEED_MAJOR_Y       96 // create some space
+#define SPEED_MAJOR_Y       80 // create some space
 #define SPEED_MAJOR_WIDTH   92 
 #define SPEED_MAJOR_HEIGHT  148
 // #define SPEED_MAJOR_BG_COLOR C_BLACK //C_YELLOW// C_BLACK

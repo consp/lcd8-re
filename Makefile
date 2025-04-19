@@ -10,11 +10,11 @@ TARGET = LCD8H-firmware
 # build as debug, if disabled all others are as well
 DEBUG=1
 # log to console/uart
-LVGL_LOG=1
+LVGL_LOG=0
 # print monitoring info on display and/or logs
 MONITOR=1
 # use libasan in sim build (memory error detection)
-ASAN=1
+ASAN=0
 
 
 ## Select platform, SIM uses DRM and requires linux/X11/Wayland/Gtk
@@ -138,6 +138,22 @@ src/drivers/gd32f303/gd32f30x_rcu.c \
 src/drivers/gd32f303/gd32f30x_misc.c \
 src/drivers/gd32f303/gd32f30x_timer.c \
 src/drivers/gd32f303/gd32f30x_usart.c
+else ifeq ($(CHIP),at32f435)
+C_SOURCES += \
+src/startup/at32f435/system_at32f435_437.c \
+src/drivers/at32f435/at32f435_437_crm.c \
+src/drivers/at32f435/at32f435_437_crc.c \
+src/drivers/at32f435/at32f435_437_dma.c \
+src/drivers/at32f435/at32f435_437_flash.c \
+src/drivers/at32f435/at32f435_437_tmr.c \
+src/drivers/at32f435/at32f435_437_ertc.c \
+src/drivers/at32f435/at32f435_437_pwc.c \
+src/drivers/at32f435/at32f435_437_adc.c \
+src/drivers/at32f435/at32f435_437_usart.c \
+src/drivers/at32f435/at32f435_437_gpio.c \
+src/drivers/at32f435/at32f435_437_i2c.c \
+src/drivers/at32f435/at32f435_437_misc.c \
+src/hal/lcd8h/at32f435/at32f435_437_int.c
 else # sim
 # do nothing for now
 endif
@@ -146,10 +162,13 @@ endif
 # ASM sources
 ifeq ($(CHIP),at32f415)
 ASM_SOURCES =  \
-src/startup/at32f415/startup_at32f415.S
+	src/startup/at32f415/startup_at32f415.S
 else ifeq ($(CHIP),gd32f303)
 ASM_SOURCES =  \
-src/startup/gd32f303/startup_gd32f30x.S
+	src/startup/gd32f303/startup_gd32f30x.S
+else ifeq ($(CHIP),at32f435)
+ASM_SOURCES = \
+	src/startup/at32f435/startup_at32f435_437.S
 else
 ARM_SOURCES = 
 endif
@@ -206,7 +225,13 @@ endif
 
 # mcu
 ifneq ($(PLATFORM),SIM)
-MCU = $(CPU) -mthumb -mfloat-abi=soft '-D__weak=__attribute__((weak))'
+MCU = $(CPU) -mthumb '-D__weak=__attribute__((weak))'
+endif
+
+ifeq ($(CHIP),at32f435)
+MCU += -mfloat-abi=hard -mfpu=fpv4-sp-d16
+else ifneq ($(PLATFORM),SIM)
+MCU += -mfloat-abi=soft 
 endif
 
 # macros for gcc
@@ -310,6 +335,9 @@ ifeq (${CHIP},at32f415)
 LDSCRIPT = src/startup/at32f415/AT32F415xC_FLASH.ld
 else ifeq ($(CHIP),gd32f303)
 LDSCRIPT = src/startup/gd32f303/gd32f30x.ld
+else ifeq ($(CHIP),at32f435)
+LDSCRIPT = src/startup/at32f435/AT32F435xM_FLASH.ld
+# LDSCRIPT = src/startup/at32f435/test.ld
 endif
 
 # libraries
@@ -340,6 +368,15 @@ all: $(BUILD_DIR)/$(TARGET)
 else
 all: $(BUILD_DIR)/$(TARGET).elf $(BUILD_DIR)/$(TARGET).hex $(BUILD_DIR)/$(TARGET).bin
 endif	
+
+
+ifeq ($(CHIP),at32f415)
+PYOCD_TARGET = _at32f415rct7
+else ifeq ($(CHIP),at32f435)
+PYOCD_TARGET = _at32f437rmt7 
+else 
+PYOCD_TARGET = stm32f103rc
+endif
 
 #######################################
 # build the application
@@ -389,7 +426,11 @@ preprocessor: $(DOBJECTS)
 assembler: $(SOBJECTS)
 
 flash: $(BUILD_DIR)/$(TARGET).bin
-	pyocd load -u 69747484 build/LCD8H-firmware.bin --target stm32f103rc
+ifeq ($(CHIP),at32f435)
+	/opt/SEGGER/JLink/JLinkExe < jlink-at32f435.cfg
+else
+	pyocd load -u 69747484 build/LCD8H-firmware.bin --target $(PYOCD_TARGET) 
+endif
 
 #######################################
 # clean up

@@ -12,10 +12,18 @@
 #define POWER_FILTER_SHIFT 2
 
 #ifdef DEBUG
+#if defined(AT32F435)
+#define PIXEL_BUFFER_LINES DISPLAY_HEIGHT
+#else
 #define PIXEL_BUFFER_LINES 20
+#endif
 #else
 #ifdef PLATFORM_LCD8
+#if defined(AT32F415)
 #define PIXEL_BUFFER_LINES 22 // lower if more mem is required for lvgl
+#elif defined(AT32F435)
+#define PIXEL_BUFFER_LINES DISPLAY_HEIGHT
+#endif
 #else
 #define PIXEL_BUFFER_LINES 32 // reduces tearing if multiple of 32
 #endif
@@ -71,6 +79,7 @@
  */
 #define OC // overclock to 200mhz, which is the maximum. Higher values will result in 200mhz but evert calculation is broken
 
+#define RAMHIGH 
 #ifdef OC
 #define CLOCK_SOURCE         CRM_CLOCK_SOURCE_HEXT  // you need a stable crystal
 #define CLOCK_SOURCE_DIV     CRM_PLL_SOURCE_HEXT 
@@ -102,6 +111,18 @@
             ) / x)
 
 #include "at32f415.h"
+#elif defined(AT32F435)
+#include "at32f435_437.h"
+#undef RAMHIGH
+#define RAMHIGH     __attribute__((__section__(".ramhigh"))) 
+#define CONF_FLASH_DIV      FLASH_CLOCK_DIV_3
+#define CONF_FREQ           8000000
+#define CONF_PLL_MUL        170 //144
+#define CONF_PLL_PREDIV     1
+#define CONF_PLL_POSTDIV    CRM_PLL_FR_4
+#define TIMER_FREQ(x)       (( \
+            (CONF_FREQ * CONF_PLL_MUL) / (CONF_PLL_PREDIV * (1 << CONF_PLL_POSTDIV)) \
+        ) / x)
 #elif defined(GD32F303)
 #include "gd32f30x.h"
 #endif
