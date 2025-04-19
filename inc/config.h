@@ -72,6 +72,9 @@
 
 // archtecture specifics
 
+#define RAMHIGH 
+#define FLASHHIGH 
+
 #if defined(AT32F415)
 /*
  * OC will use 200mhz and an external crystal. 
@@ -79,8 +82,6 @@
  */
 #define OC // overclock to 200mhz, which is the maximum. Higher values will result in 200mhz but evert calculation is broken
 
-#define RAMHIGH 
-#define FLASHHIGH 
 #ifdef OC
 #define CLOCK_SOURCE         CRM_CLOCK_SOURCE_HEXT  // you need a stable crystal
 #define CLOCK_SOURCE_DIV     CRM_PLL_SOURCE_HEXT 
@@ -118,7 +119,6 @@
 #undef FLASHHIGH
 #define RAMHIGH     __attribute__((__section__(".ramhigh"))) 
 #define FLASHHIGH   __attribute__((__section__(".flashhigh"))) 
-#define FLASHHIGH_DATA   __attribute__((__section__(".flashhigh.rodata"))) 
 #define CONF_FLASH_DIV      FLASH_CLOCK_DIV_3
 #define CONF_FREQ           8000000
 #define CONF_PLL_MUL        170 //144

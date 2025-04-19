@@ -18,13 +18,13 @@ ASAN=0
 
 
 ## Select platform, SIM uses DRM and requires linux/X11/Wayland/Gtk
-PLATFORM=LCD8
-# PLATFORM=SIM
+# PLATFORM=LCD8
+PLATFORM=SIM
 
 ## Select chip If you replace the chip on the board (e.g. at32f415 to at32f435) you can have more memory etc.
-# CHIP = gd32f303
+# CHIP = gd32f303 ## DOES NOT WORK
 # CHIP = at32f415
-CHIP = at32f435
+# CHIP = at32f435  ## Buy one and replace the 415 with it
 
 ## Select lvgl version, note: lvgl 9 requires >= 64kb of memory
 LVGL_VERSION = 8

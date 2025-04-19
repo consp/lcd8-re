@@ -55,11 +55,11 @@ int main(void)
 {
     system_clock_config();
 
-                                            //
     delay_init();
     lv_init();
 #ifdef PLATFORM_SIM
     gtkdrv_init();
+    gui_init();
 #endif
 
     controls_init();                        // init adc and buttons 
@@ -77,9 +77,9 @@ int main(void)
     
     lcd_backlight(100);
     lcd_start();                            // start lcd init sequence
-
+#ifndef PLATFORM_SIM
     gui_init();                             // start lvgl and setup screen
-    
+#endif
         
     comm_send_display_settings();  
     comm_send_display_status();  
