@@ -1,5 +1,5 @@
 #ifdef __has_include
-    #if __has_include("lvgl.h")
+    #include "config.h"#if __has_include ("lvgl.h")
         #ifndef LV_LVGL_H_INCLUDE_SIMPLE
             #define LV_LVGL_H_INCLUDE_SIMPLE
         #endif
@@ -21,7 +21,7 @@
 #define LV_ATTRIBUTE_IMG_ICON_CLOCK
 #endif
 
-const LV_ATTRIBUTE_MEM_ALIGN LV_ATTRIBUTE_LARGE_CONST LV_ATTRIBUTE_IMG_ICON_CLOCK uint8_t icon_clock_map[] = {
+const FLASHHIGH LV_ATTRIBUTE_MEM_ALIGN LV_ATTRIBUTE_LARGE_CONST LV_ATTRIBUTE_IMG_ICON_CLOCK uint8_t icon_clock_map[] = {
   0x00, 0x00, 0x00, 0x00, 	/*Color of index 0*/
   0xcd, 0xcd, 0xcd, 0x1b, 	/*Color of index 1*/
   0xca, 0xca, 0xca, 0x77, 	/*Color of index 2*/
@@ -61,7 +61,7 @@ const LV_ATTRIBUTE_MEM_ALIGN LV_ATTRIBUTE_LARGE_CONST LV_ATTRIBUTE_IMG_ICON_CLOC
   0x00, 0x00, 0x16, 0xff, 0xff, 0x94, 0x00, 0x00, 
 };
 
-const lv_img_dsc_t icon_clock = {
+const FLASHHIGH lv_img_dsc_t icon_clock = {
   .header.cf = LV_IMG_CF_INDEXED_2BIT,
   .header.always_zero = 0,
   .header.reserved = 0,

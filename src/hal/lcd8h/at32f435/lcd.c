@@ -25,7 +25,7 @@ typedef struct ili_cmd_t {
     uint32_t data_length;
 } ili_cmd;
 #define STARTUP_COMMAND_LENGTH 14
-const ili_cmd ili_startup_cmds[STARTUP_COMMAND_LENGTH] = {
+const FLASHHIGH ili_cmd ili_startup_cmds[STARTUP_COMMAND_LENGTH] = {
 		{ILI_POSITIVE_GAMMA_CORRECTION,     {0x00, 0x09, 0x16, 0x09, 0x17, 0x0A, 0x3F, 0x78, 0x4B, 0x07, 0x0E, 0x0F, 0x18, 0x1A, 0x0F}, 15}, // panel specific
 		{ILI_NEGATIVE_GAMMA_CORRECTION,     {0x00, 0x1D, 0x1F, 0x05, 0x0F, 0x05, 0x33, 0x34, 0x43, 0x02, 0x0A, 0x08, 0x2E, 0x33, 0x0F}, 15}, // panel specific
         {ILI_FRAME_RATE_CONTROL_NORMAL,     {0xA0}, 1}, // Fosc,78.13hz

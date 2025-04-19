@@ -1,5 +1,5 @@
 #ifdef __has_include
-    #if __has_include("lvgl.h")
+    #include "config.h"#if __has_include ("lvgl.h")
         #ifndef LV_LVGL_H_INCLUDE_SIMPLE
             #define LV_LVGL_H_INCLUDE_SIMPLE
         #endif
@@ -21,7 +21,7 @@
 #define LV_ATTRIBUTE_IMG_ICON_DISTANCE
 #endif
 
-const LV_ATTRIBUTE_MEM_ALIGN LV_ATTRIBUTE_LARGE_CONST LV_ATTRIBUTE_IMG_ICON_DISTANCE uint8_t icon_distance_map[] = {
+const FLASHHIGH LV_ATTRIBUTE_MEM_ALIGN LV_ATTRIBUTE_LARGE_CONST LV_ATTRIBUTE_IMG_ICON_DISTANCE uint8_t icon_distance_map[] = {
   0xfe, 0xfe, 0xfe, 0xff, 	/*Color of index 0*/
   0xf2, 0xf2, 0xf2, 0xff, 	/*Color of index 1*/
   0xe6, 0xe6, 0xe6, 0xff, 	/*Color of index 2*/
@@ -73,7 +73,7 @@ const LV_ATTRIBUTE_MEM_ALIGN LV_ATTRIBUTE_LARGE_CONST LV_ATTRIBUTE_IMG_ICON_DIST
   0xfc, 0x62, 0x01, 0x48, 0x99, 0x99, 0x99, 0x99, 0x99, 0x99, 0x99, 0x99, 0xbf, 0xff, 0xff, 
 };
 
-const lv_img_dsc_t icon_distance = {
+const FLASHHIGH lv_img_dsc_t icon_distance = {
   .header.cf = LV_IMG_CF_INDEXED_4BIT,
   .header.always_zero = 0,
   .header.reserved = 0,

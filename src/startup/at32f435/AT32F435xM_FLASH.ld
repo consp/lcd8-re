@@ -23,18 +23,25 @@ ENTRY(Reset_Handler)
 
 /* Highest address of the user mode stack */
 /* If you put this at 512k the system will crash befor reaching main */
+/* This is due to the cpu booting in 128k mode needing a switch to 128k
+ * if you buy a cheap "new" version. */
 _estack = 0x20020000;    /* end of RAM */
 
 /* Generate a link error if heap and stack don't fit into RAM */
 _Min_Heap_Size = 0x200;      /* required amount of heap  */
 _Min_Stack_Size = 0x400; /* required amount of stack */
 
-/* Specify the memory areas */
+/*
+ * Flash is 0 wait cycle flash, use for code
+ * The rest is FLASHHIGH which is lesser
+ * RAM is the boot default, RAMHIGH is after setting EOPB0
+ */
 MEMORY
 {
-FLASH (rx)      : ORIGIN = 0x08000000, LENGTH = 4032K /*4032K*/
-RAM (rwx)        : ORIGIN = 0x20000000, LENGTH = 128K
-RAMHIGH (rw)    : ORIGIN = 0x20020000, LENGTH = 384K
+FLASH (rx)          : ORIGIN = 0x08000000, LENGTH = 196K
+FLASHHIGH (rx)      : ORIGIN = 0x08030000, LENGTH = 3836K
+RAM (rwx)           : ORIGIN = 0x20000000, LENGTH = 128K
+RAMHIGH (rw)        : ORIGIN = 0x20020000, LENGTH = 320K
 }
 
 /* Define output sections */
@@ -72,7 +79,7 @@ SECTIONS
     *(.rodata)         /* .rodata sections (constants, strings, etc.) */
     *(.rodata*)        /* .rodata* sections (constants, strings, etc.) */
     . = ALIGN(4);
-  } >FLASH
+  } >FLASHHIGH
 
   .ARM.extab   : { *(.ARM.extab* .gnu.linkonce.armextab.*) } >FLASH
   .ARM : {
@@ -116,6 +123,17 @@ SECTIONS
     . = ALIGN(4);
     _edata = .;        /* define a global symbol at data end */
   } >RAM AT> FLASH
+
+  .flashhigh : 
+  {
+    . = ALIGN(4);
+       __flashhigh_start__ = .;
+       *(.flashhigh.text.*);
+       *(.flashhigh.rodata.*);
+       *(.flashhigh*);
+       __ramhigh_end__ = .;
+
+  } >FLASHHIGH
 
   /* Uninitialized data section */
   . = ALIGN(4);

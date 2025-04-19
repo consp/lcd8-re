@@ -1,5 +1,5 @@
 #ifdef __has_include
-    #if __has_include("lvgl.h")
+    #include "config.h"#if __has_include ("lvgl.h")
         #ifndef LV_LVGL_H_INCLUDE_SIMPLE
             #define LV_LVGL_H_INCLUDE_SIMPLE
         #endif
@@ -22,7 +22,7 @@
 #define LV_ATTRIBUTE_IMG_ICON_BIKE
 #endif
 
-const LV_ATTRIBUTE_MEM_ALIGN LV_ATTRIBUTE_LARGE_CONST LV_ATTRIBUTE_IMG_ICON_BIKE uint8_t icon_bike_map[] = {
+const FLASHHIGH LV_ATTRIBUTE_MEM_ALIGN LV_ATTRIBUTE_LARGE_CONST LV_ATTRIBUTE_IMG_ICON_BIKE uint8_t icon_bike_map[] = {
   0xfe, 0xfe, 0xfe, 0xff, 	/*Color of index 0*/
   0xeb, 0xeb, 0xeb, 0xff, 	/*Color of index 1*/
   0xd9, 0xd9, 0xd9, 0xff, 	/*Color of index 2*/
@@ -72,7 +72,7 @@ const LV_ATTRIBUTE_MEM_ALIGN LV_ATTRIBUTE_LARGE_CONST LV_ATTRIBUTE_IMG_ICON_BIKE
   0xff, 0xfa, 0x41, 0x01, 0x5b, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xc6, 0x21, 0x25, 0xbf, 0xff, 
 };
 
-const lv_image_dsc_t icon_bike = {
+const FLASHHIGH lv_image_dsc_t icon_bike = {
 #if LVGL_VERSION_MAJOR == 9
   .header.magic = LV_IMAGE_HEADER_MAGIC,
 #endif

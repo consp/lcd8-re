@@ -1,5 +1,5 @@
 #ifdef __has_include
-    #if __has_include("lvgl.h")
+    #include "config.h"#if __has_include ("lvgl.h")
         #ifndef LV_LVGL_H_INCLUDE_SIMPLE
             #define LV_LVGL_H_INCLUDE_SIMPLE
         #endif
@@ -21,7 +21,7 @@
 #define LV_ATTRIBUTE_IMG_ICON_BRAKE
 #endif
 
-const LV_ATTRIBUTE_MEM_ALIGN LV_ATTRIBUTE_LARGE_CONST LV_ATTRIBUTE_IMG_ICON_BRAKE uint8_t icon_brake_map[] = {
+const FLASHHIGH LV_ATTRIBUTE_MEM_ALIGN LV_ATTRIBUTE_LARGE_CONST LV_ATTRIBUTE_IMG_ICON_BRAKE uint8_t icon_brake_map[] = {
   0x00, 0x00, 0x00, 0x00, 	/*Color of index 0*/
   0x00, 0xa8, 0xfe, 0x16, 	/*Color of index 1*/
   0x00, 0xa4, 0xfe, 0x61, 	/*Color of index 2*/
@@ -77,7 +77,7 @@ const LV_ATTRIBUTE_MEM_ALIGN LV_ATTRIBUTE_LARGE_CONST LV_ATTRIBUTE_IMG_ICON_BRAK
   0x00, 0x00, 0x00, 0x00, 0x01, 0x5a, 0xa5, 0x40, 0x00, 0x00, 0x00, 0x00, 
 };
 
-const lv_img_dsc_t icon_brake = {
+const FLASHHIGH lv_img_dsc_t icon_brake = {
   .header.cf = LV_IMG_CF_INDEXED_2BIT,
   .header.always_zero = 0,
   .header.reserved = 0,

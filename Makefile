@@ -18,8 +18,8 @@ ASAN=0
 
 
 ## Select platform, SIM uses DRM and requires linux/X11/Wayland/Gtk
-# PLATFORM=LCD8
-PLATFORM=SIM
+PLATFORM=LCD8
+# PLATFORM=SIM
 
 ## Select chip If you replace the chip on the board (e.g. at32f415 to at32f435) you can have more memory etc.
 # CHIP = gd32f303

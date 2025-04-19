@@ -122,11 +122,11 @@ void system_clock_config(void)
 
 }
 
-/* unlock 512k */
+/* unlock >128k */
 void extend_sram(void)
 {
   /* check if ram has been set to expectant size, if not, change eopb0 */
-  if(((USD->eopb0) & 0x07) != FLASH_EOPB0_SRAM_512K)
+  if(((USD->eopb0) & 0x07) != FLASH_EOPB0_SRAM_448K)
   {
     flash_unlock();
     /* erase user system data bytes */
