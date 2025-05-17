@@ -14,6 +14,9 @@ volatile uint32_t timer_counter = 0;
  * LVGL timer functions
  */
 uint32_t timer_cb(void) {
+#if LVGL_VERSION_MAJOR == 9
+    timer_counter = SDL_GetTicks();
+#endif
     return timer_counter;
 }
 

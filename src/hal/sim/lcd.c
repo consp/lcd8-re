@@ -1,6 +1,9 @@
+#include "gui.h"
 #include "lcd.h"
 #include "uart.h"
+#if LVGL_VERSION_MAJOR == 8
 #include "gtkdrv.h"
+#endif
 
 /* #define MEMORY_DEBUG */
 uint16_t dummy = 0;
@@ -16,13 +19,14 @@ int lcd_start(void) {
     return 1;
 }
 
-extern lv_disp_drv_t disp_drv;
 
 #if LVGL_VERSION_MAJOR == 9
 void lcd_draw_large_text(uint32_t x, uint32_t y, const lv_image_dsc_t *img, lv_color_t color) {
 #else
+extern lv_disp_drv_t disp_drv;
 void lcd_draw_large_text(uint32_t x, uint32_t y, const lv_img_dsc_t *img, lv_color_t color) {
 #endif
+#if LVGL_VERSION_MAJOR == 8
     uint8_t *data = (uint8_t *) img->data;
     data += 8;
     lv_color_t tbuffer[((img->header.h*DISPLAY_WIDTH) + img->header.w) * sizeof(lv_color_t)];
@@ -49,4 +53,5 @@ void lcd_draw_large_text(uint32_t x, uint32_t y, const lv_img_dsc_t *img, lv_col
     area.x2 = x + img->header.w - 1;
     area.y2 = y + img->header.h - 1;
     gtkdrv_flush_cb(&disp_drv, &area, tbuffer);
+#endif
 }

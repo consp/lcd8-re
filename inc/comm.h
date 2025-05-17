@@ -20,6 +20,53 @@ void comm_send_display_status(void);
 void comm_send_controller_settings(void);
 void comm_update(void);
 
+/*
+ * VESC values
+ */
+
+#define COMM_VESC_FAST_INTERVAL                     100
+#define COMM_VESC_SLOW_INTERVAL                     1000
+
+#define COMM_VESC_CMD_GET_VALUES                    4
+#define COMM_VESC_CMD_GET_VALUES_SETUP              47
+#define COMM_VESC_CMD_GET_VALUES_SELECTIVE          50
+#define COMM_VESC_CMD_GET_VALUES_SETUP_SELECTIVE    51
+
+// maskss for get values
+#define VESC_GET_FET_TEMP                           (1 << 0)
+#define VESC_GET_MOTOR_TEMP                         (1 << 1)
+#define VESC_GET_AVG_MOTOR_CURRENT                  (1 << 2)
+#define VESC_GET_AVG_INPUT_CURRENT                  (1 << 3)
+#define VESC_GET_AVG_ID                             (1 << 4)
+#define VESC_GET_AVG_IQ                             (1 << 5)
+#define VESC_GET_DUTY_CYCLE                         (1 << 6)
+#define VESC_GET_RPM                                (1 << 7)
+#define VESC_GET_INPUT_VOLTAGE                      (1 << 8)
+#define VESC_GET_AMP_HOURS                          (1 << 9)
+#define VESC_GET_AMP_HOURS_CHARGED                  (1 << 10)
+#define VESC_GET_WATT_HOURS                         (1 << 11)
+#define VESC_GET_WATT_HOURS_CHARGED                 (1 << 12)
+#define VESC_GET_TACH                               (1 << 13)
+#define VESC_GET_TACH_ABS                           (1 << 14)
+#define VESC_GET_FAULT                              (1 << 15)
+#define VESC_GET_PID_POS                            (1 << 16)
+#define VESC_GET_CONTROLLER_ID                      (1 << 17)
+#define VESC_GET_ALL_FET_TEMP                       (1 << 18)
+#define VESC_GET_AVG_VD                             (1 << 19)
+#define VESC_GET_AVG_VQ                             (1 << 20)
+#define VESC_GET_STATUS                             (1 << 21)
+
+typedef struct vesc_packet_1_t {
+    uint8_t type;
+    uint32_t length;
+    uint8_t *data;
+    uint16_t crc;
+} vesc_packet_1;
+
+/*
+ * Custom EBICS values
+ */
+
 #pragma pack(push,1)
 typedef struct {
     uint32_t    value;              // in mV
@@ -86,5 +133,11 @@ typedef struct {
     };
 } msg_display;
 #pragma pack(pop)
+
+#if UART_COMM == UART_COMM_VESC
+int comm_vesc_packet_resc(uint8_t *data, uint32_t length, vesc_packet_1 *pack);
+int comm_vesc_packet_send(uint8_t *data, uint32_t length);
+int comm_vesc_packet_send_get_data(uint32_t mask);
+#endif
 
 #endif // __COMM_H__

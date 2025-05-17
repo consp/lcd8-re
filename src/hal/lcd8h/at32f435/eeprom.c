@@ -192,6 +192,7 @@ void eeprom_init(void) {
 
 void eeprom_write_defaults(void) {
     settings.power_max = POWER_MAX;
+    settings.power_redline = POWER_REDLINE;
     settings.power_min = POWER_MIN;
     settings.speed_max = SPEED_MAX;
     settings.current_max = 10000;
@@ -203,7 +204,7 @@ void eeprom_write_defaults(void) {
     settings.assist_levels = ASSIST_LEVELS;
     settings.assist_last = ASSIST_DEFAULT;
     settings.wheel_circumfence = WHEEL_CIRCUMFENCE;
-    settings.speed_redline = SPEED_MAX;
+    settings.speed_redline = SPEED_REDLINE;
     settings.speed_assist_max = SPEED_MAX;
     settings.lights_enabled = 0;
     settings.lights_mode = 0;
@@ -237,7 +238,7 @@ void eeprom_read_settings(void) {
 
 void eeprom_write_settings(void) {
     // calc crc
-    settings.header = 0xCAFEBABE;
+    settings.header = 0xDEADBEEF;
     settings.crc = crc_calc((uint8_t *) &settings, sizeof(settings_t) - 1);
     eeprom_write_bytes(0, 0, (uint8_t *) &settings, sizeof(settings_t));
 }

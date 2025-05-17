@@ -8,7 +8,7 @@ TARGET = LCD8H-firmware
 # building variables
 ######################################
 # build as debug, if disabled all others are as well
-DEBUG=1
+DEBUG=0
 # log to console/uart
 LVGL_LOG=0
 # print monitoring info on display and/or logs
@@ -18,17 +18,17 @@ ASAN=0
 
 
 ## Select platform, SIM uses DRM and requires linux/X11/Wayland/Gtk
-# PLATFORM=LCD8
-PLATFORM=SIM
+PLATFORM=LCD8
+# PLATFORM=SIM
 
 ## Select chip If you replace the chip on the board (e.g. at32f415 to at32f435) you can have more memory etc.
 # CHIP = gd32f303 ## DOES NOT WORK
 # CHIP = at32f415
-# CHIP = at32f435  ## Buy one and replace the 415 with it
+CHIP=at32f435
 
 ## Select lvgl version, note: lvgl 9 requires >= 64kb of memory
-LVGL_VERSION = 8
-# LVGL_VERSION = 9
+# LVGL_VERSION = 8
+LVGL_VERSION = 9
 
 
 #######################################
@@ -40,9 +40,9 @@ endif
 
 # optimization
 ifeq ($(DEBUG),1)
-OPT = -O1
+OPT = -Os
 else
-OPT = -O3   
+OPT = -Os
 endif
 
 #######################################
@@ -72,27 +72,27 @@ endif
 
 # fonts & images
 C_SOURCES += \
-src/fonts/8.x/ANDALEMO_72.c \
-src/fonts/8.x/ANDALEMO_32.c \
-src/fonts/8.x/ANDALEMO_28.c \
-src/fonts/8.x/ANDALEMO_16.c \
-src/fonts/8.x/ANDALEMO_12.c \
-src/fonts/8.x/FRY_32.c \
+src/fonts/$(LVGL_VERSION).x/ANDALEMO_72.c \
+src/fonts/$(LVGL_VERSION).x/ANDALEMO_32.c \
+src/fonts/$(LVGL_VERSION).x/ANDALEMO_28.c \
+src/fonts/$(LVGL_VERSION).x/ANDALEMO_16.c \
+src/fonts/$(LVGL_VERSION).x/ANDALEMO_12.c \
+src/fonts/$(LVGL_VERSION).x/FRY_32.c \
 src/fonts/large_text_1bpp.c \
-src/img/battery_black.c \
-src/img/icon_clock.c \
-src/img/icon_brake.c \
-src/img/icon_temperature.c \
-src/img/icon_engine.c \
-src/img/icon_journey.c \
-src/img/icon_headlight.c \
-src/img/icon_headlight_auto.c \
-src/img/icon_trip.c
+src/img/display/lvgl$(LVGL_VERSION)/battery_black.c \
+src/img/display/lvgl$(LVGL_VERSION)/icon_clock.c \
+src/img/display/lvgl$(LVGL_VERSION)/icon_brake.c \
+src/img/display/lvgl$(LVGL_VERSION)/icon_temperature.c \
+src/img/display/lvgl$(LVGL_VERSION)/icon_engine.c \
+src/img/display/lvgl$(LVGL_VERSION)/icon_journey.c \
+src/img/display/lvgl$(LVGL_VERSION)/icon_headlight.c \
+src/img/display/lvgl$(LVGL_VERSION)/icon_headlight_auto.c \
+src/img/display/lvgl$(LVGL_VERSION)/icon_trip.c
 
 
 # platform sources
 ifeq ($(PLATFORM),LCD8)
-C_SOURCES +=\
+C_SOURCES += \
 src/hal/lcd8h/$(MCU_PATH)/sysclock.c \
 src/hal/lcd8h/${MCU_PATH}/lcd.c \
 src/hal/lcd8h/${MCU_PATH}/uart.c \
@@ -109,7 +109,11 @@ C_SOURCES += \
 	src/hal/sim/delay.c \
 	src/hal/sim/clock.c \
 	src/hal/sim/eeprom.c \
-	src/hal/sim/cntl.c \
+	src/hal/sim/cntl.c
+endif
+
+ifeq ($(PLATFORM)$(LVGL_VERSION),SIM8)
+C_SOURCES += \
 	thirdparty/lv_drivers/gtkdrv/gtkdrv.c
 endif
 
@@ -217,7 +221,7 @@ CPU = -mcpu=cortex-m4
 
 # float-abi
 ifeq ($(DEBUG),1)
-LTO=
+LTO= -flto
 else
 LTO= -flto
 endif
@@ -230,6 +234,7 @@ endif
 
 ifeq ($(CHIP),at32f435)
 MCU += -mfloat-abi=hard -mfpu=fpv4-sp-d16
+# MCU += -mfloat-abi=soft
 else ifneq ($(PLATFORM),SIM)
 MCU += -mfloat-abi=soft 
 endif
@@ -247,7 +252,17 @@ C_DEFS =  \
 
 ifeq ($(MONITOR),1)
 C_DEFS += \
-	-DMONITOR=1
+	-DMONITOR=1  \
+	-DSEMIHOSTING
+	# -DSEGGER_RTT
+# # add segger rtt files
+# C_SOURCES += \
+# 	src/rtt/SEGGER_RTT.c \
+# 	src/rtt/SEGGER_RTT_printf.c \
+# 	src/rtt/SEGGER_RTT_Syscalls_GCC.c 
+# ASM_SOURCES += src/rtt/SEGGER_RTT_ASM_ARMv7M.S
+# AS_INCLUDES += -Iinc/rtt
+# C_INCLUDES += -Iinc/rtt
 endif
 
 ifeq ($(CHIP),at32f415)
@@ -258,17 +273,17 @@ C_DEFS += -DAT32F415RCT7 \
 else ifeq ($(CHIP),at32f435)
 C_DEFS += -DAT32F435RMT7 \
 		  -DAT32F435 \
-		  -DARM_MATH_CM4 '-D__packed=__attribute__((__packed__))'\
-		  -DLV_MEM_SIZE_KB=96U
+		  -DARM_MATH_CM4 '-D__packed=__attribute__((__packed__))' \
+		  -DLV_MEM_SIZE_KB=64U
 else ifeq ($(CHIP),gd32f303)
 C_DEFS += -DGD32F303 \
 		  -DGD32F30X_XD \
 		  -DARM_MATH_CM4 '-D__packed=__attribute__((__packed__))' \
 		  -DLV_MEM_SIZE_KB=32U
+else ifeq ($(PLATFORM),SIM)
+C_DEFS += -DLV_MEM_SIZE_KB=16384U
 else
-C_DEFS += \
-		  -DUSE_GTK=1 \
-		  -DLV_MEM_SIZE_KB=16384U
+$(error invalid platform or chipset: "$(PLATFORM)" "$(CHIP)")
 endif
 
 ifeq ($(LVGL_LOG),1)
@@ -276,7 +291,7 @@ C_DEFS += -DLVGL_LOG=1
 endif
 
 # AS includes
-AS_INCLUDES = \
+AS_INCLUDES += \
 -Iinc/ \
 -Iinc/drivers/$(CHIP)/ \
 -Iinc/cmsis/core \
@@ -284,7 +299,7 @@ AS_INCLUDES = \
 -I$(LVGL_PATH)/src
 
 # C includes
-C_INCLUDES =  \
+C_INCLUDES +=  \
 -Iinc/ \
 -Iinc/drivers/$(CHIP) \
 -I$(LVGL_PATH)/src
@@ -296,19 +311,26 @@ C_INCLUDES += \
 	-Iinc/hal/lcd8/$(CHIP)
 else 
 C_INCLUDES += 	\
-	-Iinc/hal/sim \
-	-Ithirdparty/lv_drivers/gtkdrv/
+	-Iinc/hal/sim 
+endif
+
+ifeq ($(PLATFORM)$(LVGL_VERSION),SIM8)
+C_SOURCES += -Ithirdparty/lv_drivers/gtkdrv/
 endif
 
 
-
 # compile gcc flags
-ASFLAGS = $(MCU) $(AS_DEFS) $(AS_INCLUDES) $(OPT) -Wall -fdata-sections -ffunction-sections $(LTO) -Wa,-Iinc/
-GTK_CFLAGS := `pkg-config --cflags gtk+-3.0`
+ASFLAGS = $(MCU) $(AS_DEFS)  $(OPT) -Wall -fdata-sections -ffunction-sections $(LTO) -Wa,-Iinc/
+GTK_CFLAGS = `pkg-config --cflags gtk+-3.0`
+SDL2_CFLAGS = `pkg-config --cflags sdl2`
 
-ifeq ($(PLATFORM),SIM)
+ifeq ($(PLATFORM)$(LVGL_VERSION),SIM9)
+CFLAGS += $(SDL2_CFLAGS) $(C_DEFS) $(C_INCLUDES) $(OPT) -Wall $(LTO) 
+endif
+ifeq ($(PLATFORM)$(LVGL_VERSION),SIM8)
 CFLAGS += $(GTK_CFLAGS) $(C_DEFS) $(C_INCLUDES) $(OPT) -Wall $(LTO) 
-else
+endif
+ifeq ($(PLATFORM),LCD8)
 CFLAGS += $(MCU) $(C_DEFS) $(C_INCLUDES) $(OPT) -Wall -fdata-sections -ffunction-sections -fno-ident -fno-asynchronous-unwind-tables $(LTO)
 endif
 
@@ -344,10 +366,15 @@ endif
 # LIBS = -lc -lm -lnosys -larm_cortexM3l_math
 ifeq ($(PLATFORM),SIM)
 LIBS = \
-	-lm \
-	`pkg-config --libs gtk+-3.0` 
+	-lm 
 else
 LIBS = 
+endif
+
+ifeq ($(PLATFORM)$(LVGL_VERSION),SIM8)
+LIBS += `pkg-config --libs gtk+-3.0` 
+else ifeq ($(PLATFORM)$(LVGL_VERSION),SIM9)
+LIBS += `pkg-config --libs sdl2` 
 endif
 
 ifeq ($(ASAN),1)
@@ -431,6 +458,11 @@ ifeq ($(CHIP),at32f435)
 else
 	pyocd load -u 69747484 build/LCD8H-firmware.bin --target $(PYOCD_TARGET) 
 endif
+
+gdb: $(BUILD_DIR)/$(TARGET).elf
+	pyocd gdbserver -u 69747484 --target $(PYOCD_TARGET) &
+	$(GCC_PATH)/$(PREFIX)gdb --command=gdb
+	
 
 #######################################
 # clean up

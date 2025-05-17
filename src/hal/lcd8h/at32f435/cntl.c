@@ -257,7 +257,7 @@ static void dma_config(void)
 static void tmr_config(void) {
 
     crm_periph_clock_enable(CRM_TMR14_PERIPH_CLOCK, TRUE);
-    tmr_output_config_type tmr_oc_init_structure;
+    /* tmr_output_config_type tmr_oc_init_structure; */
     /* tmre base configuration */
     tmr_base_init(TMR14,  BUTTON_MEASURE_PERIOD * 1000, TIMER_FREQ(1000000));
     /* tmr_base_init(TMR14,  BUTTON_MEASURE_PERIOD * 1000, 1000000); */
@@ -349,8 +349,8 @@ void controls_init(void) {
 
 }
 
-void power_enable(void) { POWER_LATCH_GPIO->scr = POWER_LATCH_PIN; }
-void power_disable(void) { 
+CRITICAL void power_enable(void) { POWER_LATCH_GPIO->scr = POWER_LATCH_PIN; }
+CRITICAL void power_disable(void) { 
     // cap should keep it fed for a while
     POWER_LATCH_GPIO->clr = POWER_LATCH_PIN; 
 #if LEXT_INSTALLED
@@ -486,7 +486,7 @@ static inline void measure_buttons(void) {
 }
 
 
-void TMR8_TRG_HALL_TMR14_IRQHandler(void)
+CRITICAL void TMR8_TRG_HALL_TMR14_IRQHandler(void)
 {
     if(tmr_interrupt_flag_get(TMR14, TMR_OVF_FLAG) != RESET)
     {

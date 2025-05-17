@@ -1,3 +1,4 @@
+#include "config.h"
 #include "delay.h"
 #include "at32f435_437.h"
 
@@ -13,7 +14,7 @@ static __IO uint32_t fac_ms;
   * @param  nus: specifies the delay time length, in microsecond.
   * @retval none
   */
-void delay_10ns(uint32_t ns)
+CRITICAL void delay_10ns(uint32_t ns)
 {
   uint32_t temp = 0;
   SysTick->LOAD = (uint32_t)(ns * fac_10ns);
@@ -43,7 +44,7 @@ void delay_init()
   * @param  nus: specifies the delay time length, in microsecond.
   * @retval none
   */
-void delay_us(uint32_t nus)
+CRITICAL void delay_us(uint32_t nus)
 {
   uint32_t temp = 0;
   SysTick->LOAD = (uint32_t)(nus * fac_us);
@@ -63,7 +64,7 @@ void delay_us(uint32_t nus)
   * @param  nms: specifies the delay time length, in milliseconds.
   * @retval none
   */
-void delay_ms(uint16_t nms)
+CRITICAL void delay_ms(uint16_t nms)
 {
   uint32_t temp = 0;
   while(nms)
@@ -95,7 +96,7 @@ void delay_ms(uint16_t nms)
   * @param  sec: specifies the delay time, in seconds.
   * @retval none
   */
-void delay_sec(uint16_t sec)
+CRITICAL void delay_sec(uint16_t sec)
 {
   uint16_t index;
   for(index = 0; index < sec; index++)

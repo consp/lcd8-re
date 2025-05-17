@@ -24,6 +24,7 @@
 
 /* includes ------------------------------------------------------------------*/
 #include "at32f435_437_int.h"
+#include "config.h"
 
 /** @addtogroup AT32F435_periph_template
   * @{
@@ -38,8 +39,9 @@
   * @param  none
   * @retval none
   */
-void NMI_Handler(void)
+CRITICAL void NMI_Handler(void)
 {
+    while(1);
 }
 
 /**
@@ -47,7 +49,7 @@ void NMI_Handler(void)
   * @param  none
   * @retval none
   */
-void HardFault_Handler(void)
+CRITICAL void HardFault_Handler(void)
 {
   /* go to infinite loop when hard fault exception occurs */
   while(1)
@@ -60,7 +62,7 @@ void HardFault_Handler(void)
   * @param  none
   * @retval none
   */
-void MemManage_Handler(void)
+CRITICAL void MemManage_Handler(void)
 {
   /* go to infinite loop when memory manage exception occurs */
   while(1)
@@ -73,7 +75,7 @@ void MemManage_Handler(void)
   * @param  none
   * @retval none
   */
-void BusFault_Handler(void)
+CRITICAL void BusFault_Handler(void)
 {
   /* go to infinite loop when bus fault exception occurs */
   while(1)
@@ -86,7 +88,7 @@ void BusFault_Handler(void)
   * @param  none
   * @retval none
   */
-void UsageFault_Handler(void)
+CRITICAL void UsageFault_Handler(void)
 {
   /* go to infinite loop when usage fault exception occurs */
   while(1)
@@ -99,8 +101,9 @@ void UsageFault_Handler(void)
   * @param  none
   * @retval none
   */
-void SVC_Handler(void)
+CRITICAL void SVC_Handler(void)
 {
+    asm("subs PC, LR, 0");
 }
 
 /**
@@ -108,8 +111,9 @@ void SVC_Handler(void)
   * @param  none
   * @retval none
   */
-void DebugMon_Handler(void)
+CRITICAL void DebugMon_Handler(void)
 {
+    while(1);
 }
 
 /**
@@ -117,8 +121,9 @@ void DebugMon_Handler(void)
   * @param  none
   * @retval none
   */
-void PendSV_Handler(void)
+CRITICAL void PendSV_Handler(void)
 {
+    while(1);
 }
 
 /**
@@ -126,8 +131,9 @@ void PendSV_Handler(void)
   * @param  none
   * @retval none
   */
-void SysTick_Handler(void)
+CRITICAL void SysTick_Handler(void)
 {
+    while(1);
 }
 
 /**

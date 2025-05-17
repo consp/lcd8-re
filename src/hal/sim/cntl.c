@@ -1,8 +1,10 @@
 #include "controls.h"
 #include "config.h"
 #include "lvgl.h"
-#include "gtkdrv.h"
 #include "gui.h"
+#if LVGL_VERSION_MAJOR == 8
+#include "gtkdrv.h"
+#endif
 
 extern adc_data_t adc;
 extern volatile uint32_t timer_counter;
@@ -31,6 +33,7 @@ int32_t ext_temp_store = 0; // store temperature adc value in case button is pre
 uint32_t lpcnt = 0;
 
 static void cb_handler(lv_event_t * e) {
+#if LVGL_VERSION_MAJOR == 8
     lv_indev_t *i = lv_indev_get_act();
     uint32_t key = i->proc.types.keypad.last_key;
     uint32_t state = i->proc.types.keypad.last_state;
@@ -65,6 +68,7 @@ static void cb_handler(lv_event_t * e) {
             lpcnt = timer_counter;
             break;
     }
+#endif
 }
 
 static void _lp_timer(lv_timer_t *t) {
@@ -76,11 +80,14 @@ static void _lp_timer(lv_timer_t *t) {
     }
 }
 
-
+#if LVGL_VERSION_MAJOR == 8
 lv_indev_drv_t indev_drv_kb;
+#endif
 lv_indev_t *indev = NULL;
 lv_group_t * g = NULL;
+
 void controls_init(void) {
+#if LVGL_VERSION_MAJOR == 8
     lv_indev_drv_init(&indev_drv_kb);
     indev_drv_kb.type = LV_INDEV_TYPE_KEYPAD;
     indev_drv_kb.read_cb = gtkdrv_keyboard_read_cb;
@@ -103,6 +110,7 @@ void controls_init(void) {
 
     
     lp_timer = lv_timer_create(_lp_timer, 100, NULL);
+#endif
 }
 
 void power_enable(void) {  }

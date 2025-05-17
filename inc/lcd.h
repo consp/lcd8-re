@@ -17,7 +17,7 @@ void lcd_draw_large_text(uint32_t x, uint32_t y, const lv_img_dsc_t *img, lv_col
 void lcd_lvgl_flush(lv_disp_drv_t *display, const lv_area_t *area, lv_color_t *pixmap);
 #endif
 
-
+CRITICAL void read_register(uint8_t command, void *location, uint32_t bits, uint32_t num);
 
 #define ILI_SOFT_RESET                  0x01
 #define ILI_SLEEP_OUT                   0x11

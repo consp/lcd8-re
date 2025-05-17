@@ -18,8 +18,8 @@
 #define LV_CONF_H
 
 /* If you need to include anything here, do it inside the `__ASSEMBLY__` guard */
-#if  0 && defined(__ASSEMBLY__)
-#include "my_include.h"
+#if !defined(__ASSEMBLY__)
+#include "config.h"
 #endif
 
 /*====================
@@ -69,7 +69,7 @@
 
 #if LV_USE_STDLIB_MALLOC == LV_STDLIB_BUILTIN
     /** Size of memory available for `lv_malloc()` in bytes (>= 2kB) */
-    #define LV_MEM_SIZE (16 * 1024U)          /**< [bytes] */
+    #define LV_MEM_SIZE (LV_MEM_SIZE_KB * 1024U)          /**< [bytes] */
 
     /** Size of the memory expand for `lv_malloc()` in bytes */
     #define LV_MEM_POOL_EXPAND_SIZE 0
@@ -88,7 +88,7 @@
  *====================*/
 
 /** Default display refresh, input device read and animation step period. */
-#define LV_DEF_REFR_PERIOD  33      /**< [ms] */
+#define LV_DEF_REFR_PERIOD  16      /**< [ms] */
 
 /** Default Dots Per Inch. Used to initialize default sizes such as widgets sized, style paddings.
  * (Not so important, you can adjust it to modify default sizes and spaces.) */
@@ -126,7 +126,7 @@
  *========================*/
 
 /** Align stride of all layers and images to this bytes */
-#define LV_DRAW_BUF_STRIDE_ALIGN                1
+#define LV_DRAW_BUF_STRIDE_ALIGN                4
 
 /** Align start address of draw_buf addresses to this bytes*/
 #define LV_DRAW_BUF_ALIGN                       4
@@ -143,7 +143,7 @@
  * and can't be drawn in chunks. */
 
 /** The target buffer size for simple layer chunks. */
-#define LV_DRAW_LAYER_SIMPLE_BUF_SIZE    (8 * 1024)    /**< [bytes]*/
+#define LV_DRAW_LAYER_SIMPLE_BUF_SIZE    (32 * 1024)    /**< [bytes]*/
 
 /* Limit the max allocated memory for simple and transformed layers.
  * It should be at least `LV_DRAW_LAYER_SIMPLE_BUF_SIZE` sized but if transformed layers are also used
@@ -154,7 +154,7 @@
 /** Stack size of drawing thread.
  * NOTE: If FreeType or ThorVG is enabled, it is recommended to set it to 32KB or more.
  */
-#define LV_DRAW_THREAD_STACK_SIZE    (8 * 1024)         /**< [bytes]*/
+#define LV_DRAW_THREAD_STACK_SIZE    (16 * 1024)         /**< [bytes]*/
 
 #define LV_USE_DRAW_SW 1
 #if LV_USE_DRAW_SW == 1
@@ -165,13 +165,13 @@
      * - bitmaps with transparency may use ARGB8888
      */
     #define LV_DRAW_SW_SUPPORT_RGB565       1
-    #define LV_DRAW_SW_SUPPORT_RGB565A8     0
+    #define LV_DRAW_SW_SUPPORT_RGB565A8     1
     #define LV_DRAW_SW_SUPPORT_RGB888       0
     #define LV_DRAW_SW_SUPPORT_XRGB8888     0
-    #define LV_DRAW_SW_SUPPORT_ARGB8888     0
+    #define LV_DRAW_SW_SUPPORT_ARGB8888     1
     #define LV_DRAW_SW_SUPPORT_L8           0
     #define LV_DRAW_SW_SUPPORT_AL88         0
-    #define LV_DRAW_SW_SUPPORT_A8           1
+    #define LV_DRAW_SW_SUPPORT_A8           0
     #define LV_DRAW_SW_SUPPORT_I1           0
 
     /* The threshold of the luminance to consider a pixel as
@@ -184,10 +184,10 @@
     #define LV_DRAW_SW_DRAW_UNIT_CNT    1
 
     /** Use Arm-2D to accelerate software (sw) rendering. */
-    #define LV_USE_DRAW_ARM2D_SYNC      1
+    #define LV_USE_DRAW_ARM2D_SYNC      0
 
     /** Enable native helium assembly to be compiled. */
-    #define LV_USE_NATIVE_HELIUM_ASM    1
+    #define LV_USE_NATIVE_HELIUM_ASM    0
 
     /**
      * - 0: Use a simple renderer capable of drawing only simple rectangles with gradient, images, text, and straight lines only.
@@ -207,7 +207,7 @@
         #define LV_DRAW_SW_CIRCLE_CACHE_SIZE 0
     #endif
 
-    #define  LV_USE_DRAW_SW_ASM     LV_DRAW_SW_ASM_HELIUM
+    // #define  LV_USE_DRAW_SW_ASM     LV_DRAW_SW_ASM_HELIUM
 
     #if LV_USE_DRAW_SW_ASM == LV_DRAW_SW_ASM_CUSTOM
         #define  LV_DRAW_SW_ASM_CUSTOM_INCLUDE ""
@@ -352,7 +352,7 @@
  *-----------*/
 
 /** Enable log module */
-#define LV_USE_LOG 0
+#define LV_USE_LOG ((DEBUG && LVGL_LOG) || defined(SEMIHOSTING))
 #if LV_USE_LOG
     /** Set value to one of the following levels of logging detail:
      *  - LV_LOG_LEVEL_TRACE    Log detailed information.
@@ -361,11 +361,15 @@
      *  - LV_LOG_LEVEL_ERROR    Log only critical issues, when system may fail.
      *  - LV_LOG_LEVEL_USER     Log only custom log messages added by the user.
      *  - LV_LOG_LEVEL_NONE     Do not log anything. */
-    #define LV_LOG_LEVEL LV_LOG_LEVEL_WARN
+    #define LV_LOG_LEVEL LV_LOG_LEVEL_INFO
 
     /** - 1: Print log with 'printf';
      *  - 0: User needs to register a callback with `lv_log_register_print_cb()`. */
+#if defined(SEMIHOSTING) || defined(SEGGER_RTT)
+    #define LV_LOG_PRINTF 1
+#else
     #define LV_LOG_PRINTF 0
+#endif
 
     /** Set callback to print logs.
      *  E.g `my_print`. The prototype should be `void my_print(lv_log_level_t level, const char * buf)`.
@@ -481,7 +485,7 @@
 #define LV_USE_OBJ_PROPERTY 0
 
 /** Enable property name support. */
-#define LV_USE_OBJ_PROPERTY_NAME 1
+#define LV_USE_OBJ_PROPERTY_NAME 0
 
 /* Use VG-Lite Simulator.
  * - Requires: LV_USE_THORVG_INTERNAL or LV_USE_THORVG_EXTERNAL */
@@ -552,14 +556,15 @@
 #define LV_ATTRIBUTE_EXTERN_DATA
 
 /** Use `float` as `lv_value_precise_t` */
-#define LV_USE_FLOAT            0
+#define LV_USE_FLOAT            __FPU_PRESENT
+// #define LV_USE_FLOAT            0
 
 /** Enable matrix support
  *  - Requires `LV_USE_FLOAT = 1` */
 #define LV_USE_MATRIX           0
 
 /** Include `lvgl_private.h` in `lvgl.h` to access internal data and functions by default */
-#define LV_USE_PRIVATE_API      0
+#define LV_USE_PRIVATE_API      1
 
 /*==================
  *   FONT USAGE
@@ -600,8 +605,10 @@
 #define LV_FONT_UNSCII_16 0
 
 
+#define ANDALEMO_12                     1
 #define ANDALEMO_16                     1
 #define ANDALEMO_28                     1
+#define ANDALEMO_32                     1
 #define ANDALEMO_72                     1
 #define LV_FONT_FRY_120                 1
 
@@ -614,7 +621,7 @@
  *  #define LV_FONT_CUSTOM_DECLARE   LV_FONT_DECLARE(my_font_1) LV_FONT_DECLARE(my_font_2)
  *  @endcode
  */
-#define LV_FONT_CUSTOM_DECLARE LV_FONT_DECLARE(lv_font_andalemo_72) LV_FONT_DECLARE(lv_font_andalemo_28) LV_FONT_DECLARE(lv_font_fry_32) LV_FONT_DECLARE(lv_font_andalemo_16)
+#define LV_FONT_CUSTOM_DECLARE LV_FONT_DECLARE(lv_font_andalemo_72) LV_FONT_DECLARE(lv_font_andalemo_32) LV_FONT_DECLARE(lv_font_fry_32) LV_FONT_DECLARE(lv_font_andalemo_16) LV_FONT_DECLARE(lv_font_andalemo_12)
 
 /** Always set a default font */
 #define LV_FONT_DEFAULT &lv_font_montserrat_12
@@ -625,7 +632,7 @@
 #define LV_FONT_FMT_TXT_LARGE 0
 
 /** Enables/disables support for compressed fonts. */
-#define LV_USE_FONT_COMPRESSED 0
+#define LV_USE_FONT_COMPRESSED 1
 
 /** Enable drawing placeholders when glyph dsc is not found. */
 #define LV_USE_FONT_PLACEHOLDER 1
@@ -693,7 +700,7 @@
 
 #define LV_USE_ANIMIMG    0
 
-#define LV_USE_ARC        0
+#define LV_USE_ARC        1
 
 #define LV_USE_BAR        1
 
@@ -749,7 +756,7 @@
 
 #define LV_USE_MSGBOX     0
 
-#define LV_USE_ROLLER     0   /**< Requires: lv_label */
+#define LV_USE_ROLLER     1   /**< Requires: lv_label */
 
 #define LV_USE_SCALE      1
 
@@ -810,7 +817,7 @@
 /* Documentation for layouts can be found here: https://docs.lvgl.io/master/layouts/index.html . */
 
 /** A layout similar to Flexbox in CSS. */
-#define LV_USE_FLEX 0
+#define LV_USE_FLEX 1
 
 /** A layout similar to Grid in CSS. */
 #define LV_USE_GRID 0
@@ -921,7 +928,7 @@
 #define LV_BIN_DECODER_RAM_LOAD 0
 
 /** RLE decompress library */
-#define LV_USE_RLE 0
+#define LV_USE_RLE 1
 
 /** QR code library */
 #define LV_USE_QRCODE 0
@@ -994,14 +1001,14 @@
 #define LV_USE_SNAPSHOT 0
 
 /** 1: Enable system monitor component */
-#define LV_USE_SYSMON   0
+#define LV_USE_SYSMON MONITOR
 #if LV_USE_SYSMON
     /** Get the idle percentage. E.g. uint32_t my_get_idle(void); */
     #define LV_SYSMON_GET_IDLE lv_os_get_idle_percent
 
     /** 1: Show CPU usage and FPS count.
      *  - Requires `LV_USE_SYSMON = 1` */
-    #define LV_USE_PERF_MONITOR 0
+    #define LV_USE_PERF_MONITOR 1
     #if LV_USE_PERF_MONITOR
         #define LV_USE_PERF_MONITOR_POS LV_ALIGN_BOTTOM_RIGHT
 
@@ -1012,7 +1019,7 @@
     /** 1: Show used memory and memory fragmentation.
      *     - Requires `LV_USE_STDLIB_MALLOC = LV_STDLIB_BUILTIN`
      *     - Requires `LV_USE_SYSMON = 1`*/
-    #define LV_USE_MEM_MONITOR 0
+    #define LV_USE_MEM_MONITOR 1
     #if LV_USE_MEM_MONITOR
         #define LV_USE_MEM_MONITOR_POS LV_ALIGN_BOTTOM_LEFT
     #endif
@@ -1148,7 +1155,11 @@
  *==================*/
 
 /** Use SDL to open window on PC and handle mouse and keyboard. */
+#ifdef PLATFORM_SIM
+#define LV_USE_SDL              1
+#else
 #define LV_USE_SDL              0
+#endif
 #if LV_USE_SDL
     #define LV_SDL_INCLUDE_PATH     <SDL2/SDL.h>
     #define LV_SDL_RENDER_MODE      LV_DISPLAY_RENDER_MODE_DIRECT   /**< LV_DISPLAY_RENDER_MODE_DIRECT is recommended for best performance */

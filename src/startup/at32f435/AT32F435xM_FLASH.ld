@@ -23,25 +23,27 @@ ENTRY(Reset_Handler)
 
 /* Highest address of the user mode stack */
 /* If you put this at 512k the system will crash befor reaching main */
-/* This is due to the cpu booting in 128k mode needing a switch to 128k
- * if you buy a cheap "new" version. */
-_estack = 0x20020000;    /* end of RAM */
+/* This is due to the cpu booting in 128k mode needing a switch to >128k */
+_estack = 0x20004000;    /* end of RAM */
 
 /* Generate a link error if heap and stack don't fit into RAM */
 _Min_Heap_Size = 0x200;      /* required amount of heap  */
 _Min_Stack_Size = 0x400; /* required amount of stack */
 
 /*
- * Flash is 0 wait cycle flash, use for code
- * The rest is FLASHHIGH which is lesser
+ * Flash is 0 wait cycle flash, use for critical code e.g. interrupts and 
+ * high speed functions
+ * The rest is 2ws which is lesser
  * RAM is the boot default, RAMHIGH is after setting EOPB0
  */
 MEMORY
 {
-FLASH (rx)          : ORIGIN = 0x08000000, LENGTH = 196K
-FLASHHIGH (rx)      : ORIGIN = 0x08030000, LENGTH = 3836K
-RAM (rwx)           : ORIGIN = 0x20000000, LENGTH = 128K
-RAMHIGH (rw)        : ORIGIN = 0x20020000, LENGTH = 320K
+FLASH0WS (rx)       : ORIGIN = 0x08000000, LENGTH = 192K
+FLASH (rx)          : ORIGIN = 0x08030000, LENGTH = 3834K
+HS (rwx)            : ORIGIN = 0x20000000, LENGTH = 16K
+RAM (rwx)           : ORIGIN = 0x20004000, LENGTH = 432K
+/* USERDATA (r)       : ORIGIN = 0x1FFFC000, LENGTH = 4K */
+/* RAMHIGH (rw)        : ORIGIN = 0x20020000, LENGTH = 128K */
 }
 
 /* Define output sections */
@@ -53,7 +55,7 @@ SECTIONS
     . = ALIGN(4);
     KEEP(*(.isr_vector)) /* Startup code */
     . = ALIGN(4);
-  } >FLASH
+  } >FLASH0WS
 
   /* The program code and other data goes into FLASH */
   .text :
@@ -70,7 +72,12 @@ SECTIONS
 
     . = ALIGN(4);
     _etext = .;        /* define a global symbols at end of code */
-  } >FLASH
+  } >FLASH0WS
+
+  /* .userdata (NOLOAD) :  */
+  /* { */
+  /*     *(.userdata*) */
+  /* } >USERDATA */
 
   /* Constant data goes into FLASH */
   .rodata :
@@ -79,7 +86,7 @@ SECTIONS
     *(.rodata)         /* .rodata sections (constants, strings, etc.) */
     *(.rodata*)        /* .rodata* sections (constants, strings, etc.) */
     . = ALIGN(4);
-  } >FLASHHIGH
+  } >FLASH
 
   .ARM.extab   : { *(.ARM.extab* .gnu.linkonce.armextab.*) } >FLASH
   .ARM : {
@@ -124,16 +131,16 @@ SECTIONS
     _edata = .;        /* define a global symbol at data end */
   } >RAM AT> FLASH
 
-  .flashhigh : 
+  .flash0ws : 
   {
     . = ALIGN(4);
-       __flashhigh_start__ = .;
-       *(.flashhigh.text.*);
-       *(.flashhigh.rodata.*);
-       *(.flashhigh*);
-       __ramhigh_end__ = .;
+       __flash0ws_start__ = .;
+       *(.flash0ws.text.*);
+       *(.flash0ws.rodata.*);
+       *(.flash0ws*);
+       __ram0ws_end__ = .;
 
-  } >FLASHHIGH
+  } >FLASH0WS
 
   /* Uninitialized data section */
   . = ALIGN(4);
@@ -160,15 +167,15 @@ SECTIONS
     . = . + _Min_Heap_Size;
     . = . + _Min_Stack_Size;
     . = ALIGN(8);
-  } >RAM
+  } >HS
   
-  .ramhigh :
-  {
-    . = ALIGN(4);
-    __ramhigh_start__ = .;
-	*(.ramhigh*) 
-    __ramhigh_end__ = .;
-  } >RAMHIGH 
+  /* .ramhigh : */
+  /* { */
+  /*   . = ALIGN(4); */
+  /*   __ramhigh_start__ = .; */
+	/* *(.ramhigh*)  */
+  /*   __ramhigh_end__ = .; */
+  /* } >RAMHIGH  */
 
   /* Remove information from the standard libraries */
   /DISCARD/ :

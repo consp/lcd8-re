@@ -10,7 +10,7 @@
 #define UART_RX_BUFFER_SIZE     128
 #else
 #define UART_TX_BUFFER_SIZE     32 
-#define UART_RX_BUFFER_SIZE     32 
+#define UART_RX_BUFFER_SIZE     128
 #endif
 
 void uart_init(uint32_t baud);

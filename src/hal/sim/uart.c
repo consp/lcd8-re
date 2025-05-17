@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <unistd.h>
 #include <string.h>
 #include <fcntl.h>  
@@ -7,9 +8,8 @@
 #include <signal.h>
 #include <sys/select.h>
 
+#include "config.h"
 #include "uart.h"
-#include "lvgl.h"
-#include "lv_conf.h"
 #include "crc.h"
 
 
@@ -21,7 +21,11 @@ uint32_t read_buffer_length = 0;
 
 #if LV_USE_LOG
 #pragma message("Providing log callback, do not attach to a motor")
+#if LVGL_VERSION_MAJOR == 9
+void lv_log_callback(lv_log_level_t lvl, const char *c);
+#else
 void lv_log_callback(const char *c);
+#endif
 #endif
 
 void sig_handler(int sig) {
@@ -92,7 +96,11 @@ uint32_t divval(void) {
 #endif
 
 #if LV_USE_LOG
+#if LVGL_VERSION_MAJOR == 9
+void lv_log_callback(lv_log_level_t lvl, const char *c) {
+#else
 void lv_log_callback(const char *c) {
+#endif
     uart_send((uint8_t *) c, strlen(c), 0);
 }
 #endif

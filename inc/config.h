@@ -37,9 +37,12 @@
 /**
  * default values
  */
-#define POWER_MAX 250
+#define POWER_MAX 500
+#define POWER_REDLINE 250
 #define POWER_MIN -250
-#define SPEED_MAX 25
+
+#define SPEED_MAX       35
+#define SPEED_REDLINE   25
 
 #define BATTERY_MIN 21000
 #define BATTERY_MAX 29400
@@ -73,14 +76,14 @@
 // archtecture specifics
 
 #define RAMHIGH 
-#define FLASHHIGH 
+#define CRITICAL  
 
 #if defined(AT32F415)
 /*
  * OC will use 200mhz and an external crystal. 
  * I added an 8MHz crystal and two 17pF caps.
  */
-#define OC // overclock to 200mhz, which is the maximum. Higher values will result in 200mhz but evert calculation is broken
+#define OC // overclock to 200mhz, which is the maximum. Higher values will result in 200mhz but every other calculation is broken
 
 #ifdef OC
 #define CLOCK_SOURCE         CRM_CLOCK_SOURCE_HEXT  // you need a stable crystal
@@ -91,8 +94,7 @@
 #define AHB_DIVIDER          CRM_AHB_DIV_1      // 200mhz
 #define APB2_DIVIDER         CRM_APB2_DIV_2     // 100mhz
 #define APB1_DIVIDER         CRM_APB1_DIV_2     // 100mhz
-#define CLOCK_OFFSET         1                  // ext clock should be stable
-#define EFFECTIVE_CLOCK      (8000000 / CLOCK_OFFSET)
+#define EFFECTIVE_CLOCK      (8000000)
 
 #else
 #define CLOCK_SOURCE         CRM_CLOCK_SOURCE_HICK
@@ -103,8 +105,7 @@
 #define AHB_DIVIDER          CRM_AHB_DIV_1      // @cpu
 #define APB2_DIVIDER         CRM_APB2_DIV_2     // 72mhz
 #define APB1_DIVIDER         CRM_APB1_DIV_2     // 72mhz
-#define CLOCK_OFFSET         1
-#define EFFECTIVE_CLOCK      (4000000 / CLOCK_OFFSET)
+#define EFFECTIVE_CLOCK      (4000000)
 #endif
 
 #define TIMER_FREQ(x)        (\
@@ -113,15 +114,16 @@
             ) / x)
 
 #include "at32f415.h"
+
 #elif defined(AT32F435)
 #include "at32f435_437.h"
-#undef RAMHIGH
-#undef FLASHHIGH
-#define RAMHIGH     __attribute__((__section__(".ramhigh"))) 
-#define FLASHHIGH   __attribute__((__section__(".flashhigh"))) 
+// #undef RAMHIGH
+// #undef CRITICAL 
+// #define RAMHIGH     __attribute__((__section__(".ramhigh"))) 
+// #define CRITICAL    __attribute__((__section__(".flash0ws"))) 
 #define CONF_FLASH_DIV      FLASH_CLOCK_DIV_3
 #define CONF_FREQ           8000000
-#define CONF_PLL_MUL        170 //144
+#define CONF_PLL_MUL        144 //170
 #define CONF_PLL_PREDIV     1
 #define CONF_PLL_POSTDIV    CRM_PLL_FR_4
 #define TIMER_FREQ(x)       (( \
@@ -131,6 +133,11 @@
 #include "gd32f30x.h"
 #endif
 
+#define UART_COMM_NONE 0 
+#define UART_COMM_EBICS 1
+#define UART_COMM_VESC 2
+
+#define UART_COMM UART_COMM_VESC
 
 
 /*
@@ -156,11 +163,12 @@
  * Change X_BACKOFF to determine how many pixels will be redrawn. If you see random pixels on the next line or missing black ones on the right edge, use this to fix that issue
  * This is due to the "ILI9488" not ignoring pixls outside it's range set Page/Column range like per spec. Might be due to it being a knockoff.
  */
-// #define DMA_WRITE 1
-#define X_BACKOFF 3 
+#define DMA_WRITE 1
+#define X_BACKOFF 0 
 
 #ifndef TRUE
 #define TRUE 1
 #define FALSE 0
 #endif
+
 #endif // __CONFIG_H__

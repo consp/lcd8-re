@@ -26,6 +26,7 @@ typedef struct __attribute__((packed)) {
     uint8_t     speed_max;
     uint8_t     speed_redline;
     int16_t     power_min;
+    int16_t     power_redline;
     int16_t     power_max;
     uint8_t     battery_voltage_from_controller;
     uint8_t     backlight_level;

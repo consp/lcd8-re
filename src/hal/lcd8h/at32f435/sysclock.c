@@ -45,8 +45,9 @@
   * @param  none
   * @retval none
   */
+
 extern uint32_t reset_flag;
-void system_clock_config(void)
+CRITICAL void system_clock_config(void)
 {
 /* reset crm */
   crm_reset();
@@ -123,18 +124,18 @@ void system_clock_config(void)
 }
 
 /* unlock >128k */
-void extend_sram(void)
+CRITICAL void extend_sram(void)
 {
   /* check if ram has been set to expectant size, if not, change eopb0 */
-  if(((USD->eopb0) & 0x07) != FLASH_EOPB0_SRAM_448K)
+  if (((USD->eopb0) & 0x07) != FLASH_EOPB0_SRAM_448K)
   {
     flash_unlock();
     /* erase user system data bytes */
     flash_user_system_data_erase();
     /* change sram size */
     flash_eopb0_config(FLASH_EOPB0_SRAM_448K);
-
     /* system reset */
     nvic_system_reset();
   }
+  /* flash_nzw_boost_enable(1); */
 }

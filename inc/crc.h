@@ -9,4 +9,5 @@
 void crc_init(void);
 uint8_t crc_calc(uint8_t *input, ssize_t length);
 uint8_t crc_calc_comm(uint8_t *input, ssize_t length);
+uint16_t crc16(uint8_t *buf, ssize_t len);
 #endif // __CRC_H__

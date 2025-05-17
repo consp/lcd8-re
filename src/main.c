@@ -24,7 +24,7 @@
 
 #include <string.h>
 #include <stdio.h>
-
+#include "config.h"
 #ifndef PLATFORM_SIM
 #if defined(AT32F415)
 #include "at32f415.h"
@@ -45,26 +45,44 @@
 #include "crc.h"
 #include "comm.h"
 #include "uart.h"
+
+#ifdef SEGGER_RTT
+#include "rtt/SEGGER_RTT.h"
+#endif
+
 void system_clock_config(void);
+extern lv_display_t *display;
 /**
   * @brief  main function.
   * @param  none
   * @retval none
   */
-int main(void)
+
+#ifdef SEMIHOSTING
+extern void initialise_monitor_handles(void);
+#endif
+
+CRITICAL int main(void)
 {
     system_clock_config();
+#ifdef SEMIHOSTING
+  	initialise_monitor_handles();
+    printf("Semihosting enabled");
+#endif
 
     delay_init();
     lv_init();
 #ifdef PLATFORM_SIM
+#if LV_VER == 8
     gtkdrv_init();
+#endif
+    eeprom_init();                          // initialize the eeprom for data storage
+    uart_init(57600);                       // initialize comms
     gui_init();
 #endif
 
     controls_init();                        // init adc and buttons 
     power_enable();
-    button_release(BUTTON_ID_POWER, 1250);  // ignore inputs for a while
                                             //
     eeprom_init();                          // initialize the eeprom for data storage
     clock_init();                           // clouck source (if available)
@@ -72,35 +90,35 @@ int main(void)
                                             //
     crc_init();                             // crc init if HW unit
     lcd_init();                             // attempt to initialize the lcd peripherals
-    uart_init(57600);                       // initialize comms
     
+    button_release(BUTTON_ID_POWER, 500);   // ignore inputs for a while
+    button_release(BUTTON_ID_DOWN, 500);   // ignore inputs for a while
+    button_release(BUTTON_ID_UP, 500);   // ignore inputs for a while
     
     lcd_backlight(100);
     lcd_start();                            // start lcd init sequence
 #ifndef PLATFORM_SIM
+    uart_init(57600);                       // initialize comms
     gui_init();                             // start lvgl and setup screen
 #endif
-        
     comm_send_display_settings();  
     comm_send_display_status();  
     comm_send_controller_settings();
-/* #if MONITOR && DEBUG */
-    uint32_t x = 0, y = 0;
-/* #endif */
 
-    gui_update();                                           // update gui data
-    while(1) {
-        gui_update();                                           // update gui data
 #if MONITOR && DEBUG
-        uint32_t m = lv_timer_handler();                                     // draw
-        /* delay_ms(m); */
-#else
-        lv_timer_handler();
+    uint32_t x = 0, y = 0;
+#endif
+
+    lv_timer_handler();
+    while(1) {
+#if PLATFORM_SIM && LVGL_VERSION_MAJOR == 9
+        SDL_Delay(5);
 #endif
         comm_update();
         button_presses();
+        gui_update();                                           // update gui data
 
-/* #if MONITOR & LVGL_LOG */
+#if MONITOR & LVGL_LOG
         if (timer_counter - x >= 1000) {
             lv_mem_monitor_t mon;
             lv_mem_monitor(&mon);
@@ -108,12 +126,19 @@ int main(void)
             LV_LOG_INFO("Free: %ld/%ld, %d%% used, %d%% frag, cpu %d%%\n", mon.free_size, mon.total_size, mon.used_pct, mon.frag_pct);
             x = timer_counter;
         }
-/* #endif */
+#endif
+#if MONITOR && DEBUG
+        uint32_t m = lv_timer_handler();                                     // draw
+        delay_ms(m);
+#else
+        uint32_t m = lv_timer_handler();
+        delay_ms(m);
+#endif
     }
 }
 
 #if !defined(PLATFORM_SIM)
-void WWDT_IRQHandler(void) {
+CRITICAL void WWDT_IRQHandler(void) {
     NVIC_SystemReset();
 }
 #endif

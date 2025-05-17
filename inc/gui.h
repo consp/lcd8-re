@@ -2,9 +2,6 @@
 #define __GUI_H__
 
 #include "config.h"
-#include "ugui/ugui_config.h"
-#include "ugui/ugui.h"
-#include "ugui/ugui_fonts.h"
 
 #ifndef SIM
 #include "lcd.h"
@@ -22,10 +19,16 @@
 #include "ugui/ugui_sim.h"
 #endif
 
+#if LV_VER == 8
 #if PLATFORM_SIM
 #define RGB565(x, y, z)     (lv_color_t) { .full = ((x << 16) | (y << 8) | (z)) }
 #else
 #define RGB565(x, y, z)     (lv_color_t) { .full = (((x & 0b11111000) << 8) | ((y & 0b11111100) << 3) | (z >> 3)) }
+#endif
+#elif LV_VER == 9
+#define RGB565(x, y, z)     (lv_color_t) { .red = x, .green = y, .blue = z }
+#else
+#pragma error("Need lvgl 8 or 9")
 #endif
         //lv_color_make(r, g, b) 
 
@@ -33,7 +36,7 @@
 #define COLOR_BLACK         RGB565(0, 0, 0)
 #define COLOR_GREY          RGB565(100, 100, 100)
 #define COLOR_DARK_GREY     RGB565(77, 77, 77)
-#define COLOR_YELLOW        (lv_color_t) { .full = 0xffe0 }
+#define COLOR_YELLOW        RGB565(255, 252, 0)
 #define COLOR_BLUE          RGB565(0, 0, 160)
 //RGB565(0xFE, 0xFF, 0)
 
@@ -119,6 +122,11 @@
 #define POWER_TEXT_FG_COLOR     RGB565(255, 255, 255) 
 #define POWER_REGEN_INDEX       (POWER_MIN / POWER_REGEN_WIDTH)
 
+#define SPEED_SCALE_X           32
+#define SPEED_SCALE_Y           64 + 16
+#define SPEED_SCALE_WIDTH       320 - 64
+#define SPEED_SCALE_HEIGHT      320
+
 #define TOTAL_DISTANCE_IMG_X            0
 #define TOTAL_DISTANCE_IMG_Y            (13*32) 
 #define TOTAL_DISTANCE_TEXT_X           TOTAL_DISTANCE_IMG_X + 32
@@ -158,8 +166,13 @@
 #define GRAPH_CURSOR_COLOR              RGB565(0, 0, 144)
 #define GRAPH_POINT_COUNT               256
 
+#if LVGL_VERSION_MAJOR == 8
 #define ASSIST_X                        256
 #define ASSIST_Y                        96
+#else
+#define ASSIST_X                        ((DISPLAY_WIDTH / 2 ) - 32)
+#define ASSIST_Y                        128 + 32
+#endif
 #define ASSIST_WIDTH                    64
 #define ASSIST_HEIGHT                   96 + 16
 
@@ -206,6 +219,10 @@ extern const lv_img_dsc_t large_9;
 #endif
 #if LVGL_VERSION_MAJOR == 9
 #define LV_IMG_CF_INDEXED_4BIT      LV_COLOR_FORMAT_I4
+#define LV_PART_TICKS               LV_PART_ITEMS
+#define LV_EVENT_DRAW_PART_BEGIN    LV_EVENT_DRAW_MAIN_BEGIN
+#define LV_STATE_DEFAULT            0
+#define lv_event_send               lv_obj_send_event
 #endif
 
 uint32_t timer_cb(void);

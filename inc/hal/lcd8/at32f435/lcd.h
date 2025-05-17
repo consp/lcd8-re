@@ -1,3 +1,5 @@
+#ifndef __LCD_H_435__
+#define __LCD_H_435__
 #include "config.h"
 #include "at32f435_437.h"
 #include "delay.h"
@@ -44,16 +46,33 @@
 /*
  * on continuous draw, this will take ~15ms per frame which is faster than the tear refresh rate resulting in tear free redraws 
  */
-#define DELAY_NOP_6        asm(".syntax unified; .rept 1  ; nop ; .endr");
-#define DELAY_NOP_20        asm(".syntax unified; .rept 3 ; nop ; .endr");
-#define DELAY_NOP_50        asm(".syntax unified; .rept 7 ; nop ; .endr");
-#define DELAY_NOP_200       asm(".syntax unified; .rept 24 ; nop ; .endr");
-#define DELAY_NOP_400       delay_10ns(40);
-#define DELAY_NOP_500       delay_10ns(50);
+
+// #define DELAY_NOP_6        
+// #define DELAY_NOP_20       
+// #define DELAY_NOP_50        asm(".syntax unified; .rept 7 ; nop ; .endr");
+// #define DELAY_NOP_200       asm(".syntax unified; .rept 24 ; nop ; .endr");
+// #define DELAY_NOP_400       delay_10ns(40);
+// #define DELAY_NOP_500       delay_10ns(50);
+#define DELAY_NOP_6         asm(".syntax unified; .rept 1 ; nop ; .endr");
+#define DELAY_NOP_10        asm(".syntax unified; .rept 3 ; nop ; .endr");
+#define DELAY_NOP_15        asm(".syntax unified; .rept 5 ; nop ; .endr");
+#define DELAY_NOP_20        asm(".syntax unified; .rept 6 ; nop ; .endr");
+#define DELAY_NOP_50        asm(".syntax unified; .rept 15 ; nop ; .endr");
+#define DELAY_NOP_200       asm(".syntax unified; .rept 57 ; nop ; .endr");
+// #define DELAY_NOP_400       delay_10ns(40);
+// #define DELAY_NOP_500       delay_10ns(50);
 // #define DELAY_NOP_400       asm(".syntax unified; .rept 59 ; nop ; .endr");
 // #define DELAY_NOP_500       asm(".syntax unified; .rept 74 ; nop ; .endr");
 //
 
+// #define DELAY_NOP_6         asm(".syntax unified; .rept 2 ; nop ; .endr");
+// #define DELAY_NOP_10        asm(".syntax unified; .rept 6 ; nop ; .endr");
+// #define DELAY_NOP_15        asm(".syntax unified; .rept 10; nop ; .endr");
+// #define DELAY_NOP_20        asm(".syntax unified; .rept 12; nop ; .endr");
+// #define DELAY_NOP_50        asm(".syntax unified; .rept 30 ; nop ; .endr");
+// #define DELAY_NOP_200       asm(".syntax unified; .rept 114; nop ; .endr");
+#define DELAY_NOP_400       delay_10ns(40);
+#define DELAY_NOP_500       delay_10ns(50);
 // #define DELAY_NOP_6         delay_10ns(1);
 // #define DELAY_NOP_20        delay_10ns(2);
 // #define DELAY_NOP_50        delay_10ns(5);
@@ -89,18 +108,20 @@
 // #define WRITE_STROBE_TMR()        GPIOC->cfghr &= 0xFFFFFF0F; GPIOC->cfglr |= 0xFFFFFFBF
 // #define WRITE_STROBE_GPIO()       GPIOC->cfghr &= 0xFFFFFF0F; GPIOC->cfglr |= 0xFFFFFF3f
 
-#define CS_IDLE             GPIOC->scr = PIN_CS
-#define CS_ACTIVE           GPIOC->clr = PIN_CS
+#define CS_IDLE             GPIOC->odt |= PIN_CS
+#define CS_ACTIVE           GPIOC->odt &= ~PIN_CS
 
-#define READ_IDLE           GPIOC->scr = PIN_READ
-#define READ_ACTIVE         GPIOC->clr = PIN_READ
+#define READ_IDLE           GPIOC->odt |= PIN_READ
+#define READ_ACTIVE         GPIOC->odt &= ~PIN_READ
 
-#define COMMAND             GPIOC->clr = PIN_CD
-#define DATA                GPIOC->scr = PIN_CD
+#define COMMAND             GPIOC->odt &= ~PIN_CD
+#define DATA                GPIOC->odt |= PIN_CD
 
-#define WRITE_IDLE          GPIOC->scr = PIN_WRITE
-#define WRITE_ACTIVE        GPIOC->clr = PIN_WRITE
+#define WRITE_IDLE          GPIOC->odt |= PIN_WRITE
+#define WRITE_ACTIVE        GPIOC->odt &= ~PIN_WRITE
 
 #define WRITE_8BIT(x)       WRITE_DATA(0x00FF & x)
 #define WRITE_16BIT(x)      WRITE_DATA(x)
 #define READ()              ((uint16_t)(GPIOB->idt & 0x0000FFFF))
+
+#endif
