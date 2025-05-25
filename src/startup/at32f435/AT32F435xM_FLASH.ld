@@ -24,11 +24,11 @@ ENTRY(Reset_Handler)
 /* Highest address of the user mode stack */
 /* If you put this at 512k the system will crash befor reaching main */
 /* This is due to the cpu booting in 128k mode needing a switch to >128k */
-_estack = 0x20004000;    /* end of RAM */
+_estack = 0x20002000;    /* end of RAM */
 
 /* Generate a link error if heap and stack don't fit into RAM */
-_Min_Heap_Size = 0x200;      /* required amount of heap  */
-_Min_Stack_Size = 0x400; /* required amount of stack */
+_Min_Heap_Size = 0x800;      /* required amount of heap  */
+_Min_Stack_Size = 0x1800; /* required amount of stack */
 
 /*
  * Flash is 0 wait cycle flash, use for critical code e.g. interrupts and 
@@ -38,10 +38,10 @@ _Min_Stack_Size = 0x400; /* required amount of stack */
  */
 MEMORY
 {
-FLASH0WS (rx)       : ORIGIN = 0x08000000, LENGTH = 192K
-FLASH (rx)          : ORIGIN = 0x08030000, LENGTH = 3834K
-HS (rwx)            : ORIGIN = 0x20000000, LENGTH = 16K
-RAM (rwx)           : ORIGIN = 0x20004000, LENGTH = 432K
+FLASH0WS (rx)       : ORIGIN = 0x08000000, LENGTH = 256K
+FLASH (rx)          : ORIGIN = 0x08040000, LENGTH = 3898K
+HS (rwx)            : ORIGIN = 0x20000000, LENGTH = 8K
+RAM (rwx)           : ORIGIN = 0x20002000, LENGTH = 368K
 /* USERDATA (r)       : ORIGIN = 0x1FFFC000, LENGTH = 4K */
 /* RAMHIGH (rw)        : ORIGIN = 0x20020000, LENGTH = 128K */
 }
