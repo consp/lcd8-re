@@ -7,6 +7,10 @@
 #include <stdio.h>
 #include "config.h"
 
+// system is possibly in Os mode
+#pragma GCC optimize ("O3")
+
+
 /* #define MEMORY_DEBUG */
 uint16_t dummy = 0;
 
@@ -235,14 +239,15 @@ uint32_t dma_final_y = 0;
 uint16_t *dma_final_bytes = NULL;
 uint32_t dma_total = 0;
 uint32_t dma_partial = 0;
-uint8_t *dma_data = NULL;
+uint16_t *dma_data = NULL;
 lv_area_t dma_area = {0};
 
 // if the pixbuffer is the full display we do not care about overdraw
 CRITICAL void dma_write(uint16_t *data, uint32_t length, lv_area_t *area) {
     dma_ready = 0;
-    dma_total = length << 1;
-    dma_data = (uint8_t *) data;
+    length--; // strip first block
+    dma_total = length;
+    dma_data = (data + 1);
     memcpy(&dma_area, area, sizeof(lv_area_t));
 
     /* if (dma_partial) lcd_set_address_window(0, area->y1 + (100 * dma_partial), 319, (area->y1 + (100 * dma_partial) + 100)); */
@@ -278,9 +283,9 @@ CRITICAL void dma_write(uint16_t *data, uint32_t length, lv_area_t *area) {
 #endif
     DMA2_CHANNEL1->maddr = (uint32_t) (dma_data);
     DMA2_CHANNEL1->ctrl_bit.chen = 1;
-    TMR8->ctrl1_bit.tmren = 1;
     GPIOC->cfgr &= (uint32_t)~(0x3 << 18);
     GPIOC->cfgr |= (uint32_t) (0x2 << 18);
+    TMR8->ctrl1_bit.tmren = 1;
 }
 
 /* void TMR8_OVF_TMR80_IRQHandler(void) */
@@ -323,10 +328,10 @@ CRITICAL void DMA2_Channel1_IRQHandler(void)
 #endif
     if (dma_partial) {
         uint32_t length = dma_total - dma_partial;
-        dma_area.y1 += 100;
-        dma_area.y2 += 100;
-        if (dma_area.y2 > DISPLAY_WIDTH) dma_area.y2 = DISPLAY_HEIGHT - 1;
-        dma_write((uint16_t *) (dma_data + dma_partial), length >> 1, &dma_area);
+        dma_area.y1 += dma_partial / DISPLAY_WIDTH;
+        dma_area.y2 += dma_partial / DISPLAY_WIDTH;
+        if (dma_area.y2 > DISPLAY_HEIGHT) dma_area.y2 = DISPLAY_HEIGHT;
+        dma_write(dma_data + dma_partial, length, &dma_area);
     } else {
         dma_ready = 1;
 #if LVGL_VERSION_MAJOR == 9
@@ -565,7 +570,11 @@ int lcd_start(void) {
    
     lcd_set_address_window(0, 0, 319, 479);
     write_cmd(ILI_MEMORY_WRITE);
+#ifdef DEBUG
     lcd_fill(0, 0, 320, 480, RGB(255, 0, 0));
+#else
+    lcd_fill(0, 0, 320, 480, RGB(0, 0, 0));
+#endif
     return 1;
 }
 

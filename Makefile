@@ -35,14 +35,14 @@ LVGL_VERSION = 9
 # Selectors needed for other parts
 #######################################
 ifeq ($(PLATFORM),SIM)
-CHIP = sim
+	CHIP = sim
 endif
 
 # optimization
 ifeq ($(DEBUG),1)
-OPT = -Os
+	OPT = -Os
 else
-OPT = -Os
+	OPT = -O2
 endif
 
 #######################################
@@ -56,125 +56,125 @@ BUILD_DIR = build
 ######################################
 # C sources
 C_SOURCES =  \
-src/controls.c \
-src/comm.c \
-src/crc.c \
-src/gui.c \
-src/main.c
+			 src/controls.c \
+			 src/comm.c \
+			 src/crc.c \
+			 src/gui.c \
+			 src/main.c
 
 ifeq ($(CHIP),at32f415)
-MCU_PATH=at32f415
+	MCU_PATH=at32f415
 else ifeq ($(CHIP),at32f435)
-MCU_PATH=at32f435
+	MCU_PATH=at32f435
 else ifeq ($(CHIP),gd32f303)
-MCU_PATH=gd32f303
+	MCU_PATH=gd32f303
 endif
 
 # fonts & images
 C_SOURCES += \
-src/fonts/$(LVGL_VERSION).x/ANDALEMO_72.c \
-src/fonts/$(LVGL_VERSION).x/ANDALEMO_32.c \
-src/fonts/$(LVGL_VERSION).x/ANDALEMO_28.c \
-src/fonts/$(LVGL_VERSION).x/ANDALEMO_16.c \
-src/fonts/$(LVGL_VERSION).x/ANDALEMO_12.c \
-src/fonts/$(LVGL_VERSION).x/FRY_32.c \
-src/fonts/large_text_1bpp.c \
-src/img/display/lvgl$(LVGL_VERSION)/battery_black.c \
-src/img/display/lvgl$(LVGL_VERSION)/icon_clock.c \
-src/img/display/lvgl$(LVGL_VERSION)/icon_brake.c \
-src/img/display/lvgl$(LVGL_VERSION)/icon_temperature.c \
-src/img/display/lvgl$(LVGL_VERSION)/icon_engine.c \
-src/img/display/lvgl$(LVGL_VERSION)/icon_journey.c \
-src/img/display/lvgl$(LVGL_VERSION)/icon_headlight.c \
-src/img/display/lvgl$(LVGL_VERSION)/icon_headlight_auto.c \
-src/img/display/lvgl$(LVGL_VERSION)/icon_trip.c
+			 src/fonts/$(LVGL_VERSION).x/ANDALEMO_72.c \
+			 src/fonts/$(LVGL_VERSION).x/ANDALEMO_32.c \
+			 src/fonts/$(LVGL_VERSION).x/ANDALEMO_28.c \
+			 src/fonts/$(LVGL_VERSION).x/ANDALEMO_16.c \
+			 src/fonts/$(LVGL_VERSION).x/ANDALEMO_12.c \
+			 src/fonts/$(LVGL_VERSION).x/FRY_32.c \
+			 src/fonts/large_text_1bpp.c \
+			 src/img/display/lvgl$(LVGL_VERSION)/battery_black.c \
+			 src/img/display/lvgl$(LVGL_VERSION)/icon_clock.c \
+			 src/img/display/lvgl$(LVGL_VERSION)/icon_brake.c \
+			 src/img/display/lvgl$(LVGL_VERSION)/icon_temperature.c \
+			 src/img/display/lvgl$(LVGL_VERSION)/icon_engine.c \
+			 src/img/display/lvgl$(LVGL_VERSION)/icon_journey.c \
+			 src/img/display/lvgl$(LVGL_VERSION)/icon_headlight.c \
+			 src/img/display/lvgl$(LVGL_VERSION)/icon_headlight_auto.c \
+			 src/img/display/lvgl$(LVGL_VERSION)/icon_trip.c
 
 
 # platform sources
 ifeq ($(PLATFORM),LCD8)
-C_SOURCES += \
-src/hal/lcd8h/$(MCU_PATH)/sysclock.c \
-src/hal/lcd8h/${MCU_PATH}/lcd.c \
-src/hal/lcd8h/${MCU_PATH}/uart.c \
-src/hal/lcd8h/${MCU_PATH}/delay.c \
-src/hal/lcd8h/${MCU_PATH}/clock.c \
-src/hal/lcd8h/${MCU_PATH}/eeprom.c \
-src/hal/lcd8h/${MCU_PATH}/cntl.c
-else ifeq (${PLATFORM},SIM)
-# lcd driver is replaced by gtk, large numers need fake item
-C_SOURCES += \
-	src/hal/sim/sysclock.c \
-	src/hal/sim/uart.c \
-	src/hal/sim/lcd.c \
-	src/hal/sim/delay.c \
-	src/hal/sim/clock.c \
-	src/hal/sim/eeprom.c \
-	src/hal/sim/cntl.c
-endif
+	C_SOURCES += \
+				 src/hal/lcd8h/$(MCU_PATH)/sysclock.c \
+				 src/hal/lcd8h/${MCU_PATH}/lcd.c \
+				 src/hal/lcd8h/${MCU_PATH}/uart.c \
+				 src/hal/lcd8h/${MCU_PATH}/delay.c \
+				 src/hal/lcd8h/${MCU_PATH}/clock.c \
+				 src/hal/lcd8h/${MCU_PATH}/eeprom.c \
+				 src/hal/lcd8h/${MCU_PATH}/cntl.c
+	else ifeq (${PLATFORM},SIM)
+	# lcd driver is replaced by gtk, large numers need fake item
+	C_SOURCES += \
+				 src/hal/sim/sysclock.c \
+				 src/hal/sim/uart.c \
+				 src/hal/sim/lcd.c \
+				 src/hal/sim/delay.c \
+				 src/hal/sim/clock.c \
+				 src/hal/sim/eeprom.c \
+				 src/hal/sim/cntl.c
+	endif
 
 ifeq ($(PLATFORM)$(LVGL_VERSION),SIM8)
-C_SOURCES += \
-	thirdparty/lv_drivers/gtkdrv/gtkdrv.c
-endif
+	C_SOURCES += \
+				 thirdparty/lv_drivers/gtkdrv/gtkdrv.c
+	endif
 
 ifeq ($(CHIP),at32f415)
-C_SOURCES += \
-src/startup/at32f415/system_at32f415.c \
-src/drivers/at32f415/at32f415_crm.c \
-src/drivers/at32f415/at32f415_crc.c \
-src/drivers/at32f415/at32f415_dma.c \
-src/drivers/at32f415/at32f415_tmr.c \
-src/drivers/at32f415/at32f415_ertc.c \
-src/drivers/at32f415/at32f415_pwc.c \
-src/drivers/at32f415/at32f415_adc.c \
-src/drivers/at32f415/at32f415_usart.c \
-src/drivers/at32f415/at32f415_gpio.c \
-src/drivers/at32f415/at32f415_i2c.c \
-src/drivers/at32f415/at32f415_misc.c 
-else ifeq ($(CHIP),gd32f303)
-C_SOURCES += \
-src/startup/gd32f303/system_gd32f30x.c \
-src/drivers/gd32f303/gd32f30x_adc.c \
-src/drivers/gd32f303/gd32f30x_dma.c \
-src/drivers/gd32f303/gd32f30x_gpio.c \
-src/drivers/gd32f303/gd32f30x_pmu.c \
-src/drivers/gd32f303/gd32f30x_rcu.c \
-src/drivers/gd32f303/gd32f30x_misc.c \
-src/drivers/gd32f303/gd32f30x_timer.c \
-src/drivers/gd32f303/gd32f30x_usart.c
-else ifeq ($(CHIP),at32f435)
-C_SOURCES += \
-src/startup/at32f435/system_at32f435_437.c \
-src/drivers/at32f435/at32f435_437_crm.c \
-src/drivers/at32f435/at32f435_437_crc.c \
-src/drivers/at32f435/at32f435_437_dma.c \
-src/drivers/at32f435/at32f435_437_flash.c \
-src/drivers/at32f435/at32f435_437_tmr.c \
-src/drivers/at32f435/at32f435_437_ertc.c \
-src/drivers/at32f435/at32f435_437_pwc.c \
-src/drivers/at32f435/at32f435_437_adc.c \
-src/drivers/at32f435/at32f435_437_usart.c \
-src/drivers/at32f435/at32f435_437_gpio.c \
-src/drivers/at32f435/at32f435_437_i2c.c \
-src/drivers/at32f435/at32f435_437_misc.c \
-src/hal/lcd8h/at32f435/at32f435_437_int.c
-else # sim
-# do nothing for now
+	C_SOURCES += \
+				 src/startup/at32f415/system_at32f415.c \
+				 src/drivers/at32f415/at32f415_crm.c \
+				 src/drivers/at32f415/at32f415_crc.c \
+				 src/drivers/at32f415/at32f415_dma.c \
+				 src/drivers/at32f415/at32f415_tmr.c \
+				 src/drivers/at32f415/at32f415_ertc.c \
+				 src/drivers/at32f415/at32f415_pwc.c \
+				 src/drivers/at32f415/at32f415_adc.c \
+				 src/drivers/at32f415/at32f415_usart.c \
+				 src/drivers/at32f415/at32f415_gpio.c \
+				 src/drivers/at32f415/at32f415_i2c.c \
+				 src/drivers/at32f415/at32f415_misc.c 
+	else ifeq ($(CHIP),gd32f303)
+	C_SOURCES += \
+				 src/startup/gd32f303/system_gd32f30x.c \
+				 src/drivers/gd32f303/gd32f30x_adc.c \
+				 src/drivers/gd32f303/gd32f30x_dma.c \
+				 src/drivers/gd32f303/gd32f30x_gpio.c \
+				 src/drivers/gd32f303/gd32f30x_pmu.c \
+				 src/drivers/gd32f303/gd32f30x_rcu.c \
+				 src/drivers/gd32f303/gd32f30x_misc.c \
+				 src/drivers/gd32f303/gd32f30x_timer.c \
+				 src/drivers/gd32f303/gd32f30x_usart.c
+	else ifeq ($(CHIP),at32f435)
+	C_SOURCES += \
+				 src/startup/at32f435/system_at32f435_437.c \
+				 src/drivers/at32f435/at32f435_437_crm.c \
+				 src/drivers/at32f435/at32f435_437_crc.c \
+				 src/drivers/at32f435/at32f435_437_dma.c \
+				 src/drivers/at32f435/at32f435_437_flash.c \
+				 src/drivers/at32f435/at32f435_437_tmr.c \
+				 src/drivers/at32f435/at32f435_437_ertc.c \
+				 src/drivers/at32f435/at32f435_437_pwc.c \
+				 src/drivers/at32f435/at32f435_437_adc.c \
+				 src/drivers/at32f435/at32f435_437_usart.c \
+				 src/drivers/at32f435/at32f435_437_gpio.c \
+				 src/drivers/at32f435/at32f435_437_i2c.c \
+				 src/drivers/at32f435/at32f435_437_misc.c \
+				 src/hal/lcd8h/at32f435/at32f435_437_int.c
+	else # sim
+	# do nothing for now
 endif
 
 
 # ASM sources
 ifeq ($(CHIP),at32f415)
-ASM_SOURCES =  \
-	src/startup/at32f415/startup_at32f415.S
-else ifeq ($(CHIP),gd32f303)
-ASM_SOURCES =  \
-	src/startup/gd32f303/startup_gd32f30x.S
-else ifeq ($(CHIP),at32f435)
-ASM_SOURCES = \
-	src/startup/at32f435/startup_at32f435_437.S
-else
-ARM_SOURCES = 
+	ASM_SOURCES =  \
+				   src/startup/at32f415/startup_at32f415.S
+	else ifeq ($(CHIP),gd32f303)
+	ASM_SOURCES =  \
+				   src/startup/gd32f303/startup_gd32f30x.S
+	else ifeq ($(CHIP),at32f435)
+	ASM_SOURCES = \
+				  src/startup/at32f435/startup_at32f435_437.S
+	else
+	ARM_SOURCES = 
 endif
 
 LVGL_PATH ?= $(shell pwd)/thirdparty/lvgl
@@ -182,7 +182,7 @@ LVGL_PATH ?= $(shell pwd)/thirdparty/lvgl
 # append files
 C_SOURCES += $(shell find $(LVGL_PATH)/src -type f -name '*.c')
 ifneq ($(PLATFORM),SIM)
-ASM_SOURCES += $(shell find $(LVGL_PATH)/src -type f -name '*.S') 
+	ASM_SOURCES += $(shell find $(LVGL_PATH)/src -type f -name '*.S') 
 endif
 
 
@@ -190,23 +190,23 @@ endif
 # binaries
 #######################################
 ifneq ($(PLATFORM),SIM)
-PREFIX = arm-none-eabi-
-GCC_PATH = /opt/arm/bin/
+	PREFIX = arm-none-eabi-
+	GCC_PATH = /opt/arm/bin/
 else
-PREFIX = 
+	PREFIX = 
 endif
 # The gcc compiler bin path can be either defined in make command via GCC_PATH variable (> make GCC_PATH=xxx)
 # either it can be added to the PATH environment variable.
 ifdef GCC_PATH
-CC = $(GCC_PATH)/$(PREFIX)gcc
-AS = $(GCC_PATH)/$(PREFIX)gcc -x assembler-with-cpp
-CP = $(GCC_PATH)/$(PREFIX)objcopy
-SZ = $(GCC_PATH)/$(PREFIX)size
+	CC = $(GCC_PATH)/$(PREFIX)gcc
+	AS = $(GCC_PATH)/$(PREFIX)gcc -x assembler-with-cpp
+	CP = $(GCC_PATH)/$(PREFIX)objcopy
+	SZ = $(GCC_PATH)/$(PREFIX)size
 else
-CC = $(PREFIX)gcc
-AS = $(PREFIX)gcc -x assembler-with-cpp
-CP = $(PREFIX)objcopy
-SZ = $(PREFIX)size
+	CC = $(PREFIX)gcc
+	AS = $(PREFIX)gcc -x assembler-with-cpp
+	CP = $(PREFIX)objcopy
+	SZ = $(PREFIX)size
 endif
 HEX = $(CP) -O ihex
 BIN = $(CP) -O binary -S
@@ -221,22 +221,22 @@ CPU = -mcpu=cortex-m4
 
 # float-abi
 ifeq ($(DEBUG),1)
-LTO= -flto
+	LTO= -flto
 else
-LTO= -flto
+	LTO= -flto
 endif
 
 
 # mcu
 ifneq ($(PLATFORM),SIM)
-MCU = $(CPU) -mthumb '-D__weak=__attribute__((weak))'
+	MCU = $(CPU) -mthumb '-D__weak=__attribute__((weak))'
 endif
 
 ifeq ($(CHIP),at32f435)
-MCU += -mfloat-abi=hard -mfpu=fpv4-sp-d16
-# MCU += -mfloat-abi=soft
+	MCU += -mfloat-abi=hard -mfpu=fpv4-sp-d16
+	# MCU += -mfloat-abi=soft
 else ifneq ($(PLATFORM),SIM)
-MCU += -mfloat-abi=soft 
+	MCU += -mfloat-abi=soft 
 endif
 
 # macros for gcc
@@ -245,36 +245,45 @@ AS_DEFS = -DLV_VER=$(LVGL_VERSION) -DLV_CONF_INCLUDE_SIMPLE -DLV_LVGL_H_INCLUDE_
 
 # C defines
 C_DEFS =  \
-	-DLV_VER=$(LVGL_VERSION) \
-	-DLV_CONF_INCLUDE_SIMPLE \
-	-DPLATFORM_$(PLATFORM) \
-	-DLV_LVGL_H_INCLUDE_SIMPLE
+		  -DLV_VER=$(LVGL_VERSION) \
+		  -DLV_CONF_INCLUDE_SIMPLE \
+		  -DPLATFORM_$(PLATFORM) \
+		  -DLV_LVGL_H_INCLUDE_SIMPLE
 
 ifeq ($(MONITOR),1)
-C_DEFS += \
-	-DMONITOR=1  \
-	-DSEMIHOSTING
+	C_DEFS += \
+			  -DMONITOR=1
 	# -DSEGGER_RTT
-# # add segger rtt files
-# C_SOURCES += \
-# 	src/rtt/SEGGER_RTT.c \
-# 	src/rtt/SEGGER_RTT_printf.c \
-# 	src/rtt/SEGGER_RTT_Syscalls_GCC.c 
-# ASM_SOURCES += src/rtt/SEGGER_RTT_ASM_ARMv7M.S
-# AS_INCLUDES += -Iinc/rtt
-# C_INCLUDES += -Iinc/rtt
+	# # add segger rtt files
+	# C_SOURCES += \
+		# 	src/rtt/SEGGER_RTT.c \
+		# 	src/rtt/SEGGER_RTT_printf.c \
+		# 	src/rtt/SEGGER_RTT_Syscalls_GCC.c 
+	# ASM_SOURCES += src/rtt/SEGGER_RTT_ASM_ARMv7M.S
+	# AS_INCLUDES += -Iinc/rtt
+	# C_INCLUDES += -Iinc/rtt
 endif
 
+ifeq ($(MONITOR)$(DEBUG),11)
+	C_DEFS += \
+			  -DSEMIHOSTING
+	endif
+
+ifeq ($(LVGL_LOG),1)
+	C_DEFS += \
+			  -DSEMIHOSTING
+	endif
+
 ifeq ($(CHIP),at32f415)
-C_DEFS += -DAT32F415RCT7 \
-		  -DAT32F415 \
-		  -DARM_MATH_CM4 '-D__packed=__attribute__((__packed__))' \
-		  -DLV_MEM_SIZE_KB=13U
-else ifeq ($(CHIP),at32f435)
-C_DEFS += -DAT32F435RMT7 \
-		  -DAT32F435 \
-		  -DARM_MATH_CM4 '-D__packed=__attribute__((__packed__))' \
-		  -DLV_MEM_SIZE_KB=64U
+	C_DEFS += -DAT32F415RCT7 \
+			  -DAT32F415 \
+			  -DARM_MATH_CM4 '-D__packed=__attribute__((__packed__))' \
+			  -DLV_MEM_SIZE_KB=13U
+	else ifeq ($(CHIP),at32f435)
+	C_DEFS += -DAT32F435RMT7 \
+			  -DAT32F435 \
+			  -DARM_MATH_CM4 '-D__packed=__attribute__((__packed__))' \
+			  -DLV_MEM_SIZE_KB=48U
 else ifeq ($(CHIP),gd32f303)
 C_DEFS += -DGD32F303 \
 		  -DGD32F30X_XD \
@@ -384,7 +393,7 @@ CFLAGS += $(CFLAGS_ASAN)
 endif
 
 ifneq ($(PLATFORM),SIM)
-LDFLAGS = $(MCU) -specs=nano.specs -specs=nosys.specs --specs=rdimon.specs -T$(LDSCRIPT) $(LIBS_ASAN) $(LIBS) -Wl,-Map=$(BUILD_DIR)/$(TARGET).map,--cref -Wl,--gc-sections -Wl,--print-memory-usage $(CFLAGS)
+LDFLAGS = $(MCU) -specs=nano.specs -specs=nosys.specs -specs=rdimon.specs -T$(LDSCRIPT) $(LIBS_ASAN) $(LIBS) -Wl,-Map=$(BUILD_DIR)/$(TARGET).map,--cref -Wl,--gc-sections -Wl,--print-memory-usage $(CFLAGS)
 else
 LDFLAGS = $(LIBS_ASAN) $(LIBS) -Wl,-Map=$(BUILD_DIR)/$(TARGET).map,--cref -Wl,--gc-sections -Wl,--print-memory-usage $(CFLAGS)
 endif

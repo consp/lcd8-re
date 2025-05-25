@@ -121,9 +121,11 @@
 // #undef CRITICAL 
 // #define RAMHIGH     __attribute__((__section__(".ramhigh"))) 
 // #define CRITICAL    __attribute__((__section__(".flash0ws"))) 
+#define CLOCK_SOURCE        CRM_CLOCK_SOURCE_HEXT
+#define PLL_SOURCE          CRM_PLL_SOURCE_HEXT
 #define CONF_FLASH_DIV      FLASH_CLOCK_DIV_3
 #define CONF_FREQ           8000000
-#define CONF_PLL_MUL        144 //170
+#define CONF_PLL_MUL        144
 #define CONF_PLL_PREDIV     1
 #define CONF_PLL_POSTDIV    CRM_PLL_FR_4
 #define TIMER_FREQ(x)       (( \

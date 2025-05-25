@@ -1,4 +1,6 @@
 #include "controls.h"
+#include "comm.h"
+#include "delay.h"
 #include "at32f435_437.h"
 #include "hal/lcd8/at32f435/cntl.h"
 
@@ -351,6 +353,11 @@ void controls_init(void) {
 
 CRITICAL void power_enable(void) { POWER_LATCH_GPIO->scr = POWER_LATCH_PIN; }
 CRITICAL void power_disable(void) { 
+#if UART_COMM == UART_COMM_VESC
+    // send uart, sleep for ~500ms to allow shutdown
+    comm_vesc_packet_send_shutdown();
+    delay_ms(500);
+#endif
     // cap should keep it fed for a while
     POWER_LATCH_GPIO->clr = POWER_LATCH_PIN; 
 #if LEXT_INSTALLED

@@ -83,12 +83,10 @@ CRITICAL int main(void)
 
     controls_init();                        // init adc and buttons 
     power_enable();
-                                            //
+    
+    crc_init();                             // crc init if HW unit
     eeprom_init();                          // initialize the eeprom for data storage
     clock_init();                           // clouck source (if available)
-                                            //
-                                            //
-    crc_init();                             // crc init if HW unit
     lcd_init();                             // attempt to initialize the lcd peripherals
     
     button_release(BUTTON_ID_POWER, 500);   // ignore inputs for a while
@@ -107,9 +105,14 @@ CRITICAL int main(void)
 
 #if MONITOR && DEBUG
     uint32_t x = 0, y = 0;
+    /* uint32_t tmp = 0; */
+    /* extern int32_t battery_current; */
+    /* extern int32_t battery_voltage; */
+    /* extern int32_t speed; */
+    /* extern uint8_t draw_power_trigger, draw_speed_trigger; */
 #endif
-
     lv_timer_handler();
+
     while(1) {
 #if PLATFORM_SIM && LVGL_VERSION_MAJOR == 9
         SDL_Delay(5);
@@ -118,15 +121,16 @@ CRITICAL int main(void)
         button_presses();
         gui_update();                                           // update gui data
 
-#if MONITOR & LVGL_LOG
-        if (timer_counter - x >= 1000) {
-            lv_mem_monitor_t mon;
-            lv_mem_monitor(&mon);
-            char buf[64];
-            LV_LOG_INFO("Free: %ld/%ld, %d%% used, %d%% frag, cpu %d%%\n", mon.free_size, mon.total_size, mon.used_pct, mon.frag_pct);
-            x = timer_counter;
-        }
-#endif
+        /* if (timer_counter - tmp >= 100) { */
+        /*     tmp = timer_counter; */
+        /*     battery_voltage = 27000; */
+        /*     battery_current+=100; */
+        /*     draw_power_trigger = 1; */
+        /*     draw_speed_trigger = 1; */
+        /*     speed += 250; */
+        /*     if (battery_current > 20000) battery_current = -10000; */
+        /*     if (speed > 35000) speed = 0; */
+        /* } */
 #if MONITOR && DEBUG
         uint32_t m = lv_timer_handler();                                     // draw
         delay_ms(m);

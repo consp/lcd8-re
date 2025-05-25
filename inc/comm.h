@@ -23,14 +23,20 @@ void comm_update(void);
 /*
  * VESC values
  */
+#define COMM_VESC_LIGHTS_ID                         0x89
 
 #define COMM_VESC_FAST_INTERVAL                     100
 #define COMM_VESC_SLOW_INTERVAL                     1000
+#define COMM_VESC_VERY_SLOW_INTERVAL                5000
 
+#define COMM_VESC_CMD_FORWARD_CAN                   34
 #define COMM_VESC_CMD_GET_VALUES                    4
 #define COMM_VESC_CMD_GET_VALUES_SETUP              47
 #define COMM_VESC_CMD_GET_VALUES_SELECTIVE          50
 #define COMM_VESC_CMD_GET_VALUES_SETUP_SELECTIVE    51
+#define COMM_VESC_CMD_SHUTDOWN                      156
+#define COMM_VESC_CMD_MCONF_GET                     91
+#define COMM_VESC_CMD_MCONF_SET                     48
 
 // maskss for get values
 #define VESC_GET_FET_TEMP                           (1 << 0)
@@ -55,6 +61,41 @@ void comm_update(void);
 #define VESC_GET_AVG_VD                             (1 << 19)
 #define VESC_GET_AVG_VQ                             (1 << 20)
 #define VESC_GET_STATUS                             (1 << 21)
+
+#define VESC_GET_SETUP_FET_TEMP                     (1 << 0)
+#define VESC_GET_SETUP_MOTOR_TEMP                   (1 << 1)
+#define VESC_GET_SETUP_CURRENT_TOT                  (1 << 2)
+#define VESC_GET_SETUP_CURRENT_IN_TOT               (1 << 3)
+#define VESC_GET_SETUP_DUTY_CYCLE                   (1 << 4)
+#define VESC_GET_SETUP_RPM                          (1 << 5)
+#define VESC_GET_SETUP_SPEED                        (1 << 6)
+#define VESC_GET_SETUP_INPUT_VOLTAGE                (1 << 7)
+#define VESC_GET_SETUP_BATTERY_LEVEL                (1 << 8)
+#define VESC_GET_SETUP_AH_TOT                       (1 << 9)
+#define VESC_GET_SETUP_AH_CHARGE_TOT                (1 << 10)
+#define VESC_GET_SETUP_WH_TOT                       (1 << 11)
+#define VESC_GET_SETUP_WH_CHARGE_TOT                (1 << 12)
+#define VESC_GET_SETUP_DISTANCE                     (1 << 13)
+#define VESC_GET_SETUP_DISTANCE_ABS                 (1 << 14)
+#define VESC_GET_SETUP_PID_POS                      (1 << 15)
+#define VESC_GET_SETUP_FAULT                        (1 << 16)
+#define VESC_GET_SETUP_VESC_ID                      (1 << 17)
+#define VESC_GET_SETUP_NUM_VESC                     (1 << 18)
+#define VESC_GET_SETUP_WH_LEFT                      (1 << 19)
+#define VESC_GET_SETUP_ODO                          (1 << 20)
+#define VESC_GET_SETUP_SYS_TIME                     (1 << 21)
+
+#define VESC_GET_STATS_SPEED_AVG                    (1 << 0)
+#define VESC_GET_STATS_SPEED_MAX                    (1 << 1)
+#define VESC_GET_STATS_POWER_AVG                    (1 << 2)
+#define VESC_GET_STATS_POWER_MAX                    (1 << 3)
+#define VESC_GET_STATS_CURRENT_AVG                  (1 << 4)
+#define VESC_GET_STATS_CURRENT_MAX                  (1 << 5)
+#define VESC_GET_STATS_TEMP_MOSFET_AVG              (1 << 6)
+#define VESC_GET_STATS_TEMP_MOSFET_MAX              (1 << 7)
+#define VESC_GET_STATS_TEMP_MOTOR_AVG               (1 << 8)
+#define VESC_GET_STATS_TEMP_MOTOR_MAX               (1 << 9)
+
 
 typedef struct vesc_packet_1_t {
     uint8_t type;
@@ -136,8 +177,13 @@ typedef struct {
 
 #if UART_COMM == UART_COMM_VESC
 int comm_vesc_packet_resc(uint8_t *data, uint32_t length, vesc_packet_1 *pack);
-int comm_vesc_packet_send(uint8_t *data, uint32_t length);
+int comm_vesc_packet_send(uint8_t *data, uint32_t length, int async);
+void comm_vesc_packet_send_shutdown(void);
 int comm_vesc_packet_send_get_data(uint32_t mask);
+int comm_vesc_packet_send_get_setup(uint32_t mask);
+void comm_vesc_packet_send_lights(uint8_t val);
+void comm_vesc_packet_send_mconf_get(void);
+void comm_vesc_packet_send_mconf_set(uint8_t *mconf);
 #endif
 
 #endif // __COMM_H__

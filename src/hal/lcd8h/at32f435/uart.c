@@ -187,7 +187,7 @@ CRITICAL void DMA1_Channel5_IRQHandler(void)
 }
 #include "delay.h"
 CRITICAL void uart_send(const uint8_t *buffer, ssize_t length, int async) {
-    if (!async) while(uart_tx_ready);
+    while(uart_tx_ready);
     uart_tx_ready = 1;
     memcpy(uart_tx_buffer, buffer, length);
     DMA1_CHANNEL4->maddr = (uint32_t) uart_tx_buffer;

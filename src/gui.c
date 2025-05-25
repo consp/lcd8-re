@@ -8,6 +8,9 @@
 #include "comm.h"
 #include "config.h"
 
+
+#pragma GCC optimize ("O3")
+
 #if defined($PLATFORM_SIM)
 #include <cmsis/core/core_cm4.h>
 #endif
@@ -56,6 +59,9 @@ int32_t ext_temperature = 0, ext_temperature_old = 0;
 int32_t wheel_circumfence = 2230; //(in mm)
 int32_t mot_temperature = 0;
 int32_t con_temperature = 0;
+int32_t amphours_total = 0, amphours_regen_total = 0;
+int32_t wh_total = 0, wh_regen_total = 0, wh_left = 0, wh_km = 0;
+int32_t distance_total = 0;
 int32_t avg_speed = 0, avg_power = 0;
 uint8_t brake = 0;
 uint8_t controller_mode = 0;
@@ -102,7 +108,8 @@ lv_obj_t *powerbar_high_line = NULL;
 lv_obj_t *powerbar_shade = NULL;
 lv_obj_t *powerbar_text = NULL;
 
-lv_obj_t *power_bar = NULL;
+lv_obj_t *power_bar_positive = NULL;
+lv_obj_t *power_bar_negative = NULL;
 uint32_t power_bar_zero = 0;
 lv_obj_t *speed_bar = NULL;
 
@@ -124,6 +131,8 @@ lv_obj_t *trip_time_img = NULL;
 lv_obj_t *trip_time_text = NULL;
 lv_obj_t *total_distance_img = NULL;
 lv_obj_t *total_distance_text = NULL;
+lv_obj_t *distance_img = NULL;
+lv_obj_t *distance_text = NULL;
 lv_obj_t *avg_speed_text = NULL;
 lv_obj_t *max_speed_text = NULL;
 lv_obj_t *lights_img = NULL;
@@ -163,7 +172,9 @@ static void _draw_time(void);
 static void _draw_assist(void);
 static void _draw_headlights(void);
 static void _draw_brake(void);
+#if (DEBUG && (UART_COMM == UART_COMM_EBICS))
 static void _draw_controller_mode(void);
+#endif
 
 void _draw_graph(lv_timer_t *timer);
 void gui_draw_normal(void);
@@ -270,7 +281,7 @@ uint32_t redraw_speed,
          redraw_temp_ext = 0;
 
 void gui_draw_normal(void) {
-    lv_theme_default_init(NULL, COLOR_BLACK, COLOR_WHITE, LV_THEME_DEFAULT_DARK, &lv_font_andalemo_32);
+    /* lv_theme_default_init(NULL, COLOR_BLACK, COLOR_WHITE, LV_THEME_DEFAULT_DARK, &lv_font_andalemo_32); */
 
     lv_obj_set_style_bg_color(lv_screen_active(), COLOR_BLACK, LV_PART_MAIN);
     lv_obj_set_layout(lv_screen_active(), 0);
@@ -375,8 +386,8 @@ void gui_draw_normal(void) {
     lv_scale_set_mode(speed_scale, LV_SCALE_MODE_ROUND_OUTER);
     lv_scale_set_total_tick_count(speed_scale, (settings.speed_max / 5) + 1);
     lv_scale_set_major_tick_every(speed_scale, 1);
-    lv_obj_set_style_length(speed_scale, 1, LV_PART_ITEMS);
-    lv_obj_set_style_length(speed_scale, 1, LV_PART_INDICATOR);
+    lv_obj_set_style_length(speed_scale, 2, LV_PART_ITEMS);
+    lv_obj_set_style_length(speed_scale, 2, LV_PART_INDICATOR);
     lv_scale_set_range(speed_scale, 0, settings.speed_max);
     lv_scale_set_rotation(speed_scale, 160);
     lv_scale_set_angle_range(speed_scale, 220);
@@ -501,22 +512,43 @@ void gui_draw_normal(void) {
 
     // power bar
 
-    lv_obj_t *power_bar = lv_arc_create(power_scale);
-    lv_obj_set_size(power_bar, SPEED_SCALE_WIDTH - 32, SPEED_SCALE_HEIGHT - 16);
-    lv_obj_set_pos(power_bar, 0, 0);
-    lv_arc_set_rotation(power_bar, 160);
-    lv_arc_set_bg_angles(power_bar, 0, 220);
-    lv_obj_remove_style(power_bar, NULL, LV_PART_KNOB);
-    lv_arc_set_range(power_bar, settings.power_min, settings.power_max);
-    lv_obj_set_style_bg_opa(power_bar, LV_OPA_TRANSP, LV_PART_MAIN);
-    /* lv_obj_set_style_bg_color(power_bar, RGB565(0, 0, 255), LV_PART_MAIN); */
-    lv_obj_set_style_arc_opa(power_bar, LV_OPA_TRANSP, LV_PART_MAIN);
-    lv_obj_set_style_arc_rounded(power_bar, 0, LV_PART_MAIN);
-    lv_obj_set_style_arc_rounded(power_bar, 0, LV_PART_INDICATOR);
-    lv_obj_set_style_arc_color(power_bar, RGB565(0, 0, 255), LV_PART_INDICATOR);
-    lv_arc_set_value(power_bar, 0);
-    power_bar_zero = (settings.power_min * 220) / ((settings.power_min * -1) + settings.power_max);
-    /* lv_arc_set_angles(power_bar, 40, 60); */
+    power_bar_zero = (settings.power_min * -220) / ((settings.power_min * -1) + settings.power_max);
+    power_bar_positive = lv_arc_create(power_scale);
+    lv_obj_set_size(power_bar_positive, SPEED_SCALE_WIDTH - 32, SPEED_SCALE_HEIGHT - 16);
+    lv_obj_set_pos(power_bar_positive, 0, 0);
+    lv_arc_set_rotation(power_bar_positive, 160);
+    lv_arc_set_bg_angles(power_bar_positive, power_bar_zero, 220);
+    lv_obj_remove_style(power_bar_positive, NULL, LV_PART_KNOB);
+    lv_arc_set_mode(power_bar_positive, LV_ARC_MODE_NORMAL);
+    lv_arc_set_range(power_bar_positive, 0, settings.power_max);
+    lv_obj_set_style_bg_opa(power_bar_positive, LV_OPA_TRANSP, LV_PART_MAIN);
+    /* lv_obj_set_style_bg_color(power_bar_positive, RGB565(0, 0, 255), LV_PART_MAIN); */
+    lv_obj_set_style_arc_opa(power_bar_positive, LV_OPA_TRANSP, LV_PART_MAIN);
+    lv_obj_set_style_arc_rounded(power_bar_positive, 0, LV_PART_MAIN);
+    lv_obj_set_style_arc_rounded(power_bar_positive, 0, LV_PART_INDICATOR);
+    lv_obj_set_style_arc_color(power_bar_positive, RGB565(0, 0, 255), LV_PART_INDICATOR);
+    lv_obj_set_style_arc_opa(power_bar_positive, LV_OPA_COVER, LV_PART_INDICATOR);
+    lv_obj_set_style_arc_width(power_bar_positive, 12, LV_PART_INDICATOR);
+    lv_arc_set_value(power_bar_positive, 0);
+
+    power_bar_negative = lv_arc_create(power_scale);
+    lv_obj_set_size(power_bar_negative, SPEED_SCALE_WIDTH - 32, SPEED_SCALE_HEIGHT - 16);
+    lv_obj_set_pos(power_bar_negative, 0, 0);
+    lv_arc_set_rotation(power_bar_negative, 160);
+    lv_arc_set_bg_angles(power_bar_negative, 0, power_bar_zero);
+    lv_obj_remove_style(power_bar_negative, NULL, LV_PART_KNOB);
+    lv_arc_set_range(power_bar_negative, 0, settings.power_min * -1);
+    lv_arc_set_mode(power_bar_negative, LV_ARC_MODE_REVERSE);
+    lv_obj_set_style_bg_opa(power_bar_negative, LV_OPA_TRANSP, LV_PART_MAIN);
+    /* lv_obj_set_style_bg_color(power_bar_negative, RGB565(0, 0, 255), LV_PART_MAIN); */
+    lv_obj_set_style_arc_opa(power_bar_negative, LV_OPA_TRANSP, LV_PART_MAIN);
+    lv_obj_set_style_arc_rounded(power_bar_negative, 0, LV_PART_MAIN);
+    lv_obj_set_style_arc_rounded(power_bar_negative, 0, LV_PART_INDICATOR);
+    lv_obj_set_style_arc_color(power_bar_negative, RGB565(0, 126, 126), LV_PART_INDICATOR);
+    lv_obj_set_style_arc_opa(power_bar_negative, LV_OPA_COVER, LV_PART_INDICATOR);
+    lv_obj_set_style_arc_width(power_bar_negative, 12, LV_PART_INDICATOR);
+    lv_arc_set_value(power_bar_negative, 0);
+    /* lv_arc_set_angles(power_bar_positive, 40, 60); */
 
     speed_bar = lv_arc_create(speed_scale);
     lv_obj_set_size(speed_bar, SPEED_SCALE_WIDTH, SPEED_SCALE_HEIGHT);
@@ -524,12 +556,14 @@ void gui_draw_normal(void) {
     lv_arc_set_rotation(speed_bar, 160);
     lv_arc_set_bg_angles(speed_bar, 0, 220);
     lv_obj_remove_style(speed_bar, NULL, LV_PART_KNOB);
-    lv_arc_set_range(speed_bar, 0, settings.speed_max);
+    lv_arc_set_range(speed_bar, 0, settings.speed_max * 1000);
     lv_obj_set_style_arc_opa(speed_bar, LV_OPA_TRANSP, LV_PART_MAIN);
     /* lv_obj_set_style_bg_color(speed_bar, RGB565(0, 255, 0), LV_PART_MAIN); */
     lv_obj_set_style_arc_rounded(speed_bar, 0, LV_PART_MAIN);
     lv_obj_set_style_arc_rounded(speed_bar, 0, LV_PART_INDICATOR);
     lv_obj_set_style_arc_color(speed_bar, RGB565(0, 255, 0), LV_PART_INDICATOR);
+    lv_obj_set_style_arc_opa(speed_bar, LV_OPA_COVER, LV_PART_INDICATOR);
+    lv_obj_set_style_arc_width(speed_bar, 12, LV_PART_INDICATOR);
     lv_arc_set_value(speed_bar, 0);
     /* lv_arc_set_angles(speed_bar, 0, 100); */
 
@@ -605,6 +639,7 @@ void gui_draw_normal(void) {
     battery = lv_image_create(lv_screen_active());
     lv_image_set_src(battery, &battery_black);
     lv_obj_set_pos(battery, 0, 0);
+    lv_obj_set_style_bg_color(battery, lv_color_black(), LV_PART_MAIN);
 
     battery_bar  = lv_bar_create(lv_screen_active());
     static lv_style_t battery_style_bar, battery_style_bar_indicator;
@@ -618,6 +653,7 @@ void gui_draw_normal(void) {
     lv_style_set_bg_grad_dir(&battery_style_bar_indicator, LV_GRAD_DIR_HOR);
     lv_style_set_radius(&battery_style_bar_indicator, 0);
 
+    lv_obj_set_style_bg_color(battery_bar, lv_color_black(), LV_PART_MAIN);
     lv_obj_add_style(battery_bar, &battery_style_bar, LV_PART_MAIN);
     lv_obj_add_style(battery_bar, &battery_style_bar_indicator, LV_PART_INDICATOR);
     lv_obj_set_pos(battery_bar, BATTERY_BAR_X, BATTERY_BAR_Y); 
@@ -645,6 +681,20 @@ void gui_draw_normal(void) {
     lv_obj_set_pos(total_distance_text, TOTAL_DISTANCE_TEXT_X, TOTAL_DISTANCE_TEXT_Y);
     lv_obj_set_size(total_distance_text, TOTAL_DISTANCE_TEXT_WIDTH, TOTAL_DISTANCE_TEXT_HEIGHT);
     lv_label_set_recolor(total_distance_text, true);
+
+#if UART_COMM == UART_COMM_VESC
+    /* distance_img = lv_image_create(lv_screen_active()); */
+    /* lv_image_set_src(distance_img, &icon_journey); */
+    /* lv_obj_set_pos(distance_img, DISTANCE_IMG_X, DISTANCE_IMG_Y); */
+    distance_text = lv_label_create(lv_screen_active());
+    lv_obj_add_style(distance_text, &text_normal, LV_PART_MAIN | LV_STATE_DEFAULT);
+    lv_obj_set_style_text_align(distance_text, LV_TEXT_ALIGN_LEFT, 0);
+    lv_label_set_text_fmt(distance_text, "00.0");
+    lv_label_set_long_mode(distance_text, LV_LABEL_LONG_CLIP);
+    lv_obj_set_pos(distance_text, DISTANCE_LEFT_TEXT_X, DISTANCE_LEFT_TEXT_Y);
+    lv_obj_set_size(distance_text, DISTANCE_LEFT_TEXT_WIDTH, DISTANCE_LEFT_TEXT_HEIGHT);
+    lv_label_set_recolor(distance_text, true);
+#endif
 
     trip_distance_img = lv_image_create(lv_screen_active());
     lv_image_set_src(trip_distance_img, &icon_trip);
@@ -692,15 +742,41 @@ void gui_draw_normal(void) {
     lv_obj_t * graph_scale = lv_scale_create(lv_screen_active());
     lv_scale_set_mode(graph_scale, LV_SCALE_MODE_VERTICAL_LEFT);
     lv_obj_set_pos(graph_scale, GRAPH_X, GRAPH_Y);
-    lv_obj_set_size(graph_scale, GRAPH_HEIGHT, 24);
-    lv_scale_set_total_tick_count(graph_scale, 6);
+    lv_obj_set_size(graph_scale, 24, GRAPH_HEIGHT);
+    lv_scale_set_label_show(graph_scale, true);
+    lv_obj_set_style_length(graph_scale, 3, LV_PART_INDICATOR);
+    lv_obj_set_style_length(graph_scale, 1, LV_PART_ITEMS);
+    lv_scale_set_total_tick_count(graph_scale, 7);
     lv_scale_set_major_tick_every(graph_scale, 1);
+    lv_scale_set_range(graph_scale, 0, settings.graph_max);
     /* lv_obj_set_style_pad_hor(graph_scale, lv_chart_get_first_point_center_offset(chart), 0); */
-    static const char * yaxis[] = {"0", "5", "10", "15", "20", "25", "30", NULL};
-    lv_scale_set_text_src(graph_scale, yaxis);
+    /* static const char * yaxis[] = {"0", "5", "10", "15", "20", "25", "30", NULL}; */
+    /* lv_scale_set_text_src(graph_scale, yaxis); */
+
+    static lv_style_t graph_scale_indicator_style;
+    lv_style_init(&graph_scale_indicator_style);
+    lv_style_set_text_font(&graph_scale_indicator_style, LV_FONT_DEFAULT);
+    lv_style_set_text_color(&graph_scale_indicator_style, lv_color_darken(lv_color_white(), 2));
+    lv_style_set_width(&graph_scale_indicator_style, 3U);      /*Tick length*/
+    lv_style_set_line_width(&graph_scale_indicator_style, 2U);  /*Tick width*/
+    lv_obj_add_style(graph_scale, &graph_scale_indicator_style, LV_PART_INDICATOR);
+
+    static lv_style_t graph_scale_minor_ticks_style;
+    lv_style_init(&graph_scale_minor_ticks_style);
+    lv_style_set_line_color(&graph_scale_minor_ticks_style, lv_color_lighten(lv_color_white(), 3));
+    lv_style_set_width(&graph_scale_minor_ticks_style, 2U);         /*Tick length*/
+    lv_style_set_line_width(&graph_scale_minor_ticks_style, 1U);    /*Tick width*/
+    lv_obj_add_style(graph_scale, &graph_scale_minor_ticks_style, LV_PART_ITEMS);
+
+    static lv_style_t graph_scale_main_line_style;
+    lv_style_init(&graph_scale_main_line_style);
+    /* Main line properties */
+    lv_style_set_line_color(&graph_scale_main_line_style, lv_color_darken(lv_color_white(), 1));
+    lv_style_set_line_width(&graph_scale_main_line_style, 2U); // Tick width
+    lv_obj_add_style(graph_scale, &graph_scale_main_line_style, LV_PART_MAIN);
 #endif
 
-    static lv_style_t graph_style_main, graph_style_ticks, graph_style_item;
+    static lv_style_t graph_style_main, graph_style_item;
     lv_style_set_pad_left(&graph_style_main, 0);
     lv_style_set_pad_right(&graph_style_main, 0);
     lv_style_set_pad_bottom(&graph_style_main, 3);
@@ -711,20 +787,24 @@ void gui_draw_normal(void) {
     lv_style_set_border_opa(&graph_style_main, LV_OPA_COVER);
     lv_style_set_border_width(&graph_style_main, 1);
     lv_style_set_border_color(&graph_style_main, GRAPH_BORDER_COLOR); // whole border 
+    lv_style_set_line_color(&graph_style_main, GRAPH_DIV_COLOR);
+    lv_style_set_line_width(&graph_style_item, 1);
     lv_style_set_radius(&graph_style_main, 0); // remove radius
 
-    lv_style_set_line_width(&graph_style_item, 3);
-    lv_style_set_bg_color(&graph_style_item, GRAPH_LEGEND_COLOR);
+    lv_style_set_line_width(&graph_style_item, 2);
+    lv_style_set_bg_color(&graph_style_item, GRAPH_CHART_COLOR);
     lv_style_set_pad_column(&graph_style_item, 0);
-
+#if LVGL_VERSION_MAJOR == 8
+    static lv_style_t graph_style_ticks;
     lv_style_set_line_width(&graph_style_ticks, 1);
-    lv_style_set_line_color(&graph_style_ticks, GRAPH_LEGEND_COLOR);
+    lv_style_set_line_color(&graph_style_ticks, GRAPH_LINE_COLOR);
     lv_style_set_text_color(&graph_style_ticks, GRAPH_LEGEND_COLOR);
     lv_style_set_text_font(&graph_style_ticks, &lv_font_andalemo_12);
+    lv_obj_add_style(graph, &graph_style_ticks, LV_PART_TICKS);
+#endif
 
     lv_obj_add_style(graph, &graph_style_item, LV_PART_ITEMS);
     lv_obj_add_style(graph, &graph_style_main, LV_PART_MAIN);
-    lv_obj_add_style(graph, &graph_style_ticks, LV_PART_TICKS);
 
 #if LVGL_VERSION_MAJOR == 8
     lv_obj_set_style_size(graph, 0, LV_PART_INDICATOR); // disable dots
@@ -741,13 +821,14 @@ void gui_draw_normal(void) {
     /* lv_chart_set_ext_y_array(graph, graph_series, graph_array); */
     lv_chart_set_all_value(graph, graph_series, 0);
     /* lv_obj_add_event_cb(graph, graph_event_pre_cb, LV_EVENT_DRAW_PART_BEGIN, NULL); // add cb to draw lines more normal */
-                                                                                    //
+#if  (DEBUG && (UART_COMM == UART_COMM_EBICS))
     cm_label = lv_label_create(lv_screen_active());
     lv_obj_add_style(cm_label, &text_slim, LV_PART_MAIN | LV_STATE_DEFAULT);
     lv_obj_set_pos(cm_label, CM_LABEL_X, CM_LABEL_Y);
     lv_obj_set_size(cm_label, CM_LABEL_WIDTH, CM_LABEL_HEIGHT);
     lv_obj_set_style_text_align(cm_label, LV_TEXT_ALIGN_LEFT, 0);
     lv_label_set_text(cm_label, "X");
+#endif
 
 #ifdef DEBUG
     /* debug_text = lv_label_create(lv_screen_active()); */
@@ -838,11 +919,18 @@ void gui_draw_normal(void) {
     lv_obj_set_size(assist_mode, ASSIST_WIDTH, ASSIST_HEIGHT);
     lv_obj_add_style(assist_mode, &assist_mode_normal_style, LV_PART_MAIN);
     lv_obj_add_style(assist_mode, &assist_mode_selected_style, LV_PART_SELECTED);
+    lv_obj_set_style_bg_color(assist_mode, lv_color_black(), LV_PART_MAIN);
+    lv_obj_set_style_bg_color(assist_mode, lv_color_black(), LV_PART_SELECTED);
+    lv_obj_set_style_text_line_space(assist_mode, 5, LV_PART_MAIN);
+
+    lv_obj_set_style_bg_opa(assist_mode, LV_OPA_50, LV_PART_SELECTED);
+
     /* lv_obj_set_style_text_font(assist_mode, &lv_font_andalemo_72, LV_PART_MAIN | LV_PART_SELECTED); */
     /* lv_obj_set_style_text_align(assist_mode, LV_TEXT_ALIGN_CENTER, 0); */
     /* lv_obj_align(assist_mode, LV_ALIGN_LEFT_MID, 10, 0); */
     /* lv_obj_add_event_cb(assist_mode, event_handler, LV_EVENT_ALL, NULL); */
-    lv_roller_set_selected(assist_mode, settings.assist_last, LV_ANIM_OFF);
+    lv_roller_set_selected(assist_mode, settings.assist_last, LV_ANIM_ON);
+    lv_obj_set_style_anim_duration(assist_mode, 250, LV_PART_MAIN);
 
     lights_img = lv_image_create(lv_screen_active());
     lv_image_set_src(lights_img, &icon_headlight);
@@ -1018,7 +1106,7 @@ static void item_event_cb(lv_event_t *e) {
 static lv_style_t item_style, item_style_checked, item_style_selected, list_style, list_scrollbar, item_style_checkbox, item_style_checkbox_checked;
 void gui_draw_settings_main(void) {
     lv_obj_invalidate(lv_screen_active());
-    lv_theme_default_init(NULL, COLOR_BLACK, COLOR_WHITE, LV_THEME_DEFAULT_DARK, &lv_font_fry_32);
+    /* lv_theme_default_init(NULL, COLOR_BLACK, COLOR_WHITE, LV_THEME_DEFAULT_DARK, &lv_font_fry_32); */
     lv_obj_set_style_bg_color(lv_screen_active(), COLOR_BLACK, LV_PART_MAIN);
 
     // text tyles
@@ -1234,7 +1322,9 @@ void gui_update(void) {
             _draw_assist();
             _draw_headlights();
             _draw_brake();
+#if (DEBUG && (UART_COMM == UART_COMM_EBICS))
             _draw_controller_mode();
+#endif
             break;
         default:
             break;
@@ -1317,7 +1407,8 @@ static void _draw_speed(void) {
         }
         lv_label_set_text_fmt(speed_minor, "%1" LID, (tspeed % 1000) / 100);
 #else
-        lv_arc_set_value(speed_bar, speed / 1000);
+        // avoid memory or bad data corruption making a mess of things
+        if (speed <= 99000 && speed >= -99000) lv_arc_set_value(speed_bar, speed);
 #endif
         /* lv_meter_set_indicator_end_value(meter, indic1, speed_major); */
         draw_speed_trigger = 0;
@@ -1328,7 +1419,7 @@ static void _draw_speed(void) {
 void _draw_graph(lv_timer_t *timer) {
     if (mode == MODE_NORMAL) {
         /* if (graph_cursor) lv_chart_set_cursor_point(graph, graph_cursor, graph_series, graph_series->start_point); */
-        lv_chart_set_next_value(graph, graph_series, avg_speed);
+        if (avg_speed <= 99000 && avg_speed >= -99000) lv_chart_set_next_value(graph, graph_series, avg_speed);
     }
 }
 
@@ -1354,6 +1445,7 @@ static void _draw_battery(void) {
     }
 }
 
+#if UART_COMM == UART_COMM_EBICS
 static void _draw_controller_mode(void) {
     if (draw_controller_mode_trigger) {
         char *md = "N";
@@ -1363,6 +1455,7 @@ static void _draw_controller_mode(void) {
         lv_label_set_text(cm_label, md);
     }
 }
+#endif
 
 static void _draw_time(void) {
     if (draw_time_trigger) {
@@ -1388,7 +1481,8 @@ static void _draw_power(void) {
             lv_bar_set_value(powerbar_negative, 0, LV_ANIM_OFF);
             lv_label_set_text_fmt(powerbar_text, "%" LID, power_value);
 #else 
-            /* lv_arc_set_bg_angles(power_bar, settings.power_min * (-22000 / ((settings.power_min * 1) + (settings.power_max) * 10)), ) */
+            lv_arc_set_value(power_bar_positive, power_value);
+            lv_arc_set_value(power_bar_negative, 0);
 #endif
         } else if (power_value >= 0 && power_value_old < 0) {
 #if LVGL_VERSION_MAJOR == 8
@@ -1396,6 +1490,8 @@ static void _draw_power(void) {
             lv_bar_set_value(powerbar_negative, 0, LV_ANIM_OFF);
             lv_label_set_text_fmt(powerbar_text, "%" LID, power_value);
 #else 
+            lv_arc_set_value(power_bar_positive, power_value);
+            lv_arc_set_value(power_bar_negative, 0);
 #endif
         } else if (power_value < 0 && power_value_old >= 0) {
 #if LVGL_VERSION_MAJOR == 8
@@ -1403,6 +1499,8 @@ static void _draw_power(void) {
             lv_bar_set_value(powerbar_negative, power_value * -1, LV_ANIM_ON);
             lv_label_set_text_fmt(powerbar_text, "%" LID, power_value);
 #else 
+            lv_arc_set_value(power_bar_positive, 0);
+            lv_arc_set_value(power_bar_negative, power_value * -1);
 #endif
         } else if (power_value < 0 && power_value_old < 0) {
 #if LVGL_VERSION_MAJOR == 8
@@ -1410,6 +1508,8 @@ static void _draw_power(void) {
             lv_bar_set_value(powerbar_negative, power_value * -1, LV_ANIM_ON);
             lv_label_set_text_fmt(powerbar_text, "%" LID, power_value);
 #else 
+            lv_arc_set_value(power_bar_positive, 0);
+            lv_arc_set_value(power_bar_negative, power_value * -1);
 #endif
         }
 
@@ -1433,7 +1533,6 @@ static void _draw_temperature(void) {
 static void _draw_assist(void) {
     if (draw_assist_trigger) {
         lv_roller_set_selected(assist_mode, settings.assist_last, LV_ANIM_ON);
-        comm_send_display_status(); // inform controller
         draw_assist_trigger = 0;
     }
 }
@@ -1467,6 +1566,14 @@ static void _draw_distances(void) {
         } else {
             print_digit_text(trip_distance_text, settings.trip_distance, 4, 0, COLOR_WHITE, COLOR_GREY);
         }
+#if UART_COMM == UART_COMM_VESC
+        if (distance_total < 100) {
+            lv_label_set_text(distance_text, "--.-");
+        } else {
+            int32_t dv = ((wh_left * distance_total) / (wh_total - wh_regen_total)) * 100;           
+            print_digit_text(distance_text, dv, 2, 1, COLOR_WHITE, COLOR_GREY); 
+        }
+#endif
     }
 }
 

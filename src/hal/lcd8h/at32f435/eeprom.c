@@ -6,6 +6,9 @@
 #include "config.h"
 #include "eeprom.h"
 #include "crc.h"
+#include "lvgl.h"
+
+#pragma GCC optimize ("Os")
 
 #define T_LOW  10
 #define T_HIGH 7
@@ -227,9 +230,11 @@ void eeprom_write_defaults(void) {
 }
 
 void eeprom_read_settings(void) {
+    LV_LOG_INFO("Reading settings from EEPROM");
     eeprom_read_bytes(0, 0, (uint8_t *) &settings, sizeof(settings_t));
     uint8_t crc = crc_calc((uint8_t *) &settings, sizeof(settings_t) - 1);
     if (settings.crc != crc || settings.header != 0xCAFEBABE) {
+        LV_LOG_WARN("CRC or header fail: %02X vs %02X and %08X vs %08X", crc, settings.crc, 0xCAFEBABE, (unsigned int) settings.header);
         eeprom_write_defaults();
     } else {
         settings.factory_reset = 0x55;
@@ -238,7 +243,8 @@ void eeprom_read_settings(void) {
 
 void eeprom_write_settings(void) {
     // calc crc
-    settings.header = 0xDEADBEEF;
+    LV_LOG_INFO("Writing settings to EEPROM");
+    settings.header = 0xCAFEBABE;
     settings.crc = crc_calc((uint8_t *) &settings, sizeof(settings_t) - 1);
     eeprom_write_bytes(0, 0, (uint8_t *) &settings, sizeof(settings_t));
 }

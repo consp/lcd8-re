@@ -131,21 +131,28 @@
 #define TOTAL_DISTANCE_IMG_Y            (13*32) 
 #define TOTAL_DISTANCE_TEXT_X           TOTAL_DISTANCE_IMG_X + 32
 #define TOTAL_DISTANCE_TEXT_Y           TOTAL_DISTANCE_IMG_Y
-#define TOTAL_DISTANCE_TEXT_WIDTH       96
+#define TOTAL_DISTANCE_TEXT_WIDTH       128
 #define TOTAL_DISTANCE_TEXT_HEIGHT      32
+
+#define DISTANCE_LEFT_X                 (5 * 32)
+#define DISTANCE_LEFT_Y                 TOTAL_DISTANCE_IMG_Y
+#define DISTANCE_LEFT_TEXT_X            DISTANCE_LEFT_X + 32
+#define DISTANCE_LEFT_TEXT_Y            DISTANCE_LEFT_Y
+#define DISTANCE_LEFT_TEXT_WIDTH        128
+#define DISTANCE_LEFT_TEXT_HEIGHT            32
 
 #define TRIP_DISTANCE_IMG_X             0
 #define TRIP_DISTANCE_IMG_Y             (14 * 32)
 #define TRIP_DISTANCE_TEXT_X            TRIP_DISTANCE_IMG_X + 32
 #define TRIP_DISTANCE_TEXT_Y            TRIP_DISTANCE_IMG_Y
-#define TRIP_DISTANCE_TEXT_WIDTH        96    
+#define TRIP_DISTANCE_TEXT_WIDTH        128   
 #define TRIP_DISTANCE_TEXT_HEIGHT       32
 
 #define TRIP_TIME_IMG_X                 (5 * 32)
 #define TRIP_TIME_IMG_Y                 (14 * 32)
 #define TRIP_TIME_TEXT_X                TRIP_TIME_IMG_X + 32
 #define TRIP_TIME_TEXT_Y                TRIP_TIME_IMG_Y
-#define TRIP_TIME_TEXT_WIDTH            96    
+#define TRIP_TIME_TEXT_WIDTH            128   
 #define TRIP_TIME_TEXT_HEIGHT           32
 
 // #define TIME_IMG_X                      (5 * 32)
@@ -162,6 +169,7 @@
 #define GRAPH_BORDER_COLOR              RGB565(100, 100, 100)
 #define GRAPH_DIV_COLOR                 RGB565(60, 60, 60)
 #define GRAPH_LINE_COLOR                RGB565(144, 144, 144)
+#define GRAPH_CHART_COLOR               RGB565(220, 220, 220)
 #define GRAPH_LEGEND_COLOR              RGB565(122, 122, 122)
 #define GRAPH_CURSOR_COLOR              RGB565(0, 0, 144)
 #define GRAPH_POINT_COUNT               256

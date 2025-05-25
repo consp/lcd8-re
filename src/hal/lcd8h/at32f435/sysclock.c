@@ -62,7 +62,7 @@ CRITICAL void system_clock_config(void)
   flash_clock_divider_set(CONF_FLASH_DIV);
 
   /* enable hext */
-  crm_clock_source_enable(CRM_CLOCK_SOURCE_HEXT, TRUE);
+  crm_clock_source_enable(CLOCK_SOURCE, TRUE);
 
    /* wait till hext is ready */
   while(crm_hext_stable_wait() == ERROR)
@@ -85,7 +85,7 @@ CRITICAL void system_clock_config(void)
 
   if pll clock source selects hext with other frequency values, or configure pll to other
   frequency values, please use the at32 new clock  configuration tool for configuration.  */
-  crm_pll_config(CRM_PLL_SOURCE_HEXT, CONF_PLL_MUL, CONF_PLL_PREDIV, CONF_PLL_POSTDIV);
+  crm_pll_config(PLL_SOURCE, CONF_PLL_MUL, CONF_PLL_PREDIV, CONF_PLL_POSTDIV);
 
   /* enable pll */
   crm_clock_source_enable(CRM_CLOCK_SOURCE_PLL, TRUE);
@@ -127,15 +127,14 @@ CRITICAL void system_clock_config(void)
 CRITICAL void extend_sram(void)
 {
   /* check if ram has been set to expectant size, if not, change eopb0 */
-  if (((USD->eopb0) & 0x07) != FLASH_EOPB0_SRAM_448K)
+  if (((USD->eopb0) & 0x07) != FLASH_EOPB0_SRAM_384K)
   {
     flash_unlock();
     /* erase user system data bytes */
     flash_user_system_data_erase();
     /* change sram size */
-    flash_eopb0_config(FLASH_EOPB0_SRAM_448K);
+    flash_eopb0_config(FLASH_EOPB0_SRAM_384K);
     /* system reset */
     nvic_system_reset();
   }
-  /* flash_nzw_boost_enable(1); */
 }

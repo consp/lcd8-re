@@ -166,7 +166,7 @@
      */
     #define LV_DRAW_SW_SUPPORT_RGB565       1
     #define LV_DRAW_SW_SUPPORT_RGB565A8     1
-    #define LV_DRAW_SW_SUPPORT_RGB888       0
+    #define LV_DRAW_SW_SUPPORT_RGB888       1
     #define LV_DRAW_SW_SUPPORT_XRGB8888     0
     #define LV_DRAW_SW_SUPPORT_ARGB8888     1
     #define LV_DRAW_SW_SUPPORT_L8           0
@@ -793,7 +793,7 @@
 /* Documentation for themes can be found here: https://docs.lvgl.io/master/overview/style.html#themes . */
 
 /** A simple, impressive and very complete theme */
-#define LV_USE_THEME_DEFAULT 1
+#define LV_USE_THEME_DEFAULT 0
 #if LV_USE_THEME_DEFAULT
     /** 0: Light mode; 1: Dark mode */
     #define LV_THEME_DEFAULT_DARK 0
@@ -1036,7 +1036,7 @@
     #endif
 
     /** Header to include for profiler */
-    #define LV_PROFILER_INCLUDE "lvgl/src/misc/lv_profiler_builtin.h"
+    #define LV_PROFILER_INCLUDE "misc/lv_profiler_builtin.h"
 
     /** Profiler start point function */
     #define LV_PROFILER_BEGIN    LV_PROFILER_BUILTIN_BEGIN
@@ -1078,10 +1078,10 @@
     #define LV_PROFILER_TIMER 0
 
     /*Enable cache profiler*/
-    #define LV_PROFILER_CACHE 0
+    #define LV_PROFILER_CACHE 1
 
     /*Enable event profiler*/
-    #define LV_PROFILER_EVENT 0
+    #define LV_PROFILER_EVENT 1
 #endif
 
 /** 1: Enable Monkey test */
