@@ -8,6 +8,7 @@ uint8_t power_button_state = BUTTON_RELEASED;
 uint8_t up_button_state = BUTTON_RELEASED;
 uint8_t down_button_state = BUTTON_RELEASED;
 uint8_t nc_button_state = BUTTON_RELEASED;
+uint8_t light_state = LIGHTS_DISABLED;
 
 extern volatile uint32_t timer_counter;
 

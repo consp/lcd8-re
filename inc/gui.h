@@ -129,28 +129,28 @@
 
 #define TOTAL_DISTANCE_IMG_X            0
 #define TOTAL_DISTANCE_IMG_Y            (13*32) 
-#define TOTAL_DISTANCE_TEXT_X           TOTAL_DISTANCE_IMG_X + 32
+#define TOTAL_DISTANCE_TEXT_X           TOTAL_DISTANCE_IMG_X + 36
 #define TOTAL_DISTANCE_TEXT_Y           TOTAL_DISTANCE_IMG_Y
 #define TOTAL_DISTANCE_TEXT_WIDTH       128
 #define TOTAL_DISTANCE_TEXT_HEIGHT      32
 
-#define DISTANCE_LEFT_X                 (5 * 32)
-#define DISTANCE_LEFT_Y                 TOTAL_DISTANCE_IMG_Y
-#define DISTANCE_LEFT_TEXT_X            DISTANCE_LEFT_X + 32
-#define DISTANCE_LEFT_TEXT_Y            DISTANCE_LEFT_Y
+#define DISTANCE_LEFT_IMG_X             (5 * 32)
+#define DISTANCE_LEFT_IMG_Y             TOTAL_DISTANCE_IMG_Y
+#define DISTANCE_LEFT_TEXT_X            DISTANCE_LEFT_IMG_X + 36
+#define DISTANCE_LEFT_TEXT_Y            DISTANCE_LEFT_IMG_Y
 #define DISTANCE_LEFT_TEXT_WIDTH        128
-#define DISTANCE_LEFT_TEXT_HEIGHT            32
+#define DISTANCE_LEFT_TEXT_HEIGHT       32
 
 #define TRIP_DISTANCE_IMG_X             0
 #define TRIP_DISTANCE_IMG_Y             (14 * 32)
-#define TRIP_DISTANCE_TEXT_X            TRIP_DISTANCE_IMG_X + 32
+#define TRIP_DISTANCE_TEXT_X            TRIP_DISTANCE_IMG_X + 36
 #define TRIP_DISTANCE_TEXT_Y            TRIP_DISTANCE_IMG_Y
 #define TRIP_DISTANCE_TEXT_WIDTH        128   
 #define TRIP_DISTANCE_TEXT_HEIGHT       32
 
 #define TRIP_TIME_IMG_X                 (5 * 32)
 #define TRIP_TIME_IMG_Y                 (14 * 32)
-#define TRIP_TIME_TEXT_X                TRIP_TIME_IMG_X + 32
+#define TRIP_TIME_TEXT_X                TRIP_TIME_IMG_X + 36
 #define TRIP_TIME_TEXT_Y                TRIP_TIME_IMG_Y
 #define TRIP_TIME_TEXT_WIDTH            128   
 #define TRIP_TIME_TEXT_HEIGHT           32
@@ -194,6 +194,14 @@
 #define DEBUG_Y                 DISPLAY_HEIGHT - 16
 #define DEBUG_WIDTH             320
 #define DEBUG_HEIGHT            16
+
+
+#define BSOD_X                 GRAPH_X
+#define BSOD_Y                 GRAPH_Y - 32
+#define BSOD_WIDTH             DISPLAY_WIDTH
+#define BSOD_HEIGHT            64
+#define BSOD_BG                RGB565(0, 0, 128)
+#define BSOD_COLOR             RGB565(255, 255, 255)
 
 #define max(a,b) \
    ({ __typeof__ (a) _a = (a); \

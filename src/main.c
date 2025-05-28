@@ -34,6 +34,9 @@
 #endif
 #include <cmsis/core/core_cm4.h>
 #endif
+#ifdef PLATFORM_SIM
+#include <SDL_timer.h>
+#endif
 
 #include "lcd.h"
 #include "delay.h"
@@ -58,14 +61,14 @@ extern lv_display_t *display;
   * @retval none
   */
 
-#ifdef SEMIHOSTING
+#if defined(SEMIHOSTING) && !defined(PLATFORM_SIM)
 extern void initialise_monitor_handles(void);
 #endif
 
 CRITICAL int main(void)
 {
     system_clock_config();
-#ifdef SEMIHOSTING
+#if defined(SEMIHOSTING) && !defined(PLATFORM_SIM)
   	initialise_monitor_handles();
     printf("Semihosting enabled");
 #endif
@@ -84,17 +87,17 @@ CRITICAL int main(void)
     controls_init();                        // init adc and buttons 
     power_enable();
     
+    lcd_init();                             // attempt to initialize the lcd peripherals
+    lcd_backlight(100);
+    lcd_start();                            // start lcd init sequence
     crc_init();                             // crc init if HW unit
     eeprom_init();                          // initialize the eeprom for data storage
     clock_init();                           // clouck source (if available)
-    lcd_init();                             // attempt to initialize the lcd peripherals
     
     button_release(BUTTON_ID_POWER, 500);   // ignore inputs for a while
     button_release(BUTTON_ID_DOWN, 500);   // ignore inputs for a while
     button_release(BUTTON_ID_UP, 500);   // ignore inputs for a while
     
-    lcd_backlight(100);
-    lcd_start();                            // start lcd init sequence
 #ifndef PLATFORM_SIM
     uart_init(57600);                       // initialize comms
     gui_init();                             // start lvgl and setup screen
@@ -104,15 +107,15 @@ CRITICAL int main(void)
     comm_send_controller_settings();
 
 #if MONITOR && DEBUG
-    uint32_t x = 0, y = 0;
-    /* uint32_t tmp = 0; */
-    /* extern int32_t battery_current; */
-    /* extern int32_t battery_voltage; */
-    /* extern int32_t speed; */
-    /* extern uint8_t draw_power_trigger, draw_speed_trigger; */
 #endif
     lv_timer_handler();
 
+#if (!defined(DEBUG) || DEBUG == 0) && !defined(PLATFORM_SIM)
+    wdt_divider_set(WDT_CLK_DIV_32);
+    wdt_reload_value_set(1250); // 1s
+    wdt_counter_reload();
+    wdt_enable();
+#endif
     while(1) {
 #if PLATFORM_SIM && LVGL_VERSION_MAJOR == 9
         SDL_Delay(5);
@@ -120,23 +123,11 @@ CRITICAL int main(void)
         comm_update();
         button_presses();
         gui_update();                                           // update gui data
-
-        /* if (timer_counter - tmp >= 100) { */
-        /*     tmp = timer_counter; */
-        /*     battery_voltage = 27000; */
-        /*     battery_current+=100; */
-        /*     draw_power_trigger = 1; */
-        /*     draw_speed_trigger = 1; */
-        /*     speed += 250; */
-        /*     if (battery_current > 20000) battery_current = -10000; */
-        /*     if (speed > 35000) speed = 0; */
-        /* } */
-#if MONITOR && DEBUG
-        uint32_t m = lv_timer_handler();                                     // draw
-        delay_ms(m);
-#else
+        auto_lights();
         uint32_t m = lv_timer_handler();
-        delay_ms(m);
+        delay_ms(m > CYCLE_DELAY_LIMIT ? CYCLE_DELAY_LIMIT : m);
+#if (!defined(DEBUG) || DEBUG == 0) && !defined(PLATFORM_SIM)
+        wdt_counter_reload();
 #endif
     }
 }

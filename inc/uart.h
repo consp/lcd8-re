@@ -5,6 +5,8 @@
 #include <unistd.h>
 #include "config.h"
 
+// keep TX buffer at least as large as the largest message
+// keep RX buffer at least as large as twice the largest received message
 #ifdef DEBUG
 #define UART_TX_BUFFER_SIZE     128
 #define UART_RX_BUFFER_SIZE     128
@@ -13,8 +15,15 @@
 #define UART_RX_BUFFER_SIZE     128
 #endif
 
+
 void uart_init(uint32_t baud);
 void uart_send(const uint8_t *buffer, ssize_t length, int async);
 int uart_get_data(uint8_t *data, uint32_t *length);
+
+// guard for tx buffer, not all gcc versions will detact overflows correctly
+// and you might end up bashing some other memory region, MCCONF_TEMP uses 59 bytes
+#if (UART_COMM == UART_COMM_VESC) && (UART_TX_BUFFER_SIZE < 64 || UART_RX_BUFFER_SIZE < 64)
+#pragma error("Need at least 64 byte buffer for VESC")
+#endif
 
 #endif // __UART_H__

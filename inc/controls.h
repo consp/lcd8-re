@@ -35,9 +35,14 @@ int32_t voltage_mcu(void);
 
 int32_t int_temp(void);
 int32_t ext_temp(void);
+int32_t light_level(void);
+void auto_lights();
 
 void power_enable(void);
 void power_disable(void);
+
+#define LIGHTS_DISABLED 0
+#define LIGHTS_ENABLED 1
 
 #define BUTTON_ID_UP        0
 #define BUTTON_ID_DOWN      2 

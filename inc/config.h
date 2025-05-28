@@ -38,7 +38,7 @@
  * default values
  */
 #define POWER_MAX 500
-#define POWER_REDLINE 250
+#define POWER_REDLINE 300
 #define POWER_MIN -250
 
 #define SPEED_MAX       35
@@ -58,6 +58,7 @@
 #define PAS_RAMP 1600
 #define REGEN_CURRENT 5000
 
+#define CYCLE_DELAY_LIMIT 5             // max amount of delay before lv_timer triggers again, keep at ~5ms for maximum responsiveness
 /*
  * if you install a external 32khz crystal the ertc can work
  * I chose a bog standard one with 2 * 5.6pF caps.
@@ -125,7 +126,7 @@
 #define PLL_SOURCE          CRM_PLL_SOURCE_HEXT
 #define CONF_FLASH_DIV      FLASH_CLOCK_DIV_3
 #define CONF_FREQ           8000000
-#define CONF_PLL_MUL        144
+#define CONF_PLL_MUL        150
 #define CONF_PLL_PREDIV     1
 #define CONF_PLL_POSTDIV    CRM_PLL_FR_4
 #define TIMER_FREQ(x)       (( \

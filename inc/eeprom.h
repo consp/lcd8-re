@@ -6,6 +6,7 @@
 void eeprom_init(void);
 void eeprom_read_settings(void);
 void eeprom_write_settings(void);
+void eeprom_factory_reset(void);
 
 #pragma pack(push, 1)
 typedef struct __attribute__((packed)) {
@@ -43,6 +44,8 @@ typedef struct __attribute__((packed)) {
 
     uint32_t    date;
     uint32_t    time;
+
+    int16_t     light_sensitivity;
 
     uint8_t     factory_reset;
     uint8_t     crc;

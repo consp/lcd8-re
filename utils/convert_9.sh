@@ -1,5 +1,5 @@
 #!/bin/bash
-CF=RGB565
+CF=RGB888
 COMPRESS=
 # COMPRESS=--compress RLE 
 python3 thirdparty/lvgl/scripts/LVGLImage.py --ofmt C --cf $CF -o src/img/display/lvgl9 img/display/icon_headlight_auto.png 
@@ -10,5 +10,6 @@ python3 thirdparty/lvgl/scripts/LVGLImage.py --ofmt C --cf $CF -o src/img/displa
 python3 thirdparty/lvgl/scripts/LVGLImage.py --ofmt C --cf $CF -o src/img/display/lvgl9 img/display/icon_journey.png  
 python3 thirdparty/lvgl/scripts/LVGLImage.py --ofmt C --cf $CF -o src/img/display/lvgl9 img/display/icon_temperature.png 
 python3 thirdparty/lvgl/scripts/LVGLImage.py --ofmt C --cf $CF -o src/img/display/lvgl9 img/display/icon_trip.png 
+python3 thirdparty/lvgl/scripts/LVGLImage.py --ofmt C --cf $CF -o src/img/display/lvgl9 img/display/icon_energy.png 
 python3 thirdparty/lvgl/scripts/LVGLImage.py --ofmt C --cf $CF -o src/img/display/lvgl9 img/display/battery_black.png 
 

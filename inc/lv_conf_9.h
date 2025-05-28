@@ -126,10 +126,10 @@
  *========================*/
 
 /** Align stride of all layers and images to this bytes */
-#define LV_DRAW_BUF_STRIDE_ALIGN                4
+#define LV_DRAW_BUF_STRIDE_ALIGN                1
 
 /** Align start address of draw_buf addresses to this bytes*/
-#define LV_DRAW_BUF_ALIGN                       4
+#define LV_DRAW_BUF_ALIGN                       1
 
 /** Using matrix for transformations.
  * Requirements:
@@ -584,7 +584,7 @@
 #define LV_FONT_MONTSERRAT_26 0
 #define LV_FONT_MONTSERRAT_28 0
 #define LV_FONT_MONTSERRAT_30 0
-#define LV_FONT_MONTSERRAT_32 0
+#define LV_FONT_MONTSERRAT_32 1
 #define LV_FONT_MONTSERRAT_34 0
 #define LV_FONT_MONTSERRAT_36 0
 #define LV_FONT_MONTSERRAT_38 0
@@ -606,11 +606,17 @@
 
 
 #define ANDALEMO_12                     1
-#define ANDALEMO_16                     1
-#define ANDALEMO_28                     1
+#define ANDALEMO_16                     0
+#define ANDALEMO_28                     0
 #define ANDALEMO_32                     1
 #define ANDALEMO_72                     1
-#define LV_FONT_FRY_120                 1
+#define LV_FONT_FRY_120                 0
+
+#define PLEX_12     1
+#define PLEX_16     0
+#define PLEX_28     0
+#define PLEX_32     1
+#define PLEX_72     1
 
 /** Optionally declare custom fonts here.
  *
@@ -621,7 +627,7 @@
  *  #define LV_FONT_CUSTOM_DECLARE   LV_FONT_DECLARE(my_font_1) LV_FONT_DECLARE(my_font_2)
  *  @endcode
  */
-#define LV_FONT_CUSTOM_DECLARE LV_FONT_DECLARE(lv_font_andalemo_72) LV_FONT_DECLARE(lv_font_andalemo_32) LV_FONT_DECLARE(lv_font_fry_32) LV_FONT_DECLARE(lv_font_andalemo_16) LV_FONT_DECLARE(lv_font_andalemo_12)
+#define LV_FONT_CUSTOM_DECLARE LV_FONT_DECLARE(lv_font_andalemo_72) LV_FONT_DECLARE(lv_font_andalemo_32) LV_FONT_DECLARE(lv_font_fry_32) LV_FONT_DECLARE(lv_font_andalemo_16) LV_FONT_DECLARE(lv_font_andalemo_12) LV_FONT_DECLARE(lv_font_plex_12) LV_FONT_DECLARE(lv_font_plex_16) LV_FONT_DECLARE(lv_font_plex_28) LV_FONT_DECLARE(lv_font_plex_32) LV_FONT_DECLARE(lv_font_plex_72)
 
 /** Always set a default font */
 #define LV_FONT_DEFAULT &lv_font_montserrat_12

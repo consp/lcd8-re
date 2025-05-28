@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <time.h>
+#include <SDL_timer.h>
 #include "eeprom.h"
 #include "clock.h"
 #include "gui.h"

@@ -1,3 +1,4 @@
+#include <stdlib.h>
 #include "controls.h"
 #include "config.h"
 #include "lvgl.h"
@@ -33,42 +34,44 @@ int32_t ext_temp_store = 0; // store temperature adc value in case button is pre
 uint32_t lpcnt = 0;
 
 static void cb_handler(lv_event_t * e) {
-#if LVGL_VERSION_MAJOR == 8
     lv_indev_t *i = lv_indev_get_act();
+#if LVGL_VERSION_MAJOR == 8
     uint32_t key = i->proc.types.keypad.last_key;
     uint32_t state = i->proc.types.keypad.last_state;
-
+#else
+    uint32_t key = lv_indev_get_key(i);
+    /* uint32_t state = i->proc.types.keypad.last_state; */
+#endif
     // state is always pressed, lvgl 8.x is crap with keys
     // you can only capture release of "enter"
     switch (key) {
-        case 113:
+        case 113: // "Q"
             up_button_state = BUTTON_PRESSED;
             break;
-        case 119:
+        case 119: // "W"
             up_button_state = BUTTON_LONG_PRESSED;
             lpcnt = timer_counter;
             break;
-        case 97: 
+        case 97: // "A" 
             power_button_state = BUTTON_PRESSED;
             break;
-        case 115:
+        case 115: // "S"
             power_button_state = BUTTON_LONG_PRESSED;
             lpcnt = timer_counter;
             break;
-        case 122:
+        case 122: // "Z"
             down_button_state = BUTTON_PRESSED;
             break;
-        case 120:
+        case 120: // "X"
             down_button_state = BUTTON_LONG_PRESSED;
             lpcnt = timer_counter;
             break;
-        case 100:
+        case 100: // "D"
             up_button_state = BUTTON_LONG_PRESSED;
             down_button_state = BUTTON_LONG_PRESSED;
             lpcnt = timer_counter;
             break;
     }
-#endif
 }
 
 static void _lp_timer(lv_timer_t *t) {
@@ -92,6 +95,9 @@ void controls_init(void) {
     indev_drv_kb.type = LV_INDEV_TYPE_KEYPAD;
     indev_drv_kb.read_cb = gtkdrv_keyboard_read_cb;
     indev = lv_indev_drv_register(&indev_drv_kb);
+#else
+    indev = lv_sdl_keyboard_create();
+#endif
 
     // register keypresses
     g = lv_group_create();
@@ -106,11 +112,7 @@ void controls_init(void) {
     lv_indev_set_group(indev, lv_group_get_default());
 
     lv_group_focus_obj(lv_screen_active());
-    LV_LOG_INFO("%08x, %08x", lv_group_get_default(), indev);
-
-    
     lp_timer = lv_timer_create(_lp_timer, 100, NULL);
-#endif
 }
 
 void power_enable(void) {  }
@@ -221,5 +223,13 @@ int32_t voltage_mcu(void) {
 
 int32_t voltage_ebat(void) { // in mv
     return 24000; 
+}
+
+int32_t light_level(void) {
+    return 2900;
+}
+
+void auto_lights(void) {
+    // do nothing
 }
 

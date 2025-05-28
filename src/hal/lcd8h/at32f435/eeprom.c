@@ -8,6 +8,7 @@
 #include "crc.h"
 #include "lvgl.h"
 
+// optimization messes with the crude timing and O3 changes execution order, keep Os
 #pragma GCC optimize ("Os")
 
 #define T_LOW  10
@@ -225,25 +226,36 @@ void eeprom_write_defaults(void) {
     settings.time = ERTC->time;
     settings.date = ERTC->date;
 #endif
-    settings.factory_reset = 0xAA; // mark as factory reset
-    eeprom_write_settings();
+
+    settings.light_sensitivity = 2700;
+    settings.factory_reset = 0xAA; // mark as defaults loaded 
 }
 
 void eeprom_read_settings(void) {
     LV_LOG_INFO("Reading settings from EEPROM");
     eeprom_read_bytes(0, 0, (uint8_t *) &settings, sizeof(settings_t));
     uint8_t crc = crc_calc((uint8_t *) &settings, sizeof(settings_t) - 1);
-    if (settings.crc != crc || settings.header != 0xCAFEBABE) {
-        LV_LOG_WARN("CRC or header fail: %02X vs %02X and %08X vs %08X", crc, settings.crc, 0xCAFEBABE, (unsigned int) settings.header);
-        eeprom_write_defaults();
-    } else {
-        settings.factory_reset = 0x55;
+    while(counter < 5 && settings.factory_reset != 0x55) {
+            if (settings.crc != crc || settings.header != 0xCAFEBABE) {
+                LV_LOG_WARN("CRC or header fail: %02X vs %02X and %08X vs %08X", crc, settings.crc, 0xCAFEBABE, (unsigned int) settings.header);
+                eeprom_write_defaults(); // make sure something is read 
+                settings.factory_reset = 0xFF; // invalidate
+            } else {
+                settings.factory_reset = 0x55;
+            }
     }
+}
+
+void eeprom_factory_reset(void) {
+    eeprom_write_defaults();
+    settings.factory_reset = 0xAA;
+    eeprom_write_settings();
 }
 
 void eeprom_write_settings(void) {
     // calc crc
     LV_LOG_INFO("Writing settings to EEPROM");
+    if (settings.factory_reset == 0xFF) return; // do not write if error
     settings.header = 0xCAFEBABE;
     settings.crc = crc_calc((uint8_t *) &settings, sizeof(settings_t) - 1);
     eeprom_write_bytes(0, 0, (uint8_t *) &settings, sizeof(settings_t));

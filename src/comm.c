@@ -14,7 +14,7 @@
 #endif
 
 // system is possibly in Os mode
-#pragma GCC optimize ("O3")
+#pragma GCC optimize ("O2")
 
 // externals
 extern int32_t speed, battery_current, battery_voltage_controller, mot_temperature, con_temperature, wheel_circumfence, amphours_total, amphours_regen_total, wh_left, wh_total, wh_regen_total, distance_total;
@@ -24,6 +24,7 @@ extern settings_t settings;
 extern volatile uint32_t timer_counter;
 
 uint32_t comm_counter = 0;
+int8_t comm_ready = 0;
 #if UART_COMM == UART_COMM_VESC
 #include <math.h>
 uint32_t comm_counter2 = 0;
@@ -144,6 +145,7 @@ void comm_update(void) {
                                     rpm /= 10; // default
                                     tval = 60000 / (rpm); 
                                 }
+                                
                                 clock_set_wheelspeed_timer(tval);
                                 speed = (6 * settings.wheel_circumfence * rpm) / 10; // cm/h
                             }
@@ -272,6 +274,7 @@ void comm_update(void) {
                     case COMM_VESC_CMD_MCONF_SET:
                         // response from controller
                         mconf_updated = 1;
+                        comm_ready = 1;
                         LV_LOG_INFO("Confirm MCONF set");
                         break;
                     default:
@@ -406,6 +409,7 @@ void comm_send_display_status(void) {
     
     uart_send(data, 3 + sizeof(msg_display_status), 0);
 #elif UART_COMM == UART_COMM_VESC
+    LV_LOG_INFO("Lights: %d", settings.lights_enabled);
     comm_vesc_packet_send_lights(settings.lights_enabled ? 0x03 : 0x00);
     comm_send_display_settings(); // there is no easy way to do this
 #endif

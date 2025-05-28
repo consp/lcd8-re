@@ -16,6 +16,7 @@ void eeprom_init(void) {
 void eeprom_write_defaults(void) {
     settings.power_max = POWER_MAX;
     settings.power_min = POWER_MIN;
+    settings.power_redline = POWER_REDLINE;
     settings.speed_max = SPEED_MAX;
     settings.current_max = 10000;
     settings.battery_voltage_min = BATTERY_MIN;
@@ -26,7 +27,7 @@ void eeprom_write_defaults(void) {
     settings.assist_levels = ASSIST_LEVELS;
     settings.assist_last = ASSIST_DEFAULT;
     settings.wheel_circumfence = WHEEL_CIRCUMFENCE;
-    settings.speed_redline = SPEED_MAX;
+    settings.speed_redline = SPEED_REDLINE;
     settings.speed_assist_max = SPEED_MAX;
     settings.lights_enabled = 0;
     settings.lights_mode = 0;
@@ -45,13 +46,22 @@ void eeprom_write_defaults(void) {
     settings.date = 0;
 #endif
     settings.factory_reset = 0xAA; // mark as factory reset
+    settings.light_sensitivity = 2700;
     eeprom_write_settings();
 }
 
 void eeprom_read_settings(void) {
     eeprom_write_defaults();
+    settings.factory_reset = 0xAA;
 }
 
 void eeprom_write_settings(void) {
+}
+
+
+void eeprom_factory_reset(void) {
+    eeprom_write_defaults();
+    settings.factory_reset = 0xAA;
+    eeprom_write_settings();
 }
 

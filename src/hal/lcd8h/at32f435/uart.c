@@ -6,8 +6,10 @@
 #include "crc.h"
 #include <machine/endian.h>
 
-uint8_t uart_rx_buffer[UART_RX_BUFFER_SIZE] = {0};
-uint8_t uart_tx_buffer[UART_TX_BUFFER_SIZE] = {0};
+#pragma GCC optimize ("O2")
+
+uint8_t uart_rx_buffer[UART_RX_BUFFER_SIZE];
+uint8_t uart_tx_buffer[UART_TX_BUFFER_SIZE];
 volatile int uart_rx_ready = 0;
 volatile int uart_tx_ready = 0;
 uint32_t read_buffer_length = 0;
@@ -201,7 +203,9 @@ CRITICAL int uart_get_data(uint8_t *data, uint32_t *length) {
         uart_rx_ready = 0;
         *length = read_buffer_length;
         if (*length > UART_RX_BUFFER_SIZE) *length = UART_RX_BUFFER_SIZE;
-        if (uart_rx_end < uart_rx_start) {
+        if (uart_rx_start == uart_rx_end) {
+            return 0;
+        } else if (uart_rx_end < uart_rx_start) {
             memcpy(data, uart_rx_start, UART_RX_BUFFER_SIZE - (uart_rx_start - uart_rx_buffer));
             memcpy(&data[UART_RX_BUFFER_SIZE - (uart_rx_start - uart_rx_buffer)], uart_rx_buffer, uart_rx_end - uart_rx_buffer);
         } else {

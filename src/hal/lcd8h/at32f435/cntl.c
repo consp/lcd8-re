@@ -1,10 +1,15 @@
 #include "controls.h"
 #include "comm.h"
 #include "delay.h"
+#include "lcd.h"
 #include "at32f435_437.h"
 #include "hal/lcd8/at32f435/cntl.h"
 
 #include "config.h"
+#include "eeprom.h"
+#include "gui.h"
+
+extern settings_t settings;
 
 const int NTC_table[1025] = {
   105972, 90128, 74284, 66383, 61277, 57570, 
@@ -175,6 +180,7 @@ extern uint8_t power_button_state ;
 extern uint8_t up_button_state ;
 extern uint8_t down_button_state ;
 extern uint8_t nc_button_state ;
+extern uint8_t light_state ;
 
 extern uint32_t power_button_start;
 extern uint32_t up_button_start;
@@ -353,11 +359,18 @@ void controls_init(void) {
 
 CRITICAL void power_enable(void) { POWER_LATCH_GPIO->scr = POWER_LATCH_PIN; }
 CRITICAL void power_disable(void) { 
+    lcd_backlight(0); // "show off"
 #if UART_COMM == UART_COMM_VESC
-    // send uart, sleep for ~500ms to allow shutdown
     comm_vesc_packet_send_shutdown();
-    delay_ms(500);
 #endif
+    int n = 0;
+    while(n < 100) {
+#ifndef DEBUG
+        wdt_counter_reload();
+#endif
+        delay_ms(25);
+        n++;
+    }
     // cap should keep it fed for a while
     POWER_LATCH_GPIO->clr = POWER_LATCH_PIN; 
 #if LEXT_INSTALLED
@@ -416,6 +429,22 @@ int32_t ext_temp(void) {
         return ext_temp_store;
     } else {
         return ext_temp_store = NTC_ADC2Temperature(adc.temperature_ext);
+    }
+}
+
+int32_t light_level(void) {
+    return adc.nc_button;
+}
+
+void auto_lights() {
+    if (settings.lights_mode == LIGHTS_MODE_AUTOMATIC) {
+        if (light_level() > settings.light_sensitivity && !settings.lights_enabled) {
+            settings.lights_enabled = 1;
+            comm_send_display_status();
+        } else if (light_level() < settings.light_sensitivity && settings.lights_enabled) {
+            settings.lights_enabled = 0;
+            comm_send_display_status();
+        }
     }
 }
 

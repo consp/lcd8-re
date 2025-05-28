@@ -8,18 +8,18 @@ TARGET = LCD8H-firmware
 # building variables
 ######################################
 # build as debug, if disabled all others are as well
-DEBUG=0
+DEBUG=1
 # log to console/uart
-LVGL_LOG=0
+LVGL_LOG=1
 # print monitoring info on display and/or logs
-MONITOR=1
+MONITOR=0
 # use libasan in sim build (memory error detection)
 ASAN=0
 
 
 ## Select platform, SIM uses DRM and requires linux/X11/Wayland/Gtk
-PLATFORM=LCD8
-# PLATFORM=SIM
+# PLATFORM=LCD8
+PLATFORM=SIM
 
 ## Select chip If you replace the chip on the board (e.g. at32f415 to at32f435) you can have more memory etc.
 # CHIP = gd32f303 ## DOES NOT WORK
@@ -42,7 +42,7 @@ endif
 ifeq ($(DEBUG),1)
 	OPT = -Os
 else
-	OPT = -O2
+	OPT = -Ofast
 endif
 
 #######################################
@@ -77,6 +77,11 @@ C_SOURCES += \
 			 src/fonts/$(LVGL_VERSION).x/ANDALEMO_28.c \
 			 src/fonts/$(LVGL_VERSION).x/ANDALEMO_16.c \
 			 src/fonts/$(LVGL_VERSION).x/ANDALEMO_12.c \
+			 src/fonts/$(LVGL_VERSION).x/PLEX_72.c \
+			 src/fonts/$(LVGL_VERSION).x/PLEX_32.c \
+			 src/fonts/$(LVGL_VERSION).x/PLEX_28.c \
+			 src/fonts/$(LVGL_VERSION).x/PLEX_16.c \
+			 src/fonts/$(LVGL_VERSION).x/PLEX_12.c \
 			 src/fonts/$(LVGL_VERSION).x/FRY_32.c \
 			 src/fonts/large_text_1bpp.c \
 			 src/img/display/lvgl$(LVGL_VERSION)/battery_black.c \
@@ -87,6 +92,7 @@ C_SOURCES += \
 			 src/img/display/lvgl$(LVGL_VERSION)/icon_journey.c \
 			 src/img/display/lvgl$(LVGL_VERSION)/icon_headlight.c \
 			 src/img/display/lvgl$(LVGL_VERSION)/icon_headlight_auto.c \
+			 src/img/display/lvgl$(LVGL_VERSION)/icon_energy.c \
 			 src/img/display/lvgl$(LVGL_VERSION)/icon_trip.c
 
 
@@ -157,6 +163,7 @@ ifeq ($(CHIP),at32f415)
 				 src/drivers/at32f435/at32f435_437_gpio.c \
 				 src/drivers/at32f435/at32f435_437_i2c.c \
 				 src/drivers/at32f435/at32f435_437_misc.c \
+				 src/drivers/at32f435/at32f435_437_wdt.c \
 				 src/hal/lcd8h/at32f435/at32f435_437_int.c
 	else # sim
 	# do nothing for now
@@ -330,8 +337,8 @@ endif
 
 # compile gcc flags
 ASFLAGS = $(MCU) $(AS_DEFS)  $(OPT) -Wall -fdata-sections -ffunction-sections $(LTO) -Wa,-Iinc/
-GTK_CFLAGS = `pkg-config --cflags gtk+-3.0`
-SDL2_CFLAGS = `pkg-config --cflags sdl2`
+GTK_CFLAGS=$(shell pkg-config --cflags gtk+-3.0)
+SDL2_CFLAGS=$(shell pkg-config --cflags sdl2)
 
 ifeq ($(PLATFORM)$(LVGL_VERSION),SIM9)
 CFLAGS += $(SDL2_CFLAGS) $(C_DEFS) $(C_INCLUDES) $(OPT) -Wall $(LTO) 
