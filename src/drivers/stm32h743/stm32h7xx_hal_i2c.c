@@ -1132,7 +1132,7 @@ HAL_StatusTypeDef HAL_I2C_Master_Transmit(I2C_HandleTypeDef *hi2c, uint16_t DevA
 
     if (I2C_WaitOnFlagUntilTimeout(hi2c, I2C_FLAG_BUSY, SET, I2C_TIMEOUT_BUSY, tickstart) != HAL_OK)
     {
-      return HAL_ERROR;
+      return HAL_ERROR + 10;
     }
 
     hi2c->State     = HAL_I2C_STATE_BUSY_TX;
@@ -1185,7 +1185,7 @@ HAL_StatusTypeDef HAL_I2C_Master_Transmit(I2C_HandleTypeDef *hi2c, uint16_t DevA
       /* Wait until TXIS flag is set */
       if (I2C_WaitOnTXISFlagUntilTimeout(hi2c, Timeout, tickstart) != HAL_OK)
       {
-        return HAL_ERROR;
+        return HAL_ERROR + 11;
       }
       /* Write data to TXDR */
       hi2c->Instance->TXDR = *hi2c->pBuffPtr;
@@ -1201,7 +1201,7 @@ HAL_StatusTypeDef HAL_I2C_Master_Transmit(I2C_HandleTypeDef *hi2c, uint16_t DevA
         /* Wait until TCR flag is set */
         if (I2C_WaitOnFlagUntilTimeout(hi2c, I2C_FLAG_TCR, RESET, Timeout, tickstart) != HAL_OK)
         {
-          return HAL_ERROR;
+          return HAL_ERROR + 12;
         }
 
         if (hi2c->XferCount > MAX_NBYTE_SIZE)
@@ -1223,7 +1223,7 @@ HAL_StatusTypeDef HAL_I2C_Master_Transmit(I2C_HandleTypeDef *hi2c, uint16_t DevA
     /* Wait until STOPF flag is set */
     if (I2C_WaitOnSTOPFlagUntilTimeout(hi2c, Timeout, tickstart) != HAL_OK)
     {
-      return HAL_ERROR;
+      return HAL_ERROR + 13;
     }
 
     /* Clear STOP Flag */

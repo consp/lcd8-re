@@ -13,7 +13,7 @@ PROFILE=0
 # log to console/uart
 LVGL_LOG=1
 # print monitoring info on display and/or logs
-MONITOR=1
+MONITOR=0
 # use libasan in sim build (memory error detection)
 ASAN=0
 
@@ -90,6 +90,7 @@ C_SOURCES += \
 			 src/fonts/$(LVGL_VERSION).x/PLEX_28.c \
 			 src/fonts/$(LVGL_VERSION).x/PLEX_16.c \
 			 src/fonts/$(LVGL_VERSION).x/PLEX_12.c \
+			 src/fonts/$(LVGL_VERSION).x/ROBOTO_32.c \
 			 src/fonts/$(LVGL_VERSION).x/FRY_32.c \
 			 src/fonts/$(LVGL_VERSION).x/FRY_64.c \
 			 src/fonts/$(LVGL_VERSION).x/FRY_128.c \
@@ -101,7 +102,9 @@ C_SOURCES += \
 			 src/img/display/lvgl$(LVGL_VERSION)/icon_engine.c \
 			 src/img/display/lvgl$(LVGL_VERSION)/icon_journey.c \
 			 src/img/display/lvgl$(LVGL_VERSION)/icon_headlight.c \
+			 src/img/display/lvgl$(LVGL_VERSION)/icon_headlight_enabled.c \
 			 src/img/display/lvgl$(LVGL_VERSION)/icon_headlight_auto.c \
+			 src/img/display/lvgl$(LVGL_VERSION)/icon_headlight_auto_enabled.c \
 			 src/img/display/lvgl$(LVGL_VERSION)/icon_energy.c \
 			 src/img/display/lvgl$(LVGL_VERSION)/icon_trip.c
 
@@ -121,6 +124,7 @@ else ifeq ($(PLATFORM),custom)
 				 src/hal/custom/$(MCU_PATH)/sysclock.c \
 				 src/hal/custom/${MCU_PATH}/lcd.c \
 				 src/hal/custom/${MCU_PATH}/uart.c \
+				 src/hal/custom/${MCU_PATH}/can.c \
 				 src/hal/custom/${MCU_PATH}/delay.c \
 				 src/hal/custom/${MCU_PATH}/clock.c \
 				 src/hal/custom/${MCU_PATH}/eeprom.c \
@@ -217,6 +221,8 @@ else ifeq ($(CHIP),stm32h743)
 				src/drivers/stm32h743/stm32h7xx_hal_dma2d.c \
 				src/drivers/stm32h743/stm32h7xx_hal_fdcan.c \
 				src/drivers/stm32h743/stm32h7xx_ll_fmc.c \
+				src/drivers/stm32h743/stm32h7xx_ll_rcc.c \
+				src/drivers/stm32h743/stm32h7xx_ll_usart.c \
 				src/drivers/stm32h743/stm32h7xx_hal_nor.c \
 				src/drivers/stm32h743/stm32h7xx_hal_sram.c \
 				src/drivers/stm32h743/stm32h7xx_hal_nand.c \
@@ -226,8 +232,9 @@ else ifeq ($(CHIP),stm32h743)
 				src/drivers/stm32h743/stm32h7xx_hal_rtc.c \
 				src/drivers/stm32h743/stm32h7xx_hal_rtc_ex.c \
 				src/drivers/stm32h743/stm32h7xx_hal_tim.c \
-				src/drivers/stm32h743/stm32h7xx_hal_tim_ex.c
-else # sim
+				src/drivers/stm32h743/stm32h7xx_hal_tim_ex.c \
+				src/drivers/stm32h743/stm32h7xx_hal_iwdg.c
+else # sim 
 	# do nothing for now
 endif
 
@@ -379,7 +386,8 @@ C_DEFS += -DGD32F303 \
 else ifeq ($(CHIP),stm32h743)
 C_DEFS += -DSTM32H743 \
 		  -DARM_MATH_CM7 '-D__packed=__attribute__((__packed__))' \
-		  -DLV_MEM_SIZE_KB=64u
+		  -DLV_MEM_SIZE_KB=92u \
+		  -DUSE_FULL_LL_DRIVER
 else ifeq ($(PLATFORM),SIM)
 C_DEFS += -DLV_MEM_SIZE_KB=16384U
 else
@@ -569,6 +577,10 @@ else ifeq ($(CHIP),stm32h743)
 else
 	pyocd load -u 69747484 build/LCD8H-firmware.bin --target $(PYOCD_TARGET) 
 endif
+
+reset:
+	/opt/SEGGER/JLink/JLinkExe < jlink-stm32h743-reset.cfg
+
 
 gdb: $(BUILD_DIR)/$(TARGET).elf
 	pyocd gdbserver -u 69747484 --target $(PYOCD_TARGET) &

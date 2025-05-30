@@ -16,10 +16,10 @@
     You should have received a copy of the GNU General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
     */
-
+#include "config.h"
 #include "crc.h"
 
-static const uint8_t CRC_TABLE[256] = {
+static uint8_t CRC_TABLE[256] = {
     0x00, 0x07, 0x0E, 0x09, 0x1C, 0x1B, 0x12, 0x15,
     0x38, 0x3F, 0x36, 0x31, 0x24, 0x23, 0x2A, 0x2D,
     0x70, 0x77, 0x7E, 0x79, 0x6C, 0x6B, 0x62, 0x65,
@@ -56,7 +56,7 @@ static const uint8_t CRC_TABLE[256] = {
 
 
 // CRC Table
-const uint16_t crc16_vesc[] = { 0x0000, 0x1021, 0x2042, 0x3063, 0x4084,
+uint16_t crc16_vesc[] = { 0x0000, 0x1021, 0x2042, 0x3063, 0x4084,
 		0x50a5, 0x60c6, 0x70e7, 0x8108, 0x9129, 0xa14a, 0xb16b, 0xc18c, 0xd1ad,
 		0xe1ce, 0xf1ef, 0x1231, 0x0210, 0x3273, 0x2252, 0x52b5, 0x4294, 0x72f7,
 		0x62d6, 0x9339, 0x8318, 0xb37b, 0xa35a, 0xd3bd, 0xc39c, 0xf3ff, 0xe3de,
@@ -86,7 +86,7 @@ const uint16_t crc16_vesc[] = { 0x0000, 0x1021, 0x2042, 0x3063, 0x4084,
 		0x0cc1, 0xef1f, 0xff3e, 0xcf5d, 0xdf7c, 0xaf9b, 0xbfba, 0x8fd9, 0x9ff8,
 		0x6e17, 0x7e36, 0x4e55, 0x5e74, 0x2e93, 0x3eb2, 0x0ed1, 0x1ef0 };
 
-uint8_t crc8ccitt(uint8_t *data, ssize_t size, uint8_t *preamble, ssize_t preamble_length) {
+CRITICAL uint8_t crc8ccitt(uint8_t *data, ssize_t size, uint8_t *preamble, ssize_t preamble_length) {
 	uint8_t val = 0;
     if (preamble && preamble_length > 0) {
         while (preamble_length--) val = CRC_TABLE[val ^ *preamble++];
@@ -97,7 +97,7 @@ uint8_t crc8ccitt(uint8_t *data, ssize_t size, uint8_t *preamble, ssize_t preamb
 	return val;
 }
 
-uint16_t crc16(uint8_t *buf, ssize_t len) {
+CRITICAL uint16_t crc16(uint8_t *buf, ssize_t len) {
 	uint16_t cksum = 0;
 	for (ssize_t i = 0; i < len; i++) {
 		cksum = crc16_vesc[(((cksum >> 8) ^ *buf++) & 0xFF)] ^ (cksum << 8);
@@ -115,13 +115,13 @@ void crc_init(void) {
     /* CRC->ctrl_bit.rst = 1; */
 }
 
-uint8_t crc_calc(uint8_t *input, ssize_t length) {
+CRITICAL uint8_t crc_calc(uint8_t *input, ssize_t length) {
     /* crc_data_reset(); */
     /* CRC->ctrl_bit.rst = 0x1; */
     /* while(length--) CRC->dt = *input++; */
     return crc8ccitt(input, length, NULL, 0);
 }
 
-uint8_t crc_calc_comm(uint8_t *input, ssize_t length) {
+CRITICAL uint8_t crc_calc_comm(uint8_t *input, ssize_t length) {
     return crc8ccitt(input+3, length, input, 2);
 }

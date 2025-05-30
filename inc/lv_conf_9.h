@@ -27,7 +27,7 @@
  *====================*/
 
 /** Color depth: 1 (I1), 8 (L8), 16 (RGB565), 24 (RGB888), 32 (XRGB8888) */
-#define LV_COLOR_DEPTH 32
+#define LV_COLOR_DEPTH 16
 
 /*=========================
    STDLIB WRAPPER SETTINGS
@@ -58,7 +58,7 @@
  * - LV_STDLIB_RTTHREAD:    RT-Thread implementation
  * - LV_STDLIB_CUSTOM:      Implement the functions externally
  */
-#define LV_USE_STDLIB_SPRINTF   LV_STDLIB_BUILTIN
+#define LV_USE_STDLIB_SPRINTF   LV_STDLIB_BUILDIN
 
 #define LV_STDINT_INCLUDE       <stdint.h>
 #define LV_STDDEF_INCLUDE       <stddef.h>
@@ -75,7 +75,7 @@
     #define LV_MEM_POOL_EXPAND_SIZE 0
 
     /** Set an address for the memory pool instead of allocating it as a normal array. Can be in external SRAM too. */
-    #define LV_MEM_ADR 0 
+    #define LV_MEM_ADR  0 // 0x2404B0000 //(0x240000000 + (DISPLAY_HEIGHT * DISPLAY_WIDTH * COLOR_SIZE)) 
     /* Instead of an address give a memory allocator that will be called to get a memory pool for LVGL. E.g. my_malloc */
     #if LV_MEM_ADR == 0
         #undef LV_MEM_POOL_INCLUDE
@@ -334,7 +334,11 @@
 // #ifdef STM32H743
 // #define LV_USE_DRAW_DMA2D 1
 // #else
+#ifdef DIRECT
+#define LV_USE_DRAW_DMA2D 1
+#else
 #define LV_USE_DRAW_DMA2D 0
+#endif
 // #endif
 
 #if LV_USE_DRAW_DMA2D
@@ -391,15 +395,15 @@
     #define LV_LOG_USE_FILE_LINE 1
 
     /* Enable/disable LV_LOG_TRACE in modules that produces a huge number of logs. */
-    #define LV_LOG_TRACE_MEM        1   /**< Enable/disable trace logs in memory operations. */
-    #define LV_LOG_TRACE_TIMER      1   /**< Enable/disable trace logs in timer operations. */
-    #define LV_LOG_TRACE_INDEV      1   /**< Enable/disable trace logs in input device operations. */
-    #define LV_LOG_TRACE_DISP_REFR  1   /**< Enable/disable trace logs in display re-draw operations. */
+    #define LV_LOG_TRACE_MEM        0   /**< Enable/disable trace logs in memory operations. */
+    #define LV_LOG_TRACE_TIMER      0   /**< Enable/disable trace logs in timer operations. */
+    #define LV_LOG_TRACE_INDEV      0   /**< Enable/disable trace logs in input device operations. */
+    #define LV_LOG_TRACE_DISP_REFR  0   /**< Enable/disable trace logs in display re-draw operations. */
     #define LV_LOG_TRACE_EVENT      1   /**< Enable/disable trace logs in event dispatch logic. */
-    #define LV_LOG_TRACE_OBJ_CREATE 1   /**< Enable/disable trace logs in object creation (core `obj` creation plus every widget). */
-    #define LV_LOG_TRACE_LAYOUT     1   /**< Enable/disable trace logs in flex- and grid-layout operations. */
-    #define LV_LOG_TRACE_ANIM       1   /**< Enable/disable trace logs in animation logic. */
-    #define LV_LOG_TRACE_CACHE      1   /**< Enable/disable trace logs in cache operations. */
+    #define LV_LOG_TRACE_OBJ_CREATE 0   /**< Enable/disable trace logs in object creation (core `obj` creation plus every widget). */
+    #define LV_LOG_TRACE_LAYOUT     0   /**< Enable/disable trace logs in flex- and grid-layout operations. */
+    #define LV_LOG_TRACE_ANIM       0   /**< Enable/disable trace logs in animation logic. */
+    #define LV_LOG_TRACE_CACHE      0   /**< Enable/disable trace logs in cache operations. */
 #endif  /*LV_USE_LOG*/
 
 /*-------------
@@ -449,11 +453,11 @@
  *  If size is not set to 0, the decoder will fail to decode when the cache is full.
  *  If size is 0, the cache function is not enabled and the decoded memory will be
  *  released immediately after use. */
-#define LV_CACHE_DEF_SIZE       0
+#define LV_CACHE_DEF_SIZE 16384
 
 /** Default number of image header cache entries. The cache is used to store the headers of images
  *  The main logic is like `LV_CACHE_DEF_SIZE` but for image headers. */
-#define LV_IMAGE_HEADER_CACHE_DEF_CNT 0
+#define LV_IMAGE_HEADER_CACHE_DEF_CNT 2048
 
 /** Number of stops allowed per gradient. Increase this to allow more stops.
  *  This adds (sizeof(lv_color_t) + 1) bytes per additional stop. */
@@ -535,11 +539,11 @@
 #define LV_ATTRIBUTE_TIMER_HANDLER
 
 /** Define a custom attribute for `lv_display_flush_ready` function */
-#define LV_ATTRIBUTE_FLUSH_READY
+#define LV_ATTRIBUTE_FLUSH_READY CRITICAL
 
 /** Align VG_LITE buffers on this number of bytes.
  *  @note  vglite_src_buf_aligned() uses this value to validate alignment of passed buffer pointers. */
-#define LV_ATTRIBUTE_MEM_ALIGN_SIZE 1
+#define LV_ATTRIBUTE_MEM_ALIGN_SIZE 4
 
 /** Will be added where memory needs to be aligned (with -Os data might not be aligned to boundary by default).
  *  E.g. __attribute__((aligned(4)))*/
@@ -549,10 +553,10 @@
 #define LV_ATTRIBUTE_LARGE_CONST __attribute__((__section__(".flash2_rodata")))
 
 /** Compiler prefix for a large array declaration in RAM */
-#define LV_ATTRIBUTE_LARGE_RAM_ARRAY
+#define LV_ATTRIBUTE_LARGE_RAM_ARRAY //RAMHIGH
 
 /** Place performance critical functions into a faster memory (e.g RAM) */
-#define LV_ATTRIBUTE_FAST_MEM
+#define LV_ATTRIBUTE_FAST_MEM 
 
 /** Export integer constant to binding. This macro is used with constants in the form of LV_<CONST> that
  *  should also appear on LVGL binding API such as MicroPython. */
@@ -562,8 +566,8 @@
 #define LV_ATTRIBUTE_EXTERN_DATA
 
 /** Use `float` as `lv_value_precise_t` */
-#define LV_USE_FLOAT            __FPU_PRESENT
-// #define LV_USE_FLOAT            0
+// #define LV_USE_FLOAT            __FPU_PRESENT
+#define LV_USE_FLOAT            1
 
 /** Enable matrix support
  *  - Requires `LV_USE_FLOAT = 1` */
@@ -628,6 +632,8 @@
 #define PLEX_72     0
 #define PLEX_96     0
 
+#define ROBOTO_32   1
+
 /** Optionally declare custom fonts here.
  *
  *  You can use any of these fonts as the default font too and they will be available
@@ -651,7 +657,8 @@
                                 LV_FONT_DECLARE(lv_font_plex_32) \
                                 LV_FONT_DECLARE(lv_font_plex_48) \
                                 LV_FONT_DECLARE(lv_font_plex_72) \
-                                LV_FONT_DECLARE(lv_font_plex_96)
+                                LV_FONT_DECLARE(lv_font_plex_96) \
+                                LV_FONT_DECLARE(lv_font_roboto_32)
 
 /** Always set a default font */
 #define LV_FONT_DEFAULT &lv_font_montserrat_12
@@ -850,7 +857,7 @@
 #define LV_USE_FLEX 1
 
 /** A layout similar to Grid in CSS. */
-#define LV_USE_GRID 0
+#define LV_USE_GRID 1
 
 /*====================
  * 3RD PARTS LIBRARIES
@@ -955,7 +962,7 @@
 
 
 /** Decode bin images to RAM */
-#define LV_BIN_DECODER_RAM_LOAD 0
+#define LV_BIN_DECODER_RAM_LOAD 1
 
 /** RLE decompress library */
 #define LV_USE_RLE 1

@@ -1,7 +1,10 @@
 #ifndef __CONFIG_H__
 #define __CONFIG_H__
 
-#define COLOR_SIZE 3 
+#define DIRECT      // use direct
+#define PARTIAL     // use direct processing but partial buffers
+                    // disable both for partial buffers and full frame buffer
+#define COLOR_SIZE 2 
 #define C24_8(c, d)         ((c << 8) | (d * 256))
 
 #define DISPLAY_WIDTH   320
@@ -12,9 +15,13 @@
 #define SPEED_FILTER_SHIFT 2
 #define POWER_FILTER_SHIFT 2
 
+#define TOUCH_ENABLED
+#define LIGHT_SENSOR_ENABLED
+#define BT_UART_ENABLED
+
 #ifdef DEBUG
  #if defined(AT32F435) || defined(STM32H743)
-  #define PIXEL_BUFFER_LINES 128 
+  #define PIXEL_BUFFER_LINES 128
  #else
   #define PIXEL_BUFFER_LINES 20
  #endif
@@ -28,7 +35,7 @@
   #endif
  #else
   #if defined(STM32H743)
-   #define PIXEL_BUFFER_LINES 128  
+   #define PIXEL_BUFFER_LINES 128   
   #else
    #define PIXEL_BUFFER_LINES 32 // reduces tearing if multiple of 32
   #endif
@@ -70,6 +77,8 @@
 #define REGEN_CURRENT 15000
 
 #define SHUTDOWN_TIMER_DEFAULT 10
+
+#define NOTIFICATION_TIMEOUT 5000
 
 #define CYCLE_DELAY_LIMIT 5             // max amount of delay before lv_timer triggers again, keep at ~5ms for maximum responsiveness
 /*
@@ -153,11 +162,15 @@
  #undef RAMHIGH
  #undef RAMFAST
  #undef CRITICAL 
- #define RAMFAST __attribute__ ((section(".itcmram")))
+ #define RAMFAST __attribute__ ((section(".dprime")))
  #define RAMHIGH __attribute__ ((section(".d1")))
+ #define RAMHIGH2 __attribute__ ((section(".ds1")))
  #define RAM_D2 __attribute__ ((section(".d2")))
  #define RAM_D3 __attribute__ ((section(".d3")))
  #define CRITICAL __attribute__ ((section(".itcmramFunc")))
+ #define CAN_ENABLED
+//  #define MEMPOOL    (1024U * 212U)
+//  #define MEMPOOL_LOC RAMHIGH
 #endif
 
 #define UART_COMM_NONE 0 

@@ -1,12 +1,13 @@
 
 #if defined(LV_LVGL_H_INCLUDE_SIMPLE)
 #include "lvgl.h"
+#elif defined(LV_LVGL_H_INCLUDE_SYSTEM)
+#include <lvgl.h>
 #elif defined(LV_BUILD_TEST)
 #include "../lvgl.h"
 #else
 #include "lvgl/lvgl.h"
 #endif
-
 
 #ifndef LV_ATTRIBUTE_MEM_ALIGN
 #define LV_ATTRIBUTE_MEM_ALIGN
@@ -55,13 +56,15 @@ uint8_t battery_black_map[] = {
 };
 
 const lv_image_dsc_t battery_black = {
-  .header.magic = LV_IMAGE_HEADER_MAGIC,
-  .header.cf = LV_COLOR_FORMAT_RGB888,
-  .header.flags = 0,
-  .header.w = 90,
-  .header.h = 31,
-  .header.stride = 270,
-  .header.reserved_2 = 0,
+  .header = {
+    .magic = LV_IMAGE_HEADER_MAGIC,
+    .cf = LV_COLOR_FORMAT_RGB888,
+    .flags = 0,
+    .w = 90,
+    .h = 31,
+    .stride = 270,
+    .reserved_2 = 0,
+  },
   .data_size = sizeof(battery_black_map),
   .data = battery_black_map,
   .reserved = NULL,

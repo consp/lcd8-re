@@ -58,6 +58,7 @@
 #define SPEED_COLOR_FALSE   RGB565(96, 96, 96)
 #define SPEED_COLOR_TRUE    RGB565(255, 255, 255)
 
+
 #define BRAKE_IMG_X         SPEED_MINOR_X - 8
 #define BRAKE_IMG_Y         SPEED_MAJOR_Y + 16
 
@@ -190,9 +191,28 @@
 #define SPEED_LABEL_WIDTH               136 
 #define SPEED_LABEL_HEIGHT              (4 * 32)
 #define SPEED_LABEL_MINOR_X             SPEED_LABEL_X + SPEED_LABEL_WIDTH 
-#define SPEED_LABEL_MINOR_Y             POWER_Y + 64
-#define SPEED_LABEL_MINOR_WIDTH         64 
-#define SPEED_LABEL_MINOR_HEIGHT        80
+#define SPEED_LABEL_MINOR_Y             POWER_Y + 96
+#define SPEED_LABEL_MINOR_WIDTH         32 
+#define SPEED_LABEL_MINOR_HEIGHT        32
+
+#define NAV_IMG_X           176 
+#define NAV_IMG_Y           POWER_Y + 8 
+#define NAV_IMG_WIDTH       128
+#define NAV_IMG_HEIGHT      128
+#define NAV_DISTANCE_X          NAV_IMG_X
+#define NAV_DISTANCE_Y          NAV_IMG_Y + NAV_IMG_HEIGHT
+#define NAV_DISTANCE_HEIGHT     32
+#define NAV_DISTANCE_WIDTH      80 
+#define NAV_TIME_X          NAV_IMG_X + NAV_DISTANCE_WIDTH
+#define NAV_TIME_Y          NAV_IMG_Y + NAV_IMG_HEIGHT
+#define NAV_TIME_HEIGHT     32
+#define NAV_TIME_WIDTH      80 
+
+#define NOTIFICATION_X      0
+#define NOTIFICATION_Y      0
+#define NOTIFICATION_WIDTH  320
+#define NOTIFICATION_HEIGHT 64
+#define NOTIFICATION_BG     RGB565(0, 0, 128)
 
 #if LVGL_VERSION_MAJOR == 8
 #define ASSIST_X                        256
@@ -216,10 +236,10 @@
 #define DEBUG_HEIGHT            16
 
 
-#define BSOD_X                 GRAPH_X
-#define BSOD_Y                 GRAPH_Y - 32
+#define BSOD_X                 0 
+#define BSOD_Y                 160
 #define BSOD_WIDTH             DISPLAY_WIDTH
-#define BSOD_HEIGHT            64
+#define BSOD_HEIGHT            160
 #define BSOD_BG                RGB565(0, 0, 128)
 #define BSOD_COLOR             RGB565(255, 255, 255)
 
@@ -231,6 +251,10 @@
 void gui_init();
 void gui_update(void);
 void button_presses(void);
+void gui_write_bt_msg(char *msg, int length);
+void gui_write_bt_distance(int32_t distance);
+void gui_write_bt_time(int32_t time);
+void gui_write_bt_img(lv_image_dsc_t *img) ;
 
 
 // images
@@ -266,12 +290,22 @@ uint32_t timer_cb(void);
 typedef enum {
     MODE_NORMAL = 0,
     MODE_TRIP_RESET,
+    MODE_STATUS,
     MODE_SETTINGS_MAIN,
     MODE_SETTINGS_CONTROLLER,
     MODE_SETTINGS_DISPLAY,
     MODE_SETTINGS_CLOCK,
     MODE_SETTINGS_EVENT_CALLBACK
 } modes;
+
+typedef enum {
+    STATUS_PAGE_NONE = -1,
+    STATUS_SYSTEM = 0,
+    STATUS_CONTROLLER = 1,
+    STATUS_MCCONF = 2
+} status_pages;
+
+#define STATUS_PAGE_MAX STATUS_MCCONF
 
 typedef enum {
     LIGHTS_MODE_MANUAL = 0,

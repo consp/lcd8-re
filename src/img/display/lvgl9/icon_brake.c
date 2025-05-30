@@ -1,12 +1,13 @@
 
 #if defined(LV_LVGL_H_INCLUDE_SIMPLE)
 #include "lvgl.h"
+#elif defined(LV_LVGL_H_INCLUDE_SYSTEM)
+#include <lvgl.h>
 #elif defined(LV_BUILD_TEST)
 #include "../lvgl.h"
 #else
 #include "lvgl/lvgl.h"
 #endif
-
 
 #ifndef LV_ATTRIBUTE_MEM_ALIGN
 #define LV_ATTRIBUTE_MEM_ALIGN
@@ -72,13 +73,15 @@ uint8_t icon_brake_map[] = {
 };
 
 const lv_image_dsc_t icon_brake = {
-  .header.magic = LV_IMAGE_HEADER_MAGIC,
-  .header.cf = LV_COLOR_FORMAT_RGB888,
-  .header.flags = 0,
-  .header.w = 48,
-  .header.h = 48,
-  .header.stride = 144,
-  .header.reserved_2 = 0,
+  .header = {
+    .magic = LV_IMAGE_HEADER_MAGIC,
+    .cf = LV_COLOR_FORMAT_RGB888,
+    .flags = 0,
+    .w = 48,
+    .h = 48,
+    .stride = 144,
+    .reserved_2 = 0,
+  },
   .data_size = sizeof(icon_brake_map),
   .data = icon_brake_map,
   .reserved = NULL,

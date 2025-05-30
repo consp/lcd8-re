@@ -440,9 +440,11 @@ void auto_lights() {
     if (settings.lights_mode == LIGHTS_MODE_AUTOMATIC) {
         if (light_level() > settings.light_sensitivity && !settings.lights_enabled) {
             settings.lights_enabled = 1;
+            draw_lights_trigger = 1;
             comm_send_display_status();
         } else if (light_level() < settings.light_sensitivity && settings.lights_enabled) {
             settings.lights_enabled = 0;
+            draw_lights_trigger = 1;
             comm_send_display_status();
         }
     }

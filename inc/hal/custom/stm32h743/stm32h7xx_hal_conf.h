@@ -24,7 +24,6 @@
 #ifdef __cplusplus
  extern "C" {
 #endif
-
 #define DATA_IN_D2_SRAM
 
 /* Exported types ------------------------------------------------------------*/

@@ -52,6 +52,7 @@
 #include "crc.h"
 #include "comm.h"
 #include "uart.h"
+#include "can.h"
 
 #ifdef SEGGER_RTT
 #include "rtt/SEGGER_RTT.h"
@@ -60,13 +61,22 @@
 extern lv_display_t *display;
 extern volatile uint32_t shutdown_timer;
 extern settings_t settings;
+extern int mconf_actual;
+extern int mconf_updated;
 /**
   * @brief  main function.
   * @param  none
   * @retval none
   */
 
+#if (!defined(DIRECT) || (defined(DIRECT) && defined(PARTIAL)))
 extern uint8_t pixelbuffer[], pixelbuffer2[];
+#else
+extern uint8_t framebuffer[];
+#endif
+#ifdef MEMPOOL
+extern uint8_t mempool[];
+#endif
 
 #if defined(SEMIHOSTING) && !defined(PLATFORM_SIM)
 extern void initialise_monitor_handles(void);
@@ -157,45 +167,27 @@ static void rounder_cb(lv_event_t *e)
 }
 
 CRITICAL void lv_setup(void) {
-#if LVGL_VERSION_MAJOR == 8
     {
-    lv_disp_drv_init(&disp_drv);
- #ifdef PLATFORM_LCD8
-  #if DMA_WRITE
-        // double buff
-        lv_disp_draw_buf_init(&draw_buf, pixelbuffer, pixelbuffer2, (PIXEL_BUFFER_LINES * DISPLAY_WIDTH) >> 1);
-  #else
-        lv_disp_draw_buf_init(&draw_buf, pixelbuffer, NULL, PIXEL_BUFFER_LINES * DISPLAY_WIDTH);
-  #endif
- #else
-        lv_disp_draw_buf_init(&draw_buf, pixelbuffer, NULL, DISPLAY_HEIGHT * DISPLAY_WIDTH);
- #endif
-
-        disp_drv.draw_buf = &draw_buf;
- #ifdef PLATFORM_SIM
-        disp_drv.flush_cb = gtkdrv_flush_cb;
- #else
-        disp_drv.flush_cb = lcd_lvgl_flush;    /*Set your driver function*/
- #endif
-        disp_drv.set_px_cb = NULL;
-        disp_drv.antialiasing = TRUE;
-        disp_drv.hor_res = DISPLAY_WIDTH;   /*Set the horizontal resolution of the disp_drv*/
-        disp_drv.ver_res = DISPLAY_HEIGHT;   /*Set the vertical resolution of the disp_drv*/
-        display = lv_disp_drv_register(&disp_drv);
-    }
+#ifdef PLATFORM_SIM
+    display = lv_sdl_window_create(DISPLAY_WIDTH, DISPLAY_HEIGHT);
 #else
-    {
- #ifdef PLATFORM_SIM
-        display = lv_sdl_window_create(DISPLAY_WIDTH, DISPLAY_HEIGHT);
- #else
-        display = lv_display_create(DISPLAY_WIDTH, DISPLAY_HEIGHT);
+    display = lv_display_create(DISPLAY_WIDTH, DISPLAY_HEIGHT);
+#ifdef DIRECT
+#ifdef PARTIAL
+    lv_display_set_buffers(display, pixelbuffer, pixelbuffer2, (COLOR_SIZE * DISPLAY_WIDTH * 512) / 2, LV_DISPLAY_RENDER_MODE_PARTIAL);
+#else
+    lv_display_set_buffers(display, framebuffer, NULL, (COLOR_SIZE * DISPLAY_HEIGHT * DISPLAY_WIDTH), LV_DISPLAY_RENDER_MODE_DIRECT);
+#endif
+#else
   #if PIXEL_BUFFER_SIZE == (DISPLAY_WIDTH * COLOR_SIZE * DISPLAY_HEIGHT)
-        lv_display_set_buffers(display, pixelbuffer, NULL, PIXEL_BUFFER_SIZE, LV_DISPLAY_RENDER_MODE_DIRECT);
+    lv_display_set_buffers(display, pixelbuffer, NULL, PIXEL_BUFFER_SIZE, LV_DISPLAY_RENDER_MODE_DIRECT);
   #else
-        lv_display_set_buffers(display, pixelbuffer, pixelbuffer2, PIXEL_BUFFER_SIZE, LV_DISPLAY_RENDER_MODE_PARTIAL);
+    lv_display_set_buffers(display, pixelbuffer, pixelbuffer2, PIXEL_BUFFER_SIZE, LV_DISPLAY_RENDER_MODE_PARTIAL);
   #endif
-        lv_display_set_flush_cb(display, lcd_lvgl_flush);
- #endif
+#endif
+    lv_display_set_flush_cb(display, lcd_lvgl_flush);
+#endif
+
 
         lv_display_add_event_cb(display, rounder_cb, LV_EVENT_INVALIDATE_AREA, display);
         // ticks
@@ -203,8 +195,6 @@ CRITICAL void lv_setup(void) {
         lv_tick_set_cb(&timer_cb);
 #endif
     }
-#endif
-
 }
 #ifdef PROFILE
 // send on itm port 1
@@ -243,25 +233,35 @@ int CRITICAL main(void)
 #endif
     delay_init();
     lv_init();
+#ifdef MEMPOOL
+    /* lv_mem_add_pool(mempool, MEMPOOL); */
+    /* lv_obj_t *obj_arry heap_caps_malloc(sizeof(lv_obj_t) * array_size, HEAP_CAPS_SPIRAM); */
+#endif
 #ifdef PROFILE
     SetupProfiler();
 #endif
     lv_setup();
 #ifdef PLATFORM_SIM
-#if LV_VER == 8
-    gtkdrv_init();
-#endif
     eeprom_init();                          // initialize the eeprom for data storage
-    uart_init(57600);                       // initialize comms
+    uart_init(57600, 230400);                       // initialize comms
     gui_init();
 #endif
     
     controls_init();                        // init adc and buttons 
     power_enable();
-    
+   
+
     lcd_init();                             // attempt to initialize the lcd peripherals
-    lcd_backlight(100);
-    lcd_start();                            // start lcd init sequence
+    lcd_backlight(50);
+    if (!lcd_start()) {
+#ifndef DEBUG
+        led_red(1);
+        led_blue(1);
+        led_green(0);
+        delay_ms(500);
+        NVIC_SystemReset();                            // start lcd init sequence
+#endif
+    }
     crc_init();                             // crc init if HW unit
     eeprom_init();                          // initialize the eeprom for data storage
     clock_init();                           // clouck source (if available)
@@ -269,34 +269,42 @@ int CRITICAL main(void)
     button_release(BUTTON_ID_POWER, 500);   // ignore inputs for a while
     button_release(BUTTON_ID_DOWN, 500);   // ignore inputs for a while
     button_release(BUTTON_ID_UP, 500);   // ignore inputs for a while
-    
+
 #ifndef PLATFORM_SIM
-    uart_init(57600);                       // initialize comms
+    uart_init(57600, 230400);                       // initialize comms
+#ifdef CAN_ENABLED
+    can_init();                             // init can
+#endif
     gui_init();                             // start lvgl and setup screen
 #endif
+    comm_send_controller_settings();
     comm_send_display_settings();  
     comm_send_display_status();  
-    comm_send_controller_settings();
 
+#ifndef LIGHT_SENSOR_ENABLED
+    lcd_backlight(100);
+#endif
+
+#ifdef TOUCH_ENABLED
+    touch_init();
+#endif
+    uint32_t mcconf_timeout = 0;
 #if MONITOR && DEBUG
 #endif
     lv_timer_handler();
-
 #if (!defined(DEBUG) || DEBUG == 0) && !defined(PLATFORM_SIM)
 #if defined(STM32H743)
-    
-#else
-    wdt_divider_set(WDT_CLK_DIV_32);
-    wdt_reload_value_set(1250); // 1s
-    wdt_counter_reload();
-    wdt_enable();
 #endif
 #endif
-#ifdef LOOP
-    uint32_t cntr = 0;
+#ifdef BT_UART_ENABLED
+    bt_send_init(1);
+    uint32_t x = HAL_GetTick();
+#endif
+#ifndef DEBUG
+    init_iwdt();
+#endif
+
     LV_LOG_INFO("Starting main loop");
-    clock_set_wheelspeed_timer(60);
-#endif
     while(1) {
 #if PLATFORM_SIM && LVGL_VERSION_MAJOR == 9
         SDL_Delay(5);
@@ -308,27 +316,6 @@ int CRITICAL main(void)
         /* lv_timer_handler(); */
         uint32_t m = lv_timer_handler();
         delay_ms(m > CYCLE_DELAY_LIMIT ? CYCLE_DELAY_LIMIT : m);
-#ifdef LOOP
-        extern int32_t speed, power_value, battery_current;
-        extern uint8_t draw_power_trigger, draw_speed_trigger, draw_battery_voltage_trigger;
-        speed += 100;
-        power_value += 1000;
-        battery_current += 1000;
-
-        if (speed > 30000) speed = 0;
-        if (power_value > 1000000) power_value = 0;
-        if (battery_current > 200000) battery_current = -10000;
-
-
-        cntr = cntr + 1;
-        if (cntr > 5) 
-        {
-
-            draw_power_trigger = 1;
-            draw_speed_trigger = 1;
-            draw_battery_voltage_trigger = 1;
-        }
-#endif
 #if (!defined(DEBUG) || DEBUG == 0) && !defined(PLATFORM_SIM)
 #if defined(STM32H743)
     
@@ -336,14 +323,49 @@ int CRITICAL main(void)
         wdt_counter_reload();
 #endif
 #endif
-        if (timer_counter - shutdown_timer > (((uint32_t) settings.shutdown_timer) * 60000)) {
+        // shutdown check
+        if (settings.shutdown_timer > 0 && HAL_GetTick() - shutdown_timer > (((uint32_t) settings.shutdown_timer) * 60000)) {
             power_disable();
         }
+
+        // make sure motor configuration is up to date in case of VESC
+#if (UART_COMM == UART_COMM_VESC) || defined(CAN_ENABLED)
+        if ((!mconf_actual || !mconf_updated) && HAL_GetTick() - mcconf_timeout > 5000) {
+            if (!mconf_actual) {
+                LV_LOG_INFO("MCCONF not received, attempting");
+                // reinit CAN
+                can_deinit();
+                delay_ms(1);
+                can_init();
+                delay_ms(1);
+                comm_vesc_ping();
+                comm_send_controller_settings();
+            }
+            if (mconf_actual && !mconf_updated) {
+                LV_LOG_INFO("MCCONF not stored, updating");
+                comm_send_display_status();
+            }
+            mcconf_timeout = HAL_GetTick();
+        }
+#endif
+        if (HAL_GetTick() - x > 250) {
+            /* bt_send((uint8_t *) "AT\r\n", 4); */
+            x = HAL_GetTick();
+        }
+#ifndef DEBUG
+        feed(); // feed watchdog
+#endif
     }
 }
 
 #if !defined(PLATFORM_SIM)
 #if defined(STM32H743)
+CRITICAL void WAKEUP_PIN_IRQHandler(void) {
+    while(1);
+}
+CRITICAL void WWDG_IRQHandler (void) {
+    NVIC_SystemReset();
+}
 #else
 CRITICAL void WWDT_IRQHandler(void) {
     NVIC_SystemReset();

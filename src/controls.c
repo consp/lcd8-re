@@ -19,7 +19,7 @@ uint32_t nc_button_start = 0;
 uint32_t button_backoff = 0, button_backoff_start = 0;
 
 void button_release(uint8_t id, uint32_t backoff) {
-    button_backoff_start = timer_counter;
+    button_backoff_start = HAL_GetTick();
     button_backoff = backoff;
     switch(id) {
         case BUTTON_ID_UP:

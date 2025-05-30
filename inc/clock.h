@@ -29,6 +29,9 @@ void clock_set_wheelspeed_timer(int32_t rpm);
 void clock_set_time(uint32_t hour, uint32_t minute, uint32_t second);
 void clock_set_date(uint32_t year, uint32_t month, uint32_t day, uint32_t week);
 void clock_get_all(uint8_t *hours, uint8_t *minutes, uint8_t *sec, uint16_t *year, uint8_t *mon, uint8_t *day);
+CRITICAL void update_shutdown(void);
+CRITICAL void feed(void);
+void init_iwdt(void);
 
 #ifdef PROFILE
 void clock_setup_us_source(void);

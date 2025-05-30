@@ -2,8 +2,9 @@
 #include "eeprom.h"
 #include "clock.h"
 #include "gui.h"
+#include "stm32h7xx_hal_iwdg.h"
 
-
+IWDG_HandleTypeDef hiwdg1;
 extern settings_t settings;
 volatile uint32_t timer_counter = 0;
 volatile uint32_t shutdown_timer = 0;
@@ -19,10 +20,16 @@ RTC_HandleTypeDef hrtc;
 TIM_HandleTypeDef htim2;
 TIM_HandleTypeDef htim5;
 
+CRITICAL void update_shutdown(void) {
+    shutdown_timer = HAL_GetTick();
+}
+
+/* as long as we are moving update shutdown timer */
 CRITICAL void TIM2_IRQHandler(void)
 {
     __HAL_TIM_CLEAR_FLAG(&htim2, TIM_FLAG_UPDATE);
     gui_increment_trip();
+    update_shutdown();
 }
 
 
@@ -77,7 +84,7 @@ static void clock_wheelspeed_init(void) {
 
     htim2.Instance = TIM2;
     htim2.Init.Prescaler = ((SystemCoreClock/2) / 10000)-1; // 10000 counts/s e.g. 0.1ms
-    htim2.Init.CounterMode = TIM_COUNTERMODE_UP;
+    htim2.Init.CounterMode = TIM_COUNTERMODE_DOWN;
     htim2.Init.Period = 0;
     htim2.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
     htim2.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
@@ -96,13 +103,14 @@ static void clock_wheelspeed_init(void) {
     {
         Error_Handler();
     }
+
     __HAL_TIM_CLEAR_FLAG(&htim2, TIM_FLAG_UPDATE);
     __HAL_TIM_ENABLE_IT(&htim2, TIM_IT_UPDATE);
 
     HAL_NVIC_SetPriority(TIM2_IRQn, 0, 0);
     HAL_NVIC_EnableIRQ(TIM2_IRQn);
 
-    HAL_TIM_Base_Start(&htim2);
+    __HAL_TIM_ENABLE(&htim2);
 
 }
 
@@ -133,7 +141,7 @@ void clock_get_all(uint8_t *hours, uint8_t *minutes, uint8_t *sec, uint16_t *yea
     }
 
     LV_LOG_TRACE("Date is %02d-%02d-20%02d", date.Date, date.Month, date.Year);
-    if (year) *year = date.Year;
+    if (year) *year = date.Year - 19;
     if (mon) *mon = date.Month;
     if (day) *day = date.Date;
     if (hours) *hours = time.Hours;
@@ -143,8 +151,14 @@ void clock_get_all(uint8_t *hours, uint8_t *minutes, uint8_t *sec, uint16_t *yea
 
 CRITICAL void clock_set_wheelspeed_timer(int32_t rpm) {
     if (rpm < 0) rpm = 0;
-    if (rpm == 0)  TIM2->ARR = 0;
-    else TIM2->ARR = (600000 / rpm) - 1; // 32bit required
+    if (rpm == 0)  {
+        TIM2->ARR = 0;
+    } else {
+        TIM2->ARR = (600000 / rpm) - 1; // 32bit required
+        /* if (!(TIM2->CR1 & 0x1)) TIM2->CR1 |= 0x1; */
+        if (TIM2->CNT > TIM2->ARR) TIM2->CNT = TIM2->ARR;
+    }
+
 }
 
 void clock_set_time(uint32_t hour, uint32_t minute, uint32_t second) {
@@ -167,13 +181,29 @@ void clock_set_date(uint32_t year, uint32_t month, uint32_t day, uint32_t week) 
     sDate.WeekDay = week;
     sDate.Month = (uint8_t) month;
     sDate.Date = (uint8_t) day;
-    sDate.Year = (uint8_t) year;
+    sDate.Year = (uint8_t) year + 19;
 
     if (HAL_RTC_SetDate(&hrtc, &sDate, RTC_FORMAT_BIN) != HAL_OK)
     {
         LV_LOG_WARN("Failed to set date");
     }
     LV_LOG_INFO("Date set");
+}
+
+// about 250ms
+void init_iwdt(void)
+{
+    IWDG1->KR = IWDG_KEY_ENABLE;
+    IWDG1->KR = IWDG_KEY_WRITE_ACCESS_ENABLE;
+    IWDG1->PR = IWDG_PRESCALER_16;
+    IWDG1->RLR = 2000;
+    while((IWDG1->SR & (IWDG_SR_WVU | IWDG_SR_RVU | IWDG_SR_PVU)) != 0x00u);
+    IWDG1->KR = IWDG_KEY_RELOAD;
+    /* IWDG1->WINR = 2000; */
+}
+
+CRITICAL void feed(void) {
+    IWDG1->KR = IWDG_KEY_RELOAD;
 }
 
 #ifdef PROFILE
@@ -212,7 +242,7 @@ void clock_setup_us_source(void) {
     /* HAL_NVIC_SetPriority(TIM5_IRQn, 0, 0); */
     /* HAL_NVIC_EnableIRQ(TIM5_IRQn); */
 
-    HAL_TIM_Base_Start(&htim5);
+    /* HAL_TIM_Base_Start(&htim5); */
 
 }
 

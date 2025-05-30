@@ -1,5 +1,7 @@
 #include "controls.h"
 
+#define LIGHTS_TIMEOUT  5000
+
 #define POWER_BUTTON_GPIO   GPIOA
 #define POWER_BUTTON_PIN    GPIO_PINS_6
 #define POWER_BUTTON_PULL   GPIO_PULL_NONE
@@ -53,4 +55,12 @@ int32_t voltage_mcu(void);
 
 void power_enable(void);
 void power_disable(void);
+
+void led_red(int state);
+void led_green(int state);
+void led_blue(int state);
+
+int led_blue_state(void);
+int led_green_state(void);
+int led_red_state(void);
 

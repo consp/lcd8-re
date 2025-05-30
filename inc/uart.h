@@ -16,8 +16,14 @@
 #endif
 
 
-void uart_init(uint32_t baud);
-void uart_send(const uint8_t *buffer, ssize_t length, int async);
+void uart_init(uint32_t cnt_baud, uint32_t bt_baud);
+void cnt_send(const uint8_t *buffer, ssize_t length);
+void bt_send(const uint8_t *buffer, uint32_t length);
+void bt_send_init(uint32_t program);
+void bt_reset(void);
+void bt_check(void);
+void bt_send_battery(uint8_t level);
+void bt_send_cmd(uint8_t id);
 int uart_get_data(uint8_t *data, uint32_t *length);
 
 // guard for tx buffer, not all gcc versions will detact overflows correctly

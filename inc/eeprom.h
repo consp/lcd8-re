@@ -15,6 +15,13 @@ typedef enum graph_field_et {
     GRAPH_FIELD_SPEED_AVG = 3
 } graph_field;
 
+typedef enum {
+    ERROR_UART_TRANSMIT =   0x00000001,
+    ERROR_UART_RECEIVE =    0x00000002,
+    ERROR_EEPROM_READ =     0x00000004,
+    ERROR_EEPROM_WRITE =    0x00000008
+} error_state;
+
 #pragma pack(push, 1)
 typedef struct __attribute__((packed)) {
     uint32_t header;
@@ -37,7 +44,8 @@ typedef struct __attribute__((packed)) {
     int16_t     power_redline;
     int16_t     power_max;
     uint8_t     battery_voltage_from_controller;
-    uint8_t     backlight_level;
+    int8_t      backlight_level;
+    int8_t      backlight_sensitivity;
     
     // motor configuration
     uint8_t     speed_assist_max;
@@ -48,14 +56,15 @@ typedef struct __attribute__((packed)) {
     uint16_t    regen_current;
     uint16_t    pas_timeout;
     uint16_t    pas_ramp;
-    uint16_t    controller_power_min;
-    uint16_t    controller_power_max;
+    int16_t     controller_power_min;
+    int16_t     controller_power_max;
 
     uint32_t    date;
     uint32_t    time;
     uint8_t     shutdown_timer;
 
-    int16_t     light_sensitivity;
+    uint16_t    light_sensitivity;
+    uint32_t    notification_timeout;
 
     uint8_t     factory_reset;
     uint8_t     crc;

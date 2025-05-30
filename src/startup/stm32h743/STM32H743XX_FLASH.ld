@@ -236,6 +236,14 @@ SECTIONS
     . = . + _Min_Stack_Size;
     . = ALIGN(8);
   } >DTCMRAM
+  
+  .dprime :
+  {
+    . = ALIGN(8);
+      *(.dprime);
+      *(.dprime*);
+    . = ALIGN(8);
+  } >DTCMRAM
 
   .d1 : 
   {

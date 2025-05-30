@@ -8,6 +8,7 @@
 #define BUTTON_ACTIVE_PERIOD    200 // active period 300ms
 #define BUTTON_HOLD_PERIOD      1000 // active period 300ms
 #define BUTTON_LONG_PRESS_TIME  1000
+#define BUTTON_TIMEOUT          10000
 #define BUTTON_DEBOUNCE_TIME    BUTTON_MEASURE_PERIOD + 10
 
 #define BUTTON_COUNT (BUTTON_ACTIVE_PERIOD / BUTTON_MEASURE_PERIOD)
@@ -33,16 +34,28 @@ void controls_init(void);
 void button_release(uint8_t id, uint32_t backoff);
 uint8_t buttons_pressed(void);
 
+void reset_all_buttons(void);
+
 int32_t voltage_ebat(void);
 int32_t voltage_mcu(void);
+int32_t voltage_bat(void);
 
 int32_t int_temp(void);
 int32_t ext_temp(void);
+int32_t internal_temperature(void);
 int32_t light_level(void);
 void auto_lights();
 
 void power_enable(void);
 void power_disable(void);
+
+void led_red(int state);
+void led_green(int state);
+void led_blue(int state);
+
+int led_blue_state(void);
+int led_green_state(void);
+int led_red_state(void);
 
 #define LIGHTS_DISABLED 0
 #define LIGHTS_ENABLED 1
