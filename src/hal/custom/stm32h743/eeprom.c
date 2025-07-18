@@ -153,7 +153,7 @@ void eeprom_write_defaults(void) {
     settings.battery_voltage_min = BATTERY_MIN;
     settings.battery_voltage_max = BATTERY_MAX;
     settings.graph_duration = GRAPH_DURATION;
-    settings.graph_shift = GRAPH_SHIFT;
+    settings.graph_field = GRAPH_FIELD_SPEED_POWER_AVG;
     settings.graph_max = GRAPH_MAX;
     settings.assist_levels = ASSIST_LEVELS;
     settings.assist_last = ASSIST_DEFAULT;
@@ -194,7 +194,7 @@ void eeprom_print_values(void) {
     LV_LOG_INFO("Battery voltage min:       %hu", settings.battery_voltage_min);
     LV_LOG_INFO("Battery voltage max:       %hu", settings.battery_voltage_max);
     LV_LOG_INFO("Graph duration:            %u",  settings.graph_duration);
-    LV_LOG_INFO("Graph shift:               %u",  settings.graph_shift);
+    LV_LOG_INFO("Graph shift:               %u",  settings.graph_field);
     LV_LOG_INFO("Graph max:                 %u",  settings.graph_max);
     LV_LOG_INFO("Assist levels:             %u",  settings.assist_levels);
     LV_LOG_INFO("Assist last:               %u",  settings.assist_last);

@@ -546,7 +546,7 @@
 #define LV_ATTRIBUTE_MEM_ALIGN __attribute((aligned(4)))
 
 /** Attribute to mark large constant arrays, for example for font bitmaps */
-#define LV_ATTRIBUTE_LARGE_CONST
+#define LV_ATTRIBUTE_LARGE_CONST __attribute__((__section__(".flash2_rodata")))
 
 /** Compiler prefix for a large array declaration in RAM */
 #define LV_ATTRIBUTE_LARGE_RAM_ARRAY
@@ -616,13 +616,17 @@
 #define ANDALEMO_28                     0
 #define ANDALEMO_32                     1
 #define ANDALEMO_72                     1
-#define LV_FONT_FRY_120                 0
+#define ANDALEMO_128                    0
+#define FRY_128                         1
+#define FRY_64                          1
 
 #define PLEX_12     1
 #define PLEX_16     0
 #define PLEX_28     0
 #define PLEX_32     1
-#define PLEX_72     1
+#define PLEX_48     0
+#define PLEX_72     0
+#define PLEX_96     0
 
 /** Optionally declare custom fonts here.
  *
@@ -633,7 +637,21 @@
  *  #define LV_FONT_CUSTOM_DECLARE   LV_FONT_DECLARE(my_font_1) LV_FONT_DECLARE(my_font_2)
  *  @endcode
  */
-#define LV_FONT_CUSTOM_DECLARE LV_FONT_DECLARE(lv_font_andalemo_72) LV_FONT_DECLARE(lv_font_andalemo_32) LV_FONT_DECLARE(lv_font_fry_32) LV_FONT_DECLARE(lv_font_andalemo_16) LV_FONT_DECLARE(lv_font_andalemo_12) LV_FONT_DECLARE(lv_font_plex_12) LV_FONT_DECLARE(lv_font_plex_16) LV_FONT_DECLARE(lv_font_plex_28) LV_FONT_DECLARE(lv_font_plex_32) LV_FONT_DECLARE(lv_font_plex_72)
+#define LV_FONT_CUSTOM_DECLARE  LV_FONT_DECLARE(lv_font_andalemo_72) \
+                                LV_FONT_DECLARE(lv_font_andalemo_32) \
+                                LV_FONT_DECLARE(lv_font_andalemo_128) \
+                                LV_FONT_DECLARE(lv_font_fry_32) \
+                                LV_FONT_DECLARE(lv_font_fry_64) \
+                                LV_FONT_DECLARE(lv_font_fry_128) \
+                                LV_FONT_DECLARE(lv_font_andalemo_16) \
+                                LV_FONT_DECLARE(lv_font_andalemo_12) \
+                                LV_FONT_DECLARE(lv_font_plex_12) \
+                                LV_FONT_DECLARE(lv_font_plex_16) \
+                                LV_FONT_DECLARE(lv_font_plex_28) \
+                                LV_FONT_DECLARE(lv_font_plex_32) \
+                                LV_FONT_DECLARE(lv_font_plex_48) \
+                                LV_FONT_DECLARE(lv_font_plex_72) \
+                                LV_FONT_DECLARE(lv_font_plex_96)
 
 /** Always set a default font */
 #define LV_FONT_DEFAULT &lv_font_montserrat_12
@@ -1025,7 +1043,7 @@
         #define LV_USE_PERF_MONITOR_POS LV_ALIGN_BOTTOM_RIGHT
 
         /** 0: Displays performance data on the screen; 1: Prints performance data using log. */
-        #define LV_USE_PERF_MONITOR_LOG_MODE 0
+        #define LV_USE_PERF_MONITOR_LOG_MODE LVGL_LOG
     #endif
 
     /** 1: Show used memory and memory fragmentation.
@@ -1044,7 +1062,7 @@
     #define LV_USE_PROFILER_BUILTIN 1
     #if LV_USE_PROFILER_BUILTIN
         /** Default profiler trace buffer size */
-        #define LV_PROFILER_BUILTIN_BUF_SIZE (2 * 1024)     /**< [bytes] */
+        #define LV_PROFILER_BUILTIN_BUF_SIZE (32 * 1024)     /**< [bytes] */
     #endif
 
     /** Header to include for profiler */
@@ -1063,10 +1081,10 @@
     #define LV_PROFILER_END_TAG   LV_PROFILER_BUILTIN_END_TAG
 
     /*Enable layout profiler*/
-    #define LV_PROFILER_LAYOUT R1
+    #define LV_PROFILER_LAYOUT 0
 
     /*Enable disp refr profiler*/
-    #define LV_PROFILER_REFRR1
+    #define LV_PROFILER_REFR 0
 
     /*Enable draw profiler*/
     #define LV_PROFILER_DRAW 1
@@ -1075,25 +1093,25 @@
     #define LV_PROFILER_INDEV 0
 
     /*Enable decoder profiler*/
-    #define LV_PROFILER_DECODER 1
+    #define LV_PROFILER_DECODER 0
 
     /*Enable font profiler*/
-    #define LV_PROFILER_FONT 1
+    #define LV_PROFILER_FONT 0
 
     /*Enable fs profiler*/
     #define LV_PROFILER_FS 0
 
     /*Enable style profiler*/
-    #define LV_PROFILER_STYLE 1
+    #define LV_PROFILER_STYLE 0
 
     /*Enable timer profiler*/
     #define LV_PROFILER_TIMER 0
 
     /*Enable cache profiler*/
-    #define LV_PROFILER_CACHE 1
+    #define LV_PROFILER_CACHE 0
 
     /*Enable event profiler*/
-    #define LV_PROFILER_EVENT 1
+    #define LV_PROFILER_EVENT 0
 #endif
 
 /** 1: Enable Monkey test */

@@ -14,7 +14,7 @@
 
 #ifdef DEBUG
  #if defined(AT32F435) || defined(STM32H743)
-  #define PIXEL_BUFFER_LINES 32 
+  #define PIXEL_BUFFER_LINES 128 
  #else
   #define PIXEL_BUFFER_LINES 20
  #endif
@@ -28,7 +28,7 @@
   #endif
  #else
   #if defined(STM32H743)
-   #define PIXEL_BUFFER_LINES 32  
+   #define PIXEL_BUFFER_LINES 128  
   #else
    #define PIXEL_BUFFER_LINES 32 // reduces tearing if multiple of 32
   #endif

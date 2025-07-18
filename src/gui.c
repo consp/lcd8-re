@@ -63,6 +63,8 @@ uint8_t draw_brake_trigger = 0;
 uint8_t draw_controller_mode_trigger = 0;
 modes  mode = MODE_NORMAL, mode_back = MODE_NORMAL;
 
+int32_t graph_values[GRAPH_POINT_COUNT];
+
 const char *speed_text[] = {
     "0", "5", "10", "15", "20", "25", "30", "35", "40", "45", "50", "55", "60", "65", "70", "75", "80", "85", "90", "95", "100"
 };
@@ -134,9 +136,14 @@ lv_chart_cursor_t *graph_cursor = NULL;
 lv_obj_t *light_sensitivity_label = NULL;
 lv_obj_t *cm_label = NULL;
 
+lv_obj_t *speed_label = NULL;
+lv_obj_t *speed_label_minor = NULL;
+lv_obj_t *speed_avg_label = NULL;
+lv_obj_t *power_label = NULL;
+
 lv_anim_t anim_reset_trip;
 
-lv_style_t text_slim, text_normal;
+lv_style_t text_slim, text_normal, text_large, text_medium;
 
 // images
 //
@@ -231,9 +238,22 @@ void gui_draw_normal(void) {
     lv_style_set_text_color(&text_normal, COLOR_WHITE);
     lv_style_set_pad_top(&text_normal, 3);
     lv_style_set_text_align(&text_normal, LV_TEXT_ALIGN_LEFT);
+
     lv_style_set_text_font(&text_slim, &lv_font_fry_32);
     lv_style_set_bg_color(&text_slim, COLOR_BLACK);
     lv_style_set_text_color(&text_slim, COLOR_WHITE);
+
+    lv_style_set_text_font(&text_medium, &lv_font_fry_64);
+    lv_style_set_bg_color(&text_medium, COLOR_BLACK);
+    lv_style_set_text_color(&text_medium, COLOR_WHITE);
+    lv_style_set_pad_top(&text_medium, 3);
+    lv_style_set_text_align(&text_medium, LV_TEXT_ALIGN_LEFT);
+
+    lv_style_set_text_font(&text_large, &lv_font_fry_128);
+    lv_style_set_bg_color(&text_large, COLOR_BLACK);
+    lv_style_set_text_color(&text_large, COLOR_WHITE);
+    lv_style_set_pad_top(&text_large, 3);
+    lv_style_set_text_align(&text_large, LV_TEXT_ALIGN_LEFT);
 
     // bars
 #if LVGL_VERSION_MAJOR == 8
@@ -550,32 +570,6 @@ void gui_draw_normal(void) {
     lv_label_set_text_fmt(motor_temperature, "% 3d°", 123);
     lv_label_set_long_mode(motor_temperature, LV_LABEL_LONG_CLIP);
 
-#if LVGL_VERSION_MAJOR == 8
-    // speed, only draw minor since major takes too much memory due to 
-    // drawing taking place in buffers
-    //
-    /* speed_major = lv_label_create(lv_screen_active()); */
-    /* lv_obj_add_style(speed_major, &text_large, LV_PART_MAIN | LV_STATE_DEFAULT); */
-    /* #<{(| lv_obj_set_style_text_font(speed_major, &lv_font_plex_144_numeric, 0); |)}># */
-    /* lv_obj_set_pos(speed_major, SPEED_MAJOR_X, SPEED_MAJOR_Y); */
-    /* lv_obj_set_size(speed_major, SPEED_MAJOR_WIDTH, SPEED_MAJOR_HEIGHT); */
-    /* lv_obj_set_style_text_align(speed_major, LV_TEXT_ALIGN_RIGHT, 0); */
-    /* lv_label_set_text_fmt(speed_major, "% 2" LID, speed >> 8); */
-    /* lv_label_set_long_mode(speed_major, LV_LABEL_LONG_CLIP); */
-
-    speed_minor = lv_label_create(lv_screen_active());
-    lv_obj_add_style(speed_minor, &text_normal, LV_PART_MAIN | LV_STATE_DEFAULT);
-    lv_obj_set_style_text_font(speed_minor, &lv_font_plex_72, 0);
-    lv_obj_set_pos(speed_minor, SPEED_MINOR_X, SPEED_MINOR_Y);
-    lv_obj_set_size(speed_minor, SPEED_MINOR_WIDTH, SPEED_MINOR_HEIGHT);
-    lv_obj_set_style_text_align(speed_minor, LV_TEXT_ALIGN_LEFT, 0);
-    lv_obj_set_style_pad_left(speed_minor, 0, LV_PART_MAIN);
-    lv_obj_set_style_pad_top(speed_minor, 0, LV_PART_MAIN);
-
-    lv_label_set_text_fmt(speed_minor, "%1" LID, (speed & 0x000000FF) / 26);
-    lv_label_set_long_mode(speed_minor, LV_LABEL_LONG_CLIP);
-#endif
-
     // brake icon
     brake_img = lv_image_create(lv_screen_active());
     lv_image_set_src(brake_img, &icon_brake);
@@ -677,100 +671,100 @@ void gui_draw_normal(void) {
     lv_obj_set_size(time_text, TIME_TEXT_WIDTH, TIME_TEXT_HEIGHT);
 #endif
 
-    // bottom graph
-    graph = lv_chart_create(lv_screen_active());
-    lv_chart_set_type(graph, LV_CHART_TYPE_LINE);
-    lv_obj_set_pos(graph, GRAPH_X + 24, GRAPH_Y);
-    lv_obj_set_size(graph, GRAPH_WIDTH - 24, GRAPH_HEIGHT);
-    lv_chart_set_range(graph, LV_CHART_AXIS_PRIMARY_X, 0, GRAPH_POINT_COUNT);
-    lv_chart_set_range(graph, LV_CHART_AXIS_PRIMARY_Y, 0, settings.graph_max * 1000);
-#if LVGL_VERSION_MAJOR == 8
-    lv_chart_set_axis_tick(graph, LV_CHART_AXIS_PRIMARY_Y, 0, 0, settings.graph_max / 5, 1, true, 28); // minor must be >=1 due to multiplication bug (*0)
-    /* lv_chart_set_axis_tick(graph, LV_CHART_AXIS_PRIMARY_X, 0, 0, 0, 0, false, 0); */
-#else
-        /*Create a scale also with 100% width*/
-    lv_obj_t * graph_scale = lv_scale_create(lv_screen_active());
-    lv_scale_set_mode(graph_scale, LV_SCALE_MODE_VERTICAL_LEFT);
-    lv_obj_set_pos(graph_scale, GRAPH_X, GRAPH_Y);
-    lv_obj_set_size(graph_scale, 24, GRAPH_HEIGHT);
-    lv_scale_set_label_show(graph_scale, true);
-    lv_obj_set_style_length(graph_scale, 3, LV_PART_INDICATOR);
-    lv_obj_set_style_length(graph_scale, 1, LV_PART_ITEMS);
-    lv_scale_set_total_tick_count(graph_scale, 7);
-    lv_scale_set_major_tick_every(graph_scale, 1);
-    lv_scale_set_range(graph_scale, 0, settings.graph_max);
-    /* lv_obj_set_style_pad_hor(graph_scale, lv_chart_get_first_point_center_offset(chart), 0); */
-    /* static const char * yaxis[] = {"0", "5", "10", "15", "20", "25", "30", NULL}; */
-    /* lv_scale_set_text_src(graph_scale, yaxis); */
+    if (settings.graph_field == GRAPH_FIELD_SHIFT || settings.graph_field == GRAPH_FIELD_RUN) {    // bottom graph
+        graph = lv_chart_create(lv_screen_active());
+        lv_chart_set_type(graph, LV_CHART_TYPE_LINE);
+        lv_obj_set_pos(graph, GRAPH_X + 24, GRAPH_Y);
+        lv_obj_set_size(graph, GRAPH_WIDTH - 24, GRAPH_HEIGHT);
+        lv_chart_set_range(graph, LV_CHART_AXIS_PRIMARY_X, 0, GRAPH_POINT_COUNT);
+        lv_chart_set_range(graph, LV_CHART_AXIS_PRIMARY_Y, 0, settings.graph_max * 1000);
 
-    static lv_style_t graph_scale_indicator_style;
-    lv_style_init(&graph_scale_indicator_style);
-    lv_style_set_text_font(&graph_scale_indicator_style, LV_FONT_DEFAULT);
-    lv_style_set_text_color(&graph_scale_indicator_style, lv_color_darken(lv_color_white(), 2));
-    lv_style_set_width(&graph_scale_indicator_style, 3U);      /*Tick length*/
-    lv_style_set_line_width(&graph_scale_indicator_style, 2U);  /*Tick width*/
-    lv_obj_add_style(graph_scale, &graph_scale_indicator_style, LV_PART_INDICATOR);
+        lv_obj_t * graph_scale = lv_scale_create(lv_screen_active());
+        lv_scale_set_mode(graph_scale, LV_SCALE_MODE_VERTICAL_LEFT);
+        lv_obj_set_pos(graph_scale, GRAPH_X, GRAPH_Y);
+        lv_obj_set_size(graph_scale, 24, GRAPH_HEIGHT);
+        lv_scale_set_label_show(graph_scale, true);
+        lv_obj_set_style_length(graph_scale, 3, LV_PART_INDICATOR);
+        lv_obj_set_style_length(graph_scale, 1, LV_PART_ITEMS);
+        lv_scale_set_total_tick_count(graph_scale, 7);
+        lv_scale_set_major_tick_every(graph_scale, 1);
+        lv_scale_set_range(graph_scale, 0, settings.graph_max);
+        /* lv_obj_set_style_pad_hor(graph_scale, lv_chart_get_first_point_center_offset(chart), 0); */
+        /* static const char * yaxis[] = {"0", "5", "10", "15", "20", "25", "30", NULL}; */
+        /* lv_scale_set_text_src(graph_scale, yaxis); */
 
-    static lv_style_t graph_scale_minor_ticks_style;
-    lv_style_init(&graph_scale_minor_ticks_style);
-    lv_style_set_line_color(&graph_scale_minor_ticks_style, lv_color_lighten(lv_color_white(), 3));
-    lv_style_set_width(&graph_scale_minor_ticks_style, 2U);         /*Tick length*/
-    lv_style_set_line_width(&graph_scale_minor_ticks_style, 1U);    /*Tick width*/
-    lv_obj_add_style(graph_scale, &graph_scale_minor_ticks_style, LV_PART_ITEMS);
+        static lv_style_t graph_scale_indicator_style;
+        lv_style_init(&graph_scale_indicator_style);
+        lv_style_set_text_font(&graph_scale_indicator_style, LV_FONT_DEFAULT);
+        lv_style_set_text_color(&graph_scale_indicator_style, lv_color_darken(lv_color_white(), 2));
+        lv_style_set_width(&graph_scale_indicator_style, 3U);      /*Tick length*/
+        lv_style_set_line_width(&graph_scale_indicator_style, 2U);  /*Tick width*/
+        lv_obj_add_style(graph_scale, &graph_scale_indicator_style, LV_PART_INDICATOR);
 
-    static lv_style_t graph_scale_main_line_style;
-    lv_style_init(&graph_scale_main_line_style);
-    /* Main line properties */
-    lv_style_set_line_color(&graph_scale_main_line_style, lv_color_darken(lv_color_white(), 1));
-    lv_style_set_line_width(&graph_scale_main_line_style, 2U); // Tick width
-    lv_obj_add_style(graph_scale, &graph_scale_main_line_style, LV_PART_MAIN);
-#endif
+        static lv_style_t graph_scale_minor_ticks_style;
+        lv_style_init(&graph_scale_minor_ticks_style);
+        lv_style_set_line_color(&graph_scale_minor_ticks_style, lv_color_lighten(lv_color_white(), 3));
+        lv_style_set_width(&graph_scale_minor_ticks_style, 2U);         /*Tick length*/
+        lv_style_set_line_width(&graph_scale_minor_ticks_style, 1U);    /*Tick width*/
+        lv_obj_add_style(graph_scale, &graph_scale_minor_ticks_style, LV_PART_ITEMS);
 
-    static lv_style_t graph_style_main, graph_style_item;
-    lv_style_set_pad_left(&graph_style_main, 0);
-    lv_style_set_pad_right(&graph_style_main, 0);
-    lv_style_set_pad_bottom(&graph_style_main, 3);
-    lv_style_set_pad_top(&graph_style_main, 3);
-    lv_style_set_pad_column(&graph_style_main, 0);
-    lv_style_set_bg_color(&graph_style_main, COLOR_BLACK);
-    lv_style_set_bg_opa(&graph_style_main, LV_OPA_COVER);
-    lv_style_set_border_opa(&graph_style_main, LV_OPA_COVER);
-    lv_style_set_border_width(&graph_style_main, 1);
-    lv_style_set_border_color(&graph_style_main, GRAPH_BORDER_COLOR); // whole border 
-    lv_style_set_line_color(&graph_style_main, GRAPH_DIV_COLOR);
-    lv_style_set_line_width(&graph_style_item, 1);
-    lv_style_set_radius(&graph_style_main, 0); // remove radius
+        static lv_style_t graph_scale_main_line_style;
+        lv_style_init(&graph_scale_main_line_style);
+        /* Main line properties */
+        lv_style_set_line_color(&graph_scale_main_line_style, lv_color_darken(lv_color_white(), 1));
+        lv_style_set_line_width(&graph_scale_main_line_style, 2U); // Tick width
+        lv_obj_add_style(graph_scale, &graph_scale_main_line_style, LV_PART_MAIN);
 
-    lv_style_set_line_width(&graph_style_item, 2);
-    lv_style_set_bg_color(&graph_style_item, GRAPH_CHART_COLOR);
-    lv_style_set_pad_column(&graph_style_item, 0);
-#if LVGL_VERSION_MAJOR == 8
-    static lv_style_t graph_style_ticks;
-    lv_style_set_line_width(&graph_style_ticks, 1);
-    lv_style_set_line_color(&graph_style_ticks, GRAPH_LINE_COLOR);
-    lv_style_set_text_color(&graph_style_ticks, GRAPH_LEGEND_COLOR);
-    lv_style_set_text_font(&graph_style_ticks, &lv_font_plex_12);
-    lv_obj_add_style(graph, &graph_style_ticks, LV_PART_TICKS);
-#endif
+        static lv_style_t graph_style_main, graph_style_item;
+        lv_style_set_pad_left(&graph_style_main, 0);
+        lv_style_set_pad_right(&graph_style_main, 0);
+        lv_style_set_pad_bottom(&graph_style_main, 3);
+        lv_style_set_pad_top(&graph_style_main, 3);
+        lv_style_set_pad_column(&graph_style_main, 0);
+        lv_style_set_bg_color(&graph_style_main, COLOR_BLACK);
+        lv_style_set_bg_opa(&graph_style_main, LV_OPA_COVER);
+        lv_style_set_border_opa(&graph_style_main, LV_OPA_COVER);
+        lv_style_set_border_width(&graph_style_main, 1);
+        lv_style_set_border_color(&graph_style_main, GRAPH_BORDER_COLOR); // whole border 
+        lv_style_set_line_color(&graph_style_main, GRAPH_DIV_COLOR);
+        lv_style_set_line_width(&graph_style_item, 1);
+        lv_style_set_radius(&graph_style_main, 0); // remove radius
 
-    lv_obj_add_style(graph, &graph_style_item, LV_PART_ITEMS);
-    lv_obj_add_style(graph, &graph_style_main, LV_PART_MAIN);
+        lv_style_set_line_width(&graph_style_item, 2);
+        lv_style_set_bg_color(&graph_style_item, GRAPH_CHART_COLOR);
+        lv_style_set_pad_column(&graph_style_item, 0);
 
-#if LVGL_VERSION_MAJOR == 8
-    lv_obj_set_style_size(graph, 0, LV_PART_INDICATOR); // disable dots
-#else
-    lv_obj_set_style_size(graph, 0, 0, LV_PART_INDICATOR); // disable dots
-#endif
-    if (!settings.graph_shift) graph_cursor = lv_chart_add_cursor(graph, GRAPH_CURSOR_COLOR, LV_DIR_TOP | LV_DIR_BOTTOM);
+        lv_obj_add_style(graph, &graph_style_item, LV_PART_ITEMS);
+        lv_obj_add_style(graph, &graph_style_main, LV_PART_MAIN);
 
-    lv_chart_set_div_line_count(graph, settings.speed_max / 5, 0);
-    lv_chart_set_point_count(graph, GRAPH_POINT_COUNT);
-    /* lv_chart_set_update_mode(graph, LV_CHART_UPDATE_MODE_SHIFT); */
-    lv_chart_set_update_mode(graph, settings.graph_shift ? LV_CHART_UPDATE_MODE_SHIFT : LV_CHART_UPDATE_MODE_CIRCULAR);
-    graph_series = lv_chart_add_series(graph, GRAPH_LINE_COLOR, LV_CHART_AXIS_PRIMARY_Y);
-    /* lv_chart_set_ext_y_array(graph, graph_series, graph_array); */
-    lv_chart_set_all_value(graph, graph_series, 0);
-    /* lv_obj_add_event_cb(graph, graph_event_pre_cb, LV_EVENT_DRAW_PART_BEGIN, NULL); // add cb to draw lines more normal */
+        lv_obj_set_style_size(graph, 0, 0, LV_PART_INDICATOR); // disable dots
+        if (settings.graph_field != GRAPH_FIELD_SHIFT) graph_cursor = lv_chart_add_cursor(graph, GRAPH_CURSOR_COLOR, LV_DIR_TOP | LV_DIR_BOTTOM);
+
+        lv_chart_set_div_line_count(graph, settings.speed_max / 5, 0);
+        lv_chart_set_point_count(graph, GRAPH_POINT_COUNT);
+        /* lv_chart_set_update_mode(graph, LV_CHART_UPDATE_MODE_SHIFT); */
+        lv_chart_set_update_mode(graph, settings.graph_field == GRAPH_FIELD_SHIFT ? LV_CHART_UPDATE_MODE_SHIFT : LV_CHART_UPDATE_MODE_CIRCULAR);
+        graph_series = lv_chart_add_series(graph, GRAPH_LINE_COLOR, LV_CHART_AXIS_PRIMARY_Y);
+        lv_chart_set_series_ext_y_array(graph, graph_series, graph_values); 
+        /* lv_chart_set_ext_y_array(graph, graph_series, graph_array); */
+        lv_chart_set_all_value(graph, graph_series, 0);
+    } else if (settings.graph_field == GRAPH_FIELD_SPEED_POWER_AVG) {
+        speed_label = lv_label_create(lv_screen_active());
+        lv_obj_add_style(speed_label, &text_large, LV_PART_MAIN | LV_STATE_DEFAULT);
+        lv_obj_set_style_text_align(speed_label, LV_TEXT_ALIGN_RIGHT, 0);
+        lv_label_set_text_fmt(speed_label, "00");
+        lv_label_set_long_mode(speed_label, LV_LABEL_LONG_CLIP);
+        lv_obj_set_pos(speed_label, SPEED_LABEL_X, SPEED_LABEL_Y);
+        lv_obj_set_size(speed_label, SPEED_LABEL_WIDTH, SPEED_LABEL_HEIGHT);
+
+        speed_label_minor = lv_label_create(lv_screen_active());
+        lv_obj_add_style(speed_label_minor, &text_medium, LV_PART_MAIN | LV_STATE_DEFAULT);
+        lv_obj_set_style_text_align(speed_label_minor, LV_TEXT_ALIGN_LEFT, 0);
+        lv_label_set_text_fmt(speed_label_minor, "0");
+        lv_label_set_long_mode(speed_label_minor, LV_LABEL_LONG_CLIP);
+        lv_obj_set_pos(speed_label_minor, SPEED_LABEL_MINOR_X, SPEED_LABEL_MINOR_Y);
+        lv_obj_set_size(speed_label_minor, SPEED_LABEL_MINOR_WIDTH, SPEED_LABEL_MINOR_HEIGHT);
+    }
 #if  (DEBUG && (UART_COMM == UART_COMM_EBICS))
     cm_label = lv_label_create(lv_screen_active());
     lv_obj_add_style(cm_label, &text_slim, LV_PART_MAIN | LV_STATE_DEFAULT);
@@ -1291,7 +1285,7 @@ void gui_draw_settings_display(void) {
     LIST_ITEM_COUNTER(0, "BATTERY VMIN", 0, 60000, 100, settings.battery_voltage_min, 2, NULL);
     LIST_ITEM_COUNTER(1, "BATTERY VMAX", 0, 60000, 100, settings.battery_voltage_max, 2, NULL);
     LIST_ITEM_COUNTER(2, "GRAPH DURATION", 0, 30, 1, settings.graph_duration, 1, NULL);
-    LIST_ITEM_CHECKBOX(3, "GRAPH MODE SHIFT", settings.graph_shift, 1);
+    LIST_ITEM_CHECKBOX(3, "GRAPH MODE", settings.graph_field, 1);
     LIST_ITEM_COUNTER(4, "GRAPH MAX", 0, 100, 1, settings.graph_max, 1, NULL);
     LIST_ITEM_COUNTER(5, "ASSIST LEVELS", 0, 9, 1, settings.assist_levels, 1, NULL);
     LIST_ITEM_COUNTER(6, "SPEED REDLINE", 0, 100, 1, settings.speed_redline, 1, NULL);
@@ -1349,79 +1343,17 @@ void gui_update(void) {
  */
 static void _draw_speed(void) {
     if (draw_speed_trigger) {
-#if LVGL_VERSION_MAJOR == 8
-        int32_t tspeed = speed < 0 ? speed * -1 : speed;
-        switch ((tspeed % 10000) / 1000) {
-            default:
-            case 0:
-                lcd_draw_large_text(SPEED_MAJOR_X + SPEED_MAJOR_WIDTH, SPEED_MAJOR_Y, &large_0, SPEED_COLOR_TRUE);
-                break;
-            case 1:
-                lcd_draw_large_text(SPEED_MAJOR_X + SPEED_MAJOR_WIDTH, SPEED_MAJOR_Y, &large_1, SPEED_COLOR_TRUE);
-                break;
-            case 2:
-                lcd_draw_large_text(SPEED_MAJOR_X + SPEED_MAJOR_WIDTH, SPEED_MAJOR_Y, &large_2, SPEED_COLOR_TRUE);
-                break;
-            case 3:
-                lcd_draw_large_text(SPEED_MAJOR_X + SPEED_MAJOR_WIDTH, SPEED_MAJOR_Y, &large_3, SPEED_COLOR_TRUE);
-                break;
-            case 4:
-                lcd_draw_large_text(SPEED_MAJOR_X + SPEED_MAJOR_WIDTH, SPEED_MAJOR_Y, &large_4, SPEED_COLOR_TRUE);
-                break;
-            case 5:
-                lcd_draw_large_text(SPEED_MAJOR_X + SPEED_MAJOR_WIDTH, SPEED_MAJOR_Y, &large_5, SPEED_COLOR_TRUE);
-                break;
-            case 6:
-                lcd_draw_large_text(SPEED_MAJOR_X + SPEED_MAJOR_WIDTH, SPEED_MAJOR_Y, &large_6, SPEED_COLOR_TRUE);
-                break;
-            case 7:
-                lcd_draw_large_text(SPEED_MAJOR_X + SPEED_MAJOR_WIDTH, SPEED_MAJOR_Y, &large_7, SPEED_COLOR_TRUE);
-                break;
-            case 8:
-                lcd_draw_large_text(SPEED_MAJOR_X + SPEED_MAJOR_WIDTH, SPEED_MAJOR_Y, &large_8, SPEED_COLOR_TRUE);
-                break;
-            case 9:
-                lcd_draw_large_text(SPEED_MAJOR_X + SPEED_MAJOR_WIDTH, SPEED_MAJOR_Y, &large_9, SPEED_COLOR_TRUE);
-                break;
-        }
-        switch (tspeed / 10000) {
-            default:
-            case 0:
-                lcd_draw_large_text( SPEED_MAJOR_X, SPEED_MAJOR_Y, &large_0, SPEED_COLOR_FALSE);
-                break;
-            case 1:
-                lcd_draw_large_text( SPEED_MAJOR_X, SPEED_MAJOR_Y, &large_1, SPEED_COLOR_TRUE);
-                break;
-            case 2:
-                lcd_draw_large_text( SPEED_MAJOR_X, SPEED_MAJOR_Y, &large_2, SPEED_COLOR_TRUE);
-                break;
-            case 3:
-                lcd_draw_large_text( SPEED_MAJOR_X, SPEED_MAJOR_Y, &large_3, SPEED_COLOR_TRUE);
-                break;
-            case 4:
-                lcd_draw_large_text( SPEED_MAJOR_X, SPEED_MAJOR_Y, &large_4, SPEED_COLOR_TRUE);
-                break;
-            case 5:
-                lcd_draw_large_text( SPEED_MAJOR_X, SPEED_MAJOR_Y, &large_5, SPEED_COLOR_TRUE);
-                break;
-            case 6:
-                lcd_draw_large_text( SPEED_MAJOR_X, SPEED_MAJOR_Y, &large_6, SPEED_COLOR_TRUE);
-                break;
-            case 7:
-                lcd_draw_large_text( SPEED_MAJOR_X, SPEED_MAJOR_Y, &large_7, SPEED_COLOR_TRUE);
-                break;
-            case 8:
-                lcd_draw_large_text( SPEED_MAJOR_X, SPEED_MAJOR_Y, &large_8, SPEED_COLOR_TRUE);
-                break;
-            case 9:
-                lcd_draw_large_text( SPEED_MAJOR_X, SPEED_MAJOR_Y, &large_9, SPEED_COLOR_TRUE);
-                break;
-        }
-        lv_label_set_text_fmt(speed_minor, "%1" LID, (tspeed % 1000) / 100);
-#else
         // avoid memory or bad data corruption making a mess of things
-        if (speed <= 99000 && speed >= -99000) lv_arc_set_value(speed_bar, speed);
-#endif
+        if (speed <= 99000 && speed >= -99000) {
+            lv_arc_set_value(speed_bar, speed);
+
+            if (settings.graph_field == GRAPH_FIELD_SPEED_POWER_AVG) {
+
+                int32_t tspeed = speed < 0 ? speed * -1 : speed;
+                lv_label_set_text_fmt(speed_label, "%2" LID, (tspeed / 1000));
+                lv_label_set_text_fmt(speed_label_minor, "%1" LID, (tspeed % 1000) / 100);
+            }
+        }
         /* lv_meter_set_indicator_end_value(meter, indic1, speed_major); */
         draw_speed_trigger = 0;
     }
@@ -1431,7 +1363,7 @@ static void _draw_speed(void) {
 void _draw_graph(lv_timer_t *timer) {
     if (mode == MODE_NORMAL) {
         /* if (graph_cursor) lv_chart_set_cursor_point(graph, graph_cursor, graph_series, graph_series->start_point); */
-        if (avg_speed <= 99000 && avg_speed >= -99000) lv_chart_set_next_value(graph, graph_series, avg_speed);
+        if (graph && avg_speed <= 99000 && avg_speed >= -99000) lv_chart_set_next_value(graph, graph_series, avg_speed);
     }
 }
 

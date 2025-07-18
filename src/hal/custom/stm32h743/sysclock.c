@@ -1,10 +1,15 @@
 #include "stm32h743.h"
+#include "stm32h7xx_hal_rcc.h"
 
 static void MPU_Config(void);
 static void SystemClock_Config(void);
 static void PeriphCommonClock_Config(void);
 
 void system_clock_config(void) {
+    // enable all ram clocks
+    /* __HAL_RCC_AHBSRAM1_CLK_ENABLE() */
+    __HAL_RCC_D2SRAM1_CLK_ENABLE();
+    __HAL_RCC_D2SRAM2_CLK_ENABLE();
     MPU_Config();
     SCB_EnableICache();
     SCB_EnableDCache();
@@ -82,7 +87,7 @@ void SystemClock_Config(void)
 
     /** Configure the main internal regulator output voltage
     */
-    __HAL_PWR_VOLTAGESCALING_CONFIG(PWR_REGULATOR_VOLTAGE_SCALE1);
+    __HAL_PWR_VOLTAGESCALING_CONFIG(PWR_REGULATOR_VOLTAGE_SCALE0);
 
     while(!__HAL_PWR_GET_FLAG(PWR_FLAG_VOSRDY)) {}
 
@@ -126,7 +131,7 @@ void SystemClock_Config(void)
     RCC_ClkInitStruct.APB2CLKDivider = RCC_APB2_DIV2;
     RCC_ClkInitStruct.APB4CLKDivider = RCC_APB4_DIV2;
 
-    if (HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_4) != HAL_OK)
+    if (HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_2) != HAL_OK)
     {
         Error_Handler();
     }
@@ -186,7 +191,7 @@ void MPU_Config(void)
     HAL_MPU_ConfigRegion(&MPU_InitStruct);
 
     // SRAM1
-    MPU_InitStruct.Enable = MPU_REGION_ENABLE;
+    MPU_InitStruct.Enable = MPU_REGION_ENABLE; 
     MPU_InitStruct.Number = MPU_REGION_NUMBER2;
     MPU_InitStruct.BaseAddress = 0x24000000;
     MPU_InitStruct.Size = MPU_REGION_SIZE_512KB;
@@ -201,7 +206,7 @@ void MPU_Config(void)
     HAL_MPU_ConfigRegion(&MPU_InitStruct);
 
     // ITCMRAM
-    MPU_InitStruct.Enable = MPU_REGION_ENABLE;
+    MPU_InitStruct.Enable = MPU_REGION_DISABLE;
     MPU_InitStruct.Number = MPU_REGION_NUMBER3;
     MPU_InitStruct.BaseAddress = 0x00000000;
     MPU_InitStruct.Size = MPU_REGION_SIZE_64KB;
@@ -215,8 +220,8 @@ void MPU_Config(void)
 
     HAL_MPU_ConfigRegion(&MPU_InitStruct);
 
-    // RDTCMRAM
-    MPU_InitStruct.Enable = MPU_REGION_ENABLE;
+    // DTCMRAM
+    MPU_InitStruct.Enable = MPU_REGION_DISABLE;
     MPU_InitStruct.Number = MPU_REGION_NUMBER4;
     MPU_InitStruct.BaseAddress = 0x20000000;
     MPU_InitStruct.Size = MPU_REGION_SIZE_128KB;
@@ -234,7 +239,7 @@ void MPU_Config(void)
     MPU_InitStruct.Enable = MPU_REGION_ENABLE;
     MPU_InitStruct.Number = MPU_REGION_NUMBER5;
     MPU_InitStruct.BaseAddress = 0x30000000;
-    MPU_InitStruct.Size = MPU_REGION_SIZE_256MB;
+    MPU_InitStruct.Size = MPU_REGION_SIZE_512KB;
     MPU_InitStruct.SubRegionDisable = 0x0;
     MPU_InitStruct.TypeExtField = MPU_TEX_LEVEL0;
     MPU_InitStruct.AccessPermission = MPU_REGION_FULL_ACCESS;
@@ -244,8 +249,6 @@ void MPU_Config(void)
     MPU_InitStruct.IsBufferable = MPU_ACCESS_BUFFERABLE;
 
     HAL_MPU_ConfigRegion(&MPU_InitStruct);
-
-
 
     /* Enables the MPU */
     HAL_MPU_Enable(MPU_PRIVILEGED_DEFAULT);

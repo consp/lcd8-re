@@ -64,6 +64,7 @@ C_SOURCES =  \
 			 src/comm.c \
 			 src/crc.c \
 			 src/gui.c \
+			 src/buffers.c \
 			 src/main.c
 
 ifeq ($(CHIP),at32f415)
@@ -76,17 +77,22 @@ endif
 
 # fonts & images
 C_SOURCES += \
+			 src/fonts/$(LVGL_VERSION).x/ANDALEMO_128.c \
 			 src/fonts/$(LVGL_VERSION).x/ANDALEMO_72.c \
 			 src/fonts/$(LVGL_VERSION).x/ANDALEMO_32.c \
 			 src/fonts/$(LVGL_VERSION).x/ANDALEMO_28.c \
 			 src/fonts/$(LVGL_VERSION).x/ANDALEMO_16.c \
 			 src/fonts/$(LVGL_VERSION).x/ANDALEMO_12.c \
+			 src/fonts/$(LVGL_VERSION).x/PLEX_96.c \
 			 src/fonts/$(LVGL_VERSION).x/PLEX_72.c \
+			 src/fonts/$(LVGL_VERSION).x/PLEX_48.c \
 			 src/fonts/$(LVGL_VERSION).x/PLEX_32.c \
 			 src/fonts/$(LVGL_VERSION).x/PLEX_28.c \
 			 src/fonts/$(LVGL_VERSION).x/PLEX_16.c \
 			 src/fonts/$(LVGL_VERSION).x/PLEX_12.c \
 			 src/fonts/$(LVGL_VERSION).x/FRY_32.c \
+			 src/fonts/$(LVGL_VERSION).x/FRY_64.c \
+			 src/fonts/$(LVGL_VERSION).x/FRY_128.c \
 			 src/fonts/large_text_1bpp.c \
 			 src/img/display/lvgl$(LVGL_VERSION)/battery_black.c \
 			 src/img/display/lvgl$(LVGL_VERSION)/icon_clock.c \

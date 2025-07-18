@@ -66,23 +66,7 @@ extern settings_t settings;
   * @retval none
   */
 
-#ifdef PLATFORM_LCD8 
- #if DMA_WRITE
-uint8_t RAMHIGH pixelbuffer[PIXEL_BUFFER_SIZE] __attribute__ ((aligned (4)));
- #else
-uint8_t RAMHIGH pixelbuffer[PIXEL_BUFFER_SIZE] __attribute__ ((aligned (4)));
- #endif
-#elif defined(STM32H743)
-uint8_t RAMHIGH pixelbuffer[PIXEL_BUFFER_SIZE] __attribute__ ((aligned (4)));
-uint8_t RAMHIGH pixelbuffer2[PIXEL_BUFFER_SIZE] __attribute__ ((aligned (4)));
-uint8_t RAMHIGH framebuffer[(COLOR_SIZE * 320 * 480)] __attribute__ ((aligned (4)));
-/* uint8_t *pixelbuffer2 = NULL; */
-#else
- #if LVGL_VERSION_MAJOR == 8
-  #include "gtkdrv.h"
- #endif
-uint8_t RAMHIGH pixelbuffer[DISPLAY_WIDTH * DISPLAY_HEIGHT * sizeof(lv_color_t)];
-#endif
+extern uint8_t pixelbuffer[], pixelbuffer2[];
 
 #if defined(SEMIHOSTING) && !defined(PLATFORM_SIM)
 extern void initialise_monitor_handles(void);
@@ -321,19 +305,19 @@ int CRITICAL main(void)
         button_presses();
         gui_update();                                           // update gui data
         auto_lights();
-        lv_timer_handler();
-        /* uint32_t m = lv_timer_handler(); */
-        /* delay_ms(m > CYCLE_DELAY_LIMIT ? CYCLE_DELAY_LIMIT : m); */
+        /* lv_timer_handler(); */
+        uint32_t m = lv_timer_handler();
+        delay_ms(m > CYCLE_DELAY_LIMIT ? CYCLE_DELAY_LIMIT : m);
 #ifdef LOOP
         extern int32_t speed, power_value, battery_current;
         extern uint8_t draw_power_trigger, draw_speed_trigger, draw_battery_voltage_trigger;
-        speed += 1;
-        power_value += 1;
-        battery_current += 1;
+        speed += 100;
+        power_value += 1000;
+        battery_current += 1000;
 
         if (speed > 30000) speed = 0;
-        if (power_value > 100000) power_value = 0;
-        if (battery_current > 20000) battery_current = -10000;
+        if (power_value > 1000000) power_value = 0;
+        if (battery_current > 200000) battery_current = -10000;
 
 
         cntr = cntr + 1;

@@ -183,7 +183,16 @@
 #define GRAPH_CHART_COLOR               RGB565(220, 220, 220)
 #define GRAPH_LEGEND_COLOR              RGB565(122, 122, 122)
 #define GRAPH_CURSOR_COLOR              RGB565(0, 0, 144)
-#define GRAPH_POINT_COUNT               256
+#define GRAPH_POINT_COUNT               512
+
+#define SPEED_LABEL_X                   0
+#define SPEED_LABEL_Y                   POWER_Y + 40
+#define SPEED_LABEL_WIDTH               136 
+#define SPEED_LABEL_HEIGHT              (4 * 32)
+#define SPEED_LABEL_MINOR_X             SPEED_LABEL_X + SPEED_LABEL_WIDTH 
+#define SPEED_LABEL_MINOR_Y             POWER_Y + 64
+#define SPEED_LABEL_MINOR_WIDTH         64 
+#define SPEED_LABEL_MINOR_HEIGHT        80
 
 #if LVGL_VERSION_MAJOR == 8
 #define ASSIST_X                        256

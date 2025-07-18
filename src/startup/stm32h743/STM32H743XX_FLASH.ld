@@ -70,7 +70,8 @@ RAM (xrw)           : ORIGIN = 0x24000000, LENGTH = 512K
 RAM_D2 (xrw)        : ORIGIN = 0x30000000, LENGTH = 288K
 RAM_D3 (xrw)        : ORIGIN = 0x38000000, LENGTH = 64K
 ITCMRAM (xrw)       : ORIGIN = 0x00000000, LENGTH = 64K
-FLASH (rx)          : ORIGIN = 0x8000000, LENGTH = 2048K
+FLASH (rx)          : ORIGIN = 0x8000000, LENGTH = 1024K
+FLASH2 (rx)         : ORIGIN = 0x8100000, LENGTH = 1024K
 }
 
 /* Define output sections */
@@ -136,6 +137,15 @@ SECTIONS
     *(.rodata*)        /* .rodata* sections (constants, strings, etc.) */
     . = ALIGN(4);
   } >FLASH
+
+  /* Constant data goes into FLASH */
+  .flash2_rodata :
+  {
+    . = ALIGN(4);
+    *(.flash2_rodata)         /* .rodata sections (constants, strings, etc.) */
+    *(.flash2_rodata*)        /* .rodata* sections (constants, strings, etc.) */
+    . = ALIGN(4);
+  } >FLASH2
 
   .ARM.extab (READONLY) : /* The "READONLY" keyword is only supported in GCC11 and later, remove it if using GCC10 or earlier. */
   {

@@ -8,6 +8,13 @@ void eeprom_read_settings(void);
 void eeprom_write_settings(void);
 void eeprom_factory_reset(void);
 
+typedef enum graph_field_et {
+    GRAPH_FIELD_SHIFT = 0,
+    GRAPH_FIELD_RUN = 1,
+    GRAPH_FIELD_SPEED_POWER_AVG = 2,
+    GRAPH_FIELD_SPEED_AVG = 3
+} graph_field;
+
 #pragma pack(push, 1)
 typedef struct __attribute__((packed)) {
     uint32_t header;
@@ -20,7 +27,7 @@ typedef struct __attribute__((packed)) {
     uint16_t    battery_voltage_min;
     uint16_t    battery_voltage_max;
     uint8_t     graph_duration;
-    uint8_t     graph_shift;
+    uint8_t     graph_field;
     uint8_t     graph_max;
     uint8_t     assist_levels;
     uint8_t     assist_last;
@@ -41,6 +48,8 @@ typedef struct __attribute__((packed)) {
     uint16_t    regen_current;
     uint16_t    pas_timeout;
     uint16_t    pas_ramp;
+    uint16_t    controller_power_min;
+    uint16_t    controller_power_max;
 
     uint32_t    date;
     uint32_t    time;
