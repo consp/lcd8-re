@@ -14,7 +14,6 @@
 /* #define MEMORY_DEBUG */
 uint16_t dummy = 0;
 
-
 #ifdef DMA_WRITE
 
 #if LVGL_VERSION_MAJOR == 9

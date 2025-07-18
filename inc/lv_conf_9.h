@@ -27,7 +27,7 @@
  *====================*/
 
 /** Color depth: 1 (I1), 8 (L8), 16 (RGB565), 24 (RGB888), 32 (XRGB8888) */
-#define LV_COLOR_DEPTH 16
+#define LV_COLOR_DEPTH 32
 
 /*=========================
    STDLIB WRAPPER SETTINGS
@@ -75,7 +75,7 @@
     #define LV_MEM_POOL_EXPAND_SIZE 0
 
     /** Set an address for the memory pool instead of allocating it as a normal array. Can be in external SRAM too. */
-    #define LV_MEM_ADR 0     /**< 0: unused*/
+    #define LV_MEM_ADR 0 
     /* Instead of an address give a memory allocator that will be called to get a memory pool for LVGL. E.g. my_malloc */
     #if LV_MEM_ADR == 0
         #undef LV_MEM_POOL_INCLUDE
@@ -129,7 +129,7 @@
 #define LV_DRAW_BUF_STRIDE_ALIGN                1
 
 /** Align start address of draw_buf addresses to this bytes*/
-#define LV_DRAW_BUF_ALIGN                       1
+#define LV_DRAW_BUF_ALIGN                       4
 
 /** Using matrix for transformations.
  * Requirements:
@@ -154,7 +154,7 @@
 /** Stack size of drawing thread.
  * NOTE: If FreeType or ThorVG is enabled, it is recommended to set it to 32KB or more.
  */
-#define LV_DRAW_THREAD_STACK_SIZE    (16 * 1024)         /**< [bytes]*/
+#define LV_DRAW_THREAD_STACK_SIZE    (24 * 1024)         /**< [bytes]*/
 
 #define LV_USE_DRAW_SW 1
 #if LV_USE_DRAW_SW == 1
@@ -165,14 +165,16 @@
      * - bitmaps with transparency may use ARGB8888
      */
     #define LV_DRAW_SW_SUPPORT_RGB565       1
+    #define LV_DRAW_SW_SUPPORT_RGB565_SWAPPED       1
     #define LV_DRAW_SW_SUPPORT_RGB565A8     1
     #define LV_DRAW_SW_SUPPORT_RGB888       1
-    #define LV_DRAW_SW_SUPPORT_XRGB8888     0
+    #define LV_DRAW_SW_SUPPORT_XRGB8888     1
     #define LV_DRAW_SW_SUPPORT_ARGB8888     1
-    #define LV_DRAW_SW_SUPPORT_L8           0
-    #define LV_DRAW_SW_SUPPORT_AL88         0
-    #define LV_DRAW_SW_SUPPORT_A8           0
-    #define LV_DRAW_SW_SUPPORT_I1           0
+    #define LV_DRAW_SW_SUPPORT_ARGB8888_PREMULTIPLIED 1
+    #define LV_DRAW_SW_SUPPORT_L8           1
+    #define LV_DRAW_SW_SUPPORT_AL88         1
+    #define LV_DRAW_SW_SUPPORT_A8           1
+    #define LV_DRAW_SW_SUPPORT_I1           1
 
     /* The threshold of the luminance to consider a pixel as
      * active in indexed color format */
@@ -204,7 +206,7 @@
          *  The circumference of 1/4 circle are saved for anti-aliasing.
          *  `radius * 4` bytes are used per circle (the most often used radiuses are saved).
          *  - 0: disables caching */
-        #define LV_DRAW_SW_CIRCLE_CACHE_SIZE 0
+        #define LV_DRAW_SW_CIRCLE_CACHE_SIZE 4
     #endif
 
     // #define  LV_USE_DRAW_SW_ASM     LV_DRAW_SW_ASM_HELIUM
@@ -329,7 +331,11 @@
 #endif
 
 /** Accelerate blends, fills, etc. with STM32 DMA2D */
+// #ifdef STM32H743
+// #define LV_USE_DRAW_DMA2D 1
+// #else
 #define LV_USE_DRAW_DMA2D 0
+// #endif
 
 #if LV_USE_DRAW_DMA2D
     #define LV_DRAW_DMA2D_HAL_INCLUDE "stm32h7xx_hal.h"
@@ -352,7 +358,7 @@
  *-----------*/
 
 /** Enable log module */
-#define LV_USE_LOG ((DEBUG && LVGL_LOG) || defined(SEMIHOSTING))
+#define LV_USE_LOG ((DEBUG && LVGL_LOG) || defined(SEMIHOSTING) || defined(SWO))
 #if LV_USE_LOG
     /** Set value to one of the following levels of logging detail:
      *  - LV_LOG_LEVEL_TRACE    Log detailed information.
@@ -361,11 +367,11 @@
      *  - LV_LOG_LEVEL_ERROR    Log only critical issues, when system may fail.
      *  - LV_LOG_LEVEL_USER     Log only custom log messages added by the user.
      *  - LV_LOG_LEVEL_NONE     Do not log anything. */
-    #define LV_LOG_LEVEL LV_LOG_LEVEL_INFO
+    #define LV_LOG_LEVEL LV_LOG_LEVEL_INFO 
 
     /** - 1: Print log with 'printf';
      *  - 0: User needs to register a callback with `lv_log_register_print_cb()`. */
-#if defined(SEMIHOSTING) || defined(SEGGER_RTT)
+#if defined(SEMIHOSTING) || defined(SEGGER_RTT) || defined(SWO)
     #define LV_LOG_PRINTF 1
 #else
     #define LV_LOG_PRINTF 0
@@ -537,7 +543,7 @@
 
 /** Will be added where memory needs to be aligned (with -Os data might not be aligned to boundary by default).
  *  E.g. __attribute__((aligned(4)))*/
-#define LV_ATTRIBUTE_MEM_ALIGN
+#define LV_ATTRIBUTE_MEM_ALIGN __attribute((aligned(4)))
 
 /** Attribute to mark large constant arrays, for example for font bitmaps */
 #define LV_ATTRIBUTE_LARGE_CONST
@@ -561,7 +567,7 @@
 
 /** Enable matrix support
  *  - Requires `LV_USE_FLOAT = 1` */
-#define LV_USE_MATRIX           0
+#define LV_USE_MATRIX           1
 
 /** Include `lvgl_private.h` in `lvgl.h` to access internal data and functions by default */
 #define LV_USE_PRIVATE_API      1
@@ -1032,7 +1038,7 @@
 #endif /*LV_USE_SYSMON*/
 
 /** 1: Enable runtime performance profiler */
-#define LV_USE_PROFILER 0
+#define LV_USE_PROFILER PROFILE
 #if LV_USE_PROFILER
     /** 1: Enable the built-in profiler */
     #define LV_USE_PROFILER_BUILTIN 1
@@ -1057,10 +1063,10 @@
     #define LV_PROFILER_END_TAG   LV_PROFILER_BUILTIN_END_TAG
 
     /*Enable layout profiler*/
-    #define LV_PROFILER_LAYOUT 0
+    #define LV_PROFILER_LAYOUT R1
 
     /*Enable disp refr profiler*/
-    #define LV_PROFILER_REFR 0
+    #define LV_PROFILER_REFRR1
 
     /*Enable draw profiler*/
     #define LV_PROFILER_DRAW 1
@@ -1078,7 +1084,7 @@
     #define LV_PROFILER_FS 0
 
     /*Enable style profiler*/
-    #define LV_PROFILER_STYLE 0
+    #define LV_PROFILER_STYLE 1
 
     /*Enable timer profiler*/
     #define LV_PROFILER_TIMER 0

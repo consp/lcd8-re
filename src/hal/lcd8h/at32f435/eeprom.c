@@ -1,6 +1,7 @@
 /*
  * Read/write to eeprom via i2c bitbang
  */
+#include <string.h>
 #include "at32f435_437.h"
 #include "delay.h"
 #include "config.h"
@@ -10,10 +11,10 @@
 
 // optimization messes with the crude timing and O3 changes execution order, keep Os
 #pragma GCC optimize ("Os")
-
-#define T_LOW  10
-#define T_HIGH 7
-#define T_SHORT 1
+#define FACTOR 2
+#define T_LOW  (10 * FACTOR)
+#define T_HIGH (7 * FACTOR)
+#define T_SHORT (1 * FACTOR)
 // this will be optimized away by the compiler if constant
 #define SDA(x) if (x != 0) { GPIOC->scr = GPIO_PINS_6;} else {GPIOC->clr = GPIO_PINS_6;}
 #define SCL(x) if (x != 0) { GPIOC->scr = GPIO_PINS_7;} else {GPIOC->clr = GPIO_PINS_7;}
@@ -199,7 +200,7 @@ void eeprom_write_defaults(void) {
     settings.power_redline = POWER_REDLINE;
     settings.power_min = POWER_MIN;
     settings.speed_max = SPEED_MAX;
-    settings.current_max = 10000;
+    settings.current_max = 25000;
     settings.battery_voltage_min = BATTERY_MIN;
     settings.battery_voltage_max = BATTERY_MAX;
     settings.graph_duration = GRAPH_DURATION;
@@ -209,13 +210,14 @@ void eeprom_write_defaults(void) {
     settings.assist_last = ASSIST_DEFAULT;
     settings.wheel_circumfence = WHEEL_CIRCUMFENCE;
     settings.speed_redline = SPEED_REDLINE;
-    settings.speed_assist_max = SPEED_MAX;
+    settings.speed_assist_max = SPEED_MAX_ASSIST;
     settings.lights_enabled = 0;
     settings.lights_mode = 0;
     settings.battery_voltage_from_controller = 0;
     settings.regen_current = REGEN_CURRENT;
     settings.pas_timeout = PAS_TIMEOUT;
     settings.pas_ramp = PAS_RAMP;
+    settings.shutdown_timer = SHUTDOWN_TIMER_DEFAULT;
 
     settings.trip_time = 0;
     settings.trip_distance = 0;
@@ -231,19 +233,29 @@ void eeprom_write_defaults(void) {
     settings.factory_reset = 0xAA; // mark as defaults loaded 
 }
 
+volatile int readfail = 0;
+volatile uint8_t crc = 0;
+    settings_t tmpsettings = {0};
 void eeprom_read_settings(void) {
     LV_LOG_INFO("Reading settings from EEPROM");
-    eeprom_read_bytes(0, 0, (uint8_t *) &settings, sizeof(settings_t));
-    uint8_t crc = crc_calc((uint8_t *) &settings, sizeof(settings_t) - 1);
-    while(counter < 5 && settings.factory_reset != 0x55) {
-            if (settings.crc != crc || settings.header != 0xCAFEBABE) {
-                LV_LOG_WARN("CRC or header fail: %02X vs %02X and %08X vs %08X", crc, settings.crc, 0xCAFEBABE, (unsigned int) settings.header);
-                eeprom_write_defaults(); // make sure something is read 
-                settings.factory_reset = 0xFF; // invalidate
-            } else {
-                settings.factory_reset = 0x55;
-            }
+    int counter = 0;
+    while(counter < 20) {
+        eeprom_read_bytes(0, 0, (uint8_t *) &settings, sizeof(settings_t));
+        crc = crc_calc((uint8_t *) &settings, sizeof(settings_t) - 1);
+        if (settings.crc != crc || settings.header != 0xCAFEBABE) {
+            LV_LOG_WARN("CRC or header fail: %02X vs %02X and %08X vs %08X", crc, settings.crc, 0xCAFEBABE, (unsigned int) settings.header);
+            eeprom_write_defaults(); // make sure something is read 
+            settings.factory_reset = 0xFF; // invalidate
+            settings.crc = 0x00;
+            readfail++;
+            delay_ms(100);
+        } else {
+            settings.factory_reset = 0x55;
+            break;
+        }
+        counter++;
     }
+    eeprom_read_bytes(0, 0, (uint8_t *) &tmpsettings, sizeof(settings_t));
 }
 
 void eeprom_factory_reset(void) {
@@ -252,12 +264,32 @@ void eeprom_factory_reset(void) {
     eeprom_write_settings();
 }
 
+
 void eeprom_write_settings(void) {
+    settings_t tmpsettings = {0};
     // calc crc
     LV_LOG_INFO("Writing settings to EEPROM");
     if (settings.factory_reset == 0xFF) return; // do not write if error
     settings.header = 0xCAFEBABE;
     settings.crc = crc_calc((uint8_t *) &settings, sizeof(settings_t) - 1);
     eeprom_write_bytes(0, 0, (uint8_t *) &settings, sizeof(settings_t));
+    /* delay_ms(1000); // wait */
+    // read back
+    int counter = 0;
+    while (counter < 10) { 
+#ifndef DEBUG
+        wdt_counter_reload();
+#endif
+        eeprom_read_bytes(0, 0, (uint8_t *) &tmpsettings, sizeof(settings_t));
+        if (memcmp((uint8_t *) &settings, (uint8_t*) &tmpsettings, sizeof(settings_t)) != 0) {
+            counter++;
+            readfail++;
+        } else {
+            break;
+        }
+        delay_ms(100);
+    }
+
+
 }
 

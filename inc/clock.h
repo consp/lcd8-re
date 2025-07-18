@@ -17,17 +17,22 @@ void clock_init(void);
 /*
  * @brief Get the current time (if RTC available)
  */
-void clock_get_time(uint32_t *hours, uint32_t *minutes);
+void clock_get_time(uint8_t *hours, uint8_t *minutes);
 
 /*
  * LVGL Callback funtion for ms timer
  */
 uint32_t timer_cb(void);
 
-void clock_set_wheelspeed_timer(uint32_t interval);
+void clock_set_wheelspeed_timer(int32_t rpm);
 
 void clock_set_time(uint32_t hour, uint32_t minute, uint32_t second);
 void clock_set_date(uint32_t year, uint32_t month, uint32_t day, uint32_t week);
 void clock_get_all(uint8_t *hours, uint8_t *minutes, uint8_t *sec, uint16_t *year, uint8_t *mon, uint8_t *day);
+
+#ifdef PROFILE
+void clock_setup_us_source(void);
+CRITICAL uint64_t clock_us(void);
+#endif
 
 #endif // __CLOCK_H__

@@ -14,7 +14,7 @@
 #endif
 
 // system is possibly in Os mode
-#pragma GCC optimize ("O2")
+#pragma GCC optimize ("O3")
 
 // externals
 extern int32_t speed, battery_current, battery_voltage_controller, mot_temperature, con_temperature, wheel_circumfence, amphours_total, amphours_regen_total, wh_left, wh_total, wh_regen_total, distance_total;
@@ -37,12 +37,11 @@ float buffer_get_float32_auto(const uint8_t *buffer, int32_t *index);
 #endif
 volatile int rv = 0;
 volatile uint32_t sel = 0;
-volatile int32_t rpm = 0;
 void comm_update(void) {
     // parse if available and update variables
     uint8_t data[UART_RX_BUFFER_SIZE];;
     uint32_t buf_len = 0;
-    uint32_t tval = 0;
+    int32_t rpm = 0;
     if (uart_get_data(data, &buf_len)) {
         uint32_t length = 0;
         while (length < buf_len && length < UART_RX_BUFFER_SIZE) {
@@ -62,11 +61,11 @@ void comm_update(void) {
                         draw_power_trigger = 1; 
                         break;
                     case (MSG_ROTATION):
-                        tval = __ntohs(msg->rotation.value);
-                        if (tval > 0) {
+                        rpm  = __ntohs(msg->rotation.value);
+                        if (rpm  > 0) {
                             // enable
-                            clock_set_wheelspeed_timer(tval);
-                            speed = (((int32_t)settings.wheel_circumfence) * 36000L) / (tval); 
+                            clock_set_wheelspeed_timer(60000 / rpm);
+                            speed = (((int32_t)settings.wheel_circumfence) * 36000L) / (rpm); 
                         } else {
                             clock_set_wheelspeed_timer(0);
                             speed = 0;
@@ -140,13 +139,11 @@ void comm_update(void) {
                             } else {
                                 if (mconf_actual) {
                                     rpm /= (mconf[40] >> 1);
-                                    tval = 60000 / (rpm); 
                                 } else {
                                     rpm /= 10; // default
-                                    tval = 60000 / (rpm); 
                                 }
                                 
-                                clock_set_wheelspeed_timer(tval);
+                                clock_set_wheelspeed_timer(rpm);
                                 speed = (6 * settings.wheel_circumfence * rpm) / 10; // cm/h
                             }
                             draw_speed_trigger = 1;

@@ -8,23 +8,26 @@ TARGET = LCD8H-firmware
 # building variables
 ######################################
 # build as debug, if disabled all others are as well
-DEBUG=1
+DEBUG=0
+PROFILE=0
 # log to console/uart
 LVGL_LOG=1
 # print monitoring info on display and/or logs
-MONITOR=0
+MONITOR=1
 # use libasan in sim build (memory error detection)
 ASAN=0
 
 
 ## Select platform, SIM uses DRM and requires linux/X11/Wayland/Gtk
 # PLATFORM=LCD8
-PLATFORM=SIM
+# PLATFORM=SIM
+PLATFORM=custom
 
 ## Select chip If you replace the chip on the board (e.g. at32f415 to at32f435) you can have more memory etc.
 # CHIP = gd32f303 ## DOES NOT WORK
 # CHIP = at32f415
-CHIP=at32f435
+# CHIP=at32f435
+CHIP=stm32h743
 
 ## Select lvgl version, note: lvgl 9 requires >= 64kb of memory
 # LVGL_VERSION = 8
@@ -40,10 +43,11 @@ endif
 
 # optimization
 ifeq ($(DEBUG),1)
-	OPT = -Os
+	OPT = -O2
 else
 	OPT = -Ofast
 endif
+
 
 #######################################
 # paths
@@ -106,7 +110,16 @@ ifeq ($(PLATFORM),LCD8)
 				 src/hal/lcd8h/${MCU_PATH}/clock.c \
 				 src/hal/lcd8h/${MCU_PATH}/eeprom.c \
 				 src/hal/lcd8h/${MCU_PATH}/cntl.c
-	else ifeq (${PLATFORM},SIM)
+else ifeq ($(PLATFORM),custom)
+	C_SOURCES += \
+				 src/hal/custom/$(MCU_PATH)/sysclock.c \
+				 src/hal/custom/${MCU_PATH}/lcd.c \
+				 src/hal/custom/${MCU_PATH}/uart.c \
+				 src/hal/custom/${MCU_PATH}/delay.c \
+				 src/hal/custom/${MCU_PATH}/clock.c \
+				 src/hal/custom/${MCU_PATH}/eeprom.c \
+				 src/hal/custom/${MCU_PATH}/cntl.c
+else ifeq (${PLATFORM},SIM)
 	# lcd driver is replaced by gtk, large numers need fake item
 	C_SOURCES += \
 				 src/hal/sim/sysclock.c \
@@ -116,12 +129,12 @@ ifeq ($(PLATFORM),LCD8)
 				 src/hal/sim/clock.c \
 				 src/hal/sim/eeprom.c \
 				 src/hal/sim/cntl.c
-	endif
+endif
 
 ifeq ($(PLATFORM)$(LVGL_VERSION),SIM8)
 	C_SOURCES += \
 				 thirdparty/lv_drivers/gtkdrv/gtkdrv.c
-	endif
+endif
 
 ifeq ($(CHIP),at32f415)
 	C_SOURCES += \
@@ -137,7 +150,7 @@ ifeq ($(CHIP),at32f415)
 				 src/drivers/at32f415/at32f415_gpio.c \
 				 src/drivers/at32f415/at32f415_i2c.c \
 				 src/drivers/at32f415/at32f415_misc.c 
-	else ifeq ($(CHIP),gd32f303)
+else ifeq ($(CHIP),gd32f303)
 	C_SOURCES += \
 				 src/startup/gd32f303/system_gd32f30x.c \
 				 src/drivers/gd32f303/gd32f30x_adc.c \
@@ -148,7 +161,7 @@ ifeq ($(CHIP),at32f415)
 				 src/drivers/gd32f303/gd32f30x_misc.c \
 				 src/drivers/gd32f303/gd32f30x_timer.c \
 				 src/drivers/gd32f303/gd32f30x_usart.c
-	else ifeq ($(CHIP),at32f435)
+else ifeq ($(CHIP),at32f435)
 	C_SOURCES += \
 				 src/startup/at32f435/system_at32f435_437.c \
 				 src/drivers/at32f435/at32f435_437_crm.c \
@@ -165,7 +178,50 @@ ifeq ($(CHIP),at32f415)
 				 src/drivers/at32f435/at32f435_437_misc.c \
 				 src/drivers/at32f435/at32f435_437_wdt.c \
 				 src/hal/lcd8h/at32f435/at32f435_437_int.c
-	else # sim
+else ifeq ($(CHIP),stm32h743)
+		#
+	C_SOURCES += \
+				src/hal/custom/stm32h743/system_stm32h7xx.c \
+	src/hal/custom/stm32h743/syscalls.c \
+	src/hal/custom/stm32h743/sysmem.c \
+				src/hal/custom/stm32h743/stm32h7xx_it.c \
+				src/drivers/stm32h743/stm32h7xx_hal_pcd.c \
+				src/drivers/stm32h743/stm32h7xx_hal_pcd_ex.c \
+				src/drivers/stm32h743/stm32h7xx_ll_usb.c \
+				src/drivers/stm32h743/stm32h7xx_hal_rcc.c \
+				src/drivers/stm32h743/stm32h7xx_hal_rcc_ex.c \
+				src/drivers/stm32h743/stm32h7xx_hal_flash.c \
+				src/drivers/stm32h743/stm32h7xx_hal_flash_ex.c \
+				src/drivers/stm32h743/stm32h7xx_hal_gpio.c \
+				src/drivers/stm32h743/stm32h7xx_hal_hsem.c \
+				src/drivers/stm32h743/stm32h7xx_hal_dma.c \
+				src/drivers/stm32h743/stm32h7xx_hal_dma_ex.c \
+				src/drivers/stm32h743/stm32h7xx_hal_mdma.c \
+				src/drivers/stm32h743/stm32h7xx_hal_pwr.c \
+				src/drivers/stm32h743/stm32h7xx_hal_pwr_ex.c \
+				src/drivers/stm32h743/stm32h7xx_hal_cortex.c \
+				src/drivers/stm32h743/stm32h7xx_hal.c \
+				src/drivers/stm32h743/stm32h7xx_hal_i2c.c \
+				src/drivers/stm32h743/stm32h7xx_hal_i2c_ex.c \
+				src/drivers/stm32h743/stm32h7xx_hal_exti.c \
+				src/drivers/stm32h743/stm32h7xx_hal_adc.c \
+				src/drivers/stm32h743/stm32h7xx_hal_adc_ex.c \
+				src/drivers/stm32h743/stm32h7xx_hal_crc.c \
+				src/drivers/stm32h743/stm32h7xx_hal_crc_ex.c \
+				src/drivers/stm32h743/stm32h7xx_hal_dma2d.c \
+				src/drivers/stm32h743/stm32h7xx_hal_fdcan.c \
+				src/drivers/stm32h743/stm32h7xx_ll_fmc.c \
+				src/drivers/stm32h743/stm32h7xx_hal_nor.c \
+				src/drivers/stm32h743/stm32h7xx_hal_sram.c \
+				src/drivers/stm32h743/stm32h7xx_hal_nand.c \
+				src/drivers/stm32h743/stm32h7xx_hal_sdram.c \
+				src/drivers/stm32h743/stm32h7xx_hal_uart.c \
+				src/drivers/stm32h743/stm32h7xx_hal_uart_ex.c \
+				src/drivers/stm32h743/stm32h7xx_hal_rtc.c \
+				src/drivers/stm32h743/stm32h7xx_hal_rtc_ex.c \
+				src/drivers/stm32h743/stm32h7xx_hal_tim.c \
+				src/drivers/stm32h743/stm32h7xx_hal_tim_ex.c
+else # sim
 	# do nothing for now
 endif
 
@@ -174,13 +230,16 @@ endif
 ifeq ($(CHIP),at32f415)
 	ASM_SOURCES =  \
 				   src/startup/at32f415/startup_at32f415.S
-	else ifeq ($(CHIP),gd32f303)
+else ifeq ($(CHIP),gd32f303)
 	ASM_SOURCES =  \
 				   src/startup/gd32f303/startup_gd32f30x.S
-	else ifeq ($(CHIP),at32f435)
+else ifeq ($(CHIP),at32f435)
 	ASM_SOURCES = \
 				  src/startup/at32f435/startup_at32f435_437.S
-	else
+else ifeq ($(CHIP),stm32h743)
+	ASM_SOURCES = \
+				  src/startup/stm32h743/startup_stm32h743xx.S
+else
 	ARM_SOURCES = 
 endif
 
@@ -222,13 +281,18 @@ BIN = $(CP) -O binary -S
 # CFLAGS
 #######################################
 # cpu
+ifeq ($(CHIP),stm32h743)
+CPU = -mcpu=cortex-m7
+else
 CPU = -mcpu=cortex-m4
+endif
 
 # fpu
 
 # float-abi
 ifeq ($(DEBUG),1)
-	LTO= -flto
+	# LTO= -flto
+	LTO = 
 else
 	LTO= -flto
 endif
@@ -242,6 +306,8 @@ endif
 ifeq ($(CHIP),at32f435)
 	MCU += -mfloat-abi=hard -mfpu=fpv4-sp-d16
 	# MCU += -mfloat-abi=soft
+else ifeq ($(CHIP),stm32h743)
+	MCU += -mfloat-abi=hard -mfpu=fpv5-d16
 else ifneq ($(PLATFORM),SIM)
 	MCU += -mfloat-abi=soft 
 endif
@@ -272,14 +338,22 @@ ifeq ($(MONITOR),1)
 endif
 
 ifeq ($(MONITOR)$(DEBUG),11)
+ifeq ($(CHIP),stm32h743)
+	C_DEFS += \
+			  -DSWO
+else
+	C_DEFS += \
+			  -DSEMIHOSTING 
+endif
+else ifeq ($(LVGL_LOG),1)
+ifeq ($(CHIP),stm32h743)
+	C_DEFS += \
+			  -DSWO
+else
 	C_DEFS += \
 			  -DSEMIHOSTING
-	endif
-
-ifeq ($(LVGL_LOG),1)
-	C_DEFS += \
-			  -DSEMIHOSTING
-	endif
+endif
+endif
 
 ifeq ($(CHIP),at32f415)
 	C_DEFS += -DAT32F415RCT7 \
@@ -296,6 +370,10 @@ C_DEFS += -DGD32F303 \
 		  -DGD32F30X_XD \
 		  -DARM_MATH_CM4 '-D__packed=__attribute__((__packed__))' \
 		  -DLV_MEM_SIZE_KB=32U
+else ifeq ($(CHIP),stm32h743)
+C_DEFS += -DSTM32H743 \
+		  -DARM_MATH_CM7 '-D__packed=__attribute__((__packed__))' \
+		  -DLV_MEM_SIZE_KB=64u
 else ifeq ($(PLATFORM),SIM)
 C_DEFS += -DLV_MEM_SIZE_KB=16384U
 else
@@ -320,14 +398,14 @@ C_INCLUDES +=  \
 -Iinc/drivers/$(CHIP) \
 -I$(LVGL_PATH)/src
 
-ifeq ($(PLATFORM),LCD8)
+ifeq ($(PLATFORM),SIM)
+C_INCLUDES += 	\
+	-Iinc/hal/sim 
+else 
 C_INCLUDES += \
 	-Iinc/cmsis/core \
 	-Iinc/cmsis/device \
-	-Iinc/hal/lcd8/$(CHIP)
-else 
-C_INCLUDES += 	\
-	-Iinc/hal/sim 
+	-Iinc/hal/$(PLATFORM)/$(CHIP)
 endif
 
 ifeq ($(PLATFORM)$(LVGL_VERSION),SIM8)
@@ -339,7 +417,9 @@ endif
 ASFLAGS = $(MCU) $(AS_DEFS)  $(OPT) -Wall -fdata-sections -ffunction-sections $(LTO) -Wa,-Iinc/
 GTK_CFLAGS=$(shell pkg-config --cflags gtk+-3.0)
 SDL2_CFLAGS=$(shell pkg-config --cflags sdl2)
-
+ifeq ($(PROFILE),1)
+	CFLAGS += -DPROFILE=1
+endif
 ifeq ($(PLATFORM)$(LVGL_VERSION),SIM9)
 CFLAGS += $(SDL2_CFLAGS) $(C_DEFS) $(C_INCLUDES) $(OPT) -Wall $(LTO) 
 endif
@@ -348,6 +428,9 @@ CFLAGS += $(GTK_CFLAGS) $(C_DEFS) $(C_INCLUDES) $(OPT) -Wall $(LTO)
 endif
 ifeq ($(PLATFORM),LCD8)
 CFLAGS += $(MCU) $(C_DEFS) $(C_INCLUDES) $(OPT) -Wall -fdata-sections -ffunction-sections -fno-ident -fno-asynchronous-unwind-tables $(LTO)
+endif
+ifeq ($(PLATFORM),custom)
+CFLAGS += $(MCU) $(C_DEFS) $(C_INCLUDES) $(OPT) -Wall -fdata-sections -ffunction-sections -fno-ident -fno-asynchronous-unwind-tables -DSTM32H743xx $(LTO)
 endif
 
 
@@ -376,15 +459,17 @@ LDSCRIPT = src/startup/gd32f303/gd32f30x.ld
 else ifeq ($(CHIP),at32f435)
 LDSCRIPT = src/startup/at32f435/AT32F435xM_FLASH.ld
 # LDSCRIPT = src/startup/at32f435/test.ld
+else ifeq ($(CHIP),stm32h743)
+LDSCRIPT = src/startup/stm32h743/STM32H743XX_FLASH.ld
 endif
 
 # libraries
-# LIBS = -lc -lm -lnosys -larm_cortexM3l_math
+# -larm_cortexM3l_math
 ifeq ($(PLATFORM),SIM)
 LIBS = \
 	-lm 
 else
-LIBS = 
+LIBS = -lc -lm # -lnosys # -lrdimon
 endif
 
 ifeq ($(PLATFORM)$(LVGL_VERSION),SIM8)
@@ -398,11 +483,11 @@ LIBS_ASAN = -lasan
 CFLAGS_ASAN = -fsanitize=address -fno-omit-frame-pointer -fno-common
 CFLAGS += $(CFLAGS_ASAN)
 endif
-
+#  
 ifneq ($(PLATFORM),SIM)
-LDFLAGS = $(MCU) -specs=nano.specs -specs=nosys.specs -specs=rdimon.specs -T$(LDSCRIPT) $(LIBS_ASAN) $(LIBS) -Wl,-Map=$(BUILD_DIR)/$(TARGET).map,--cref -Wl,--gc-sections -Wl,--print-memory-usage $(CFLAGS)
+LDFLAGS += $(MCU) -specs=nano.specs -T$(LDSCRIPT) $(LIBS_ASAN) $(LIBS) -Wl,-Map=$(BUILD_DIR)/$(TARGET).map,--cref -Wl,--gc-sections -Wl,--print-memory-usage $(CFLAGS)
 else
-LDFLAGS = $(LIBS_ASAN) $(LIBS) -Wl,-Map=$(BUILD_DIR)/$(TARGET).map,--cref -Wl,--gc-sections -Wl,--print-memory-usage $(CFLAGS)
+LDFLAGS += $(LIBS_ASAN) $(LIBS) -Wl,-Map=$(BUILD_DIR)/$(TARGET).map,--cref -Wl,--gc-sections -Wl,--print-memory-usage $(CFLAGS)
 endif
 
 # default action: build all
@@ -417,6 +502,8 @@ ifeq ($(CHIP),at32f415)
 PYOCD_TARGET = _at32f415rct7
 else ifeq ($(CHIP),at32f435)
 PYOCD_TARGET = _at32f437rmt7 
+else ifeq ($(CHIP),stm32h743)
+PYOCD_TARGET = stm32h74x
 else 
 PYOCD_TARGET = stm32f103rc
 endif
@@ -471,6 +558,8 @@ assembler: $(SOBJECTS)
 flash: $(BUILD_DIR)/$(TARGET).bin
 ifeq ($(CHIP),at32f435)
 	/opt/SEGGER/JLink/JLinkExe < jlink-at32f435.cfg
+else ifeq ($(CHIP),stm32h743)
+	/opt/SEGGER/JLink/JLinkExe < jlink-stm32h743.cfg
 else
 	pyocd load -u 69747484 build/LCD8H-firmware.bin --target $(PYOCD_TARGET) 
 endif

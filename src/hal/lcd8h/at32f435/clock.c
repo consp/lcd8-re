@@ -7,6 +7,7 @@
 
 extern settings_t settings;
 volatile uint32_t timer_counter = 0;
+volatile uint32_t shutdown_timer = 0;
 
 /***
  * LVGL timer functions
@@ -97,8 +98,8 @@ void clock_init(void) {
     tmr_counter_enable(TMR4, TRUE);
 
     crm_periph_clock_enable(CRM_TMR5_PERIPH_CLOCK, TRUE);
-    /* tmr_32_bit_function_enable(TMR5, TRUE); */ // not needed at current resolution
-    tmr_base_init(TMR5, 0, TIMER_FREQ(100000)-1); // 1khz
+    tmr_32_bit_function_enable(TMR5, TRUE);
+    tmr_base_init(TMR5, 0, TIMER_FREQ(1000000)-1); // 1khz
     /* tmr_base_init(TMR5, 0, 10000-1); // 1khz */
     tmr_clock_source_div_set(TMR5, TMR_CLOCK_DIV1);
     tmr_cnt_dir_set(TMR5, TMR_COUNT_UP);
@@ -111,7 +112,7 @@ void clock_init(void) {
     nvic_irq_enable(TMR4_GLOBAL_IRQn, 0, 0);
     nvic_irq_enable(TMR5_GLOBAL_IRQn, 0, 0);
     LV_LOG_INFO("Timer 4 iv: %lu", TIMER_FREQ(1000000)-1); 
-    LV_LOG_INFO("Timer 5 iv: %lu", TIMER_FREQ(100000)-1);
+    LV_LOG_INFO("Timer 5 iv: %lu", TIMER_FREQ(1000000)-1);
 
 }
 
@@ -154,12 +155,14 @@ void TMR5_GLOBAL_IRQHandler(void)
     {
         tmr_flag_clear(TMR5, TMR_OVF_FLAG);
         gui_increment_trip();
+        shutdown_timer = timer_counter;
     }
 }
 
-void clock_set_wheelspeed_timer(uint32_t interval) {
-    if (interval == 0) TMR5->pr = 0;
-    else TMR5->pr = (interval * 100)-1;
+void clock_set_wheelspeed_timer(int32_t rpm) {
+    if (rpm < 0) rpm = 0;
+    if (rpm == 0) TMR5->pr = 0;
+    else TMR5->pr = (60000000 / rpm)-1; // 32bit required
 }
 
 void clock_set_time(uint32_t hour, uint32_t minute, uint32_t second) {

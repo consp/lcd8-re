@@ -6,6 +6,7 @@
 
 extern settings_t settings;
 volatile uint32_t timer_counter = 0;
+volatile uint32_t shutdown_timer = 0;
 
 /***
  * LVGL timer functions
@@ -151,6 +152,7 @@ void TMR5_GLOBAL_IRQHandler(void)
     {
         tmr_flag_clear(TMR5, TMR_OVF_FLAG);
         gui_increment_trip();
+        shutdown_timer = timer_counter;
     }
 }
 

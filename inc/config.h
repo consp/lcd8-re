@@ -1,6 +1,7 @@
 #ifndef __CONFIG_H__
 #define __CONFIG_H__
 
+#define COLOR_SIZE 3 
 #define C24_8(c, d)         ((c << 8) | (d * 256))
 
 #define DISPLAY_WIDTH   320
@@ -12,42 +13,52 @@
 #define POWER_FILTER_SHIFT 2
 
 #ifdef DEBUG
-#if defined(AT32F435)
-#define PIXEL_BUFFER_LINES DISPLAY_HEIGHT
+ #if defined(AT32F435) || defined(STM32H743)
+  #define PIXEL_BUFFER_LINES 32 
+ #else
+  #define PIXEL_BUFFER_LINES 20
+ #endif
 #else
-#define PIXEL_BUFFER_LINES 20
+
+ #ifdef PLATFORM_LCD8
+  #if defined(AT32F415)
+   #define PIXEL_BUFFER_LINES 22 // lower if more mem is required for lvgl
+  #elif defined(AT32F435)
+   #define PIXEL_BUFFER_LINES DISPLAY_HEIGHT
+  #endif
+ #else
+  #if defined(STM32H743)
+   #define PIXEL_BUFFER_LINES 32  
+  #else
+   #define PIXEL_BUFFER_LINES 32 // reduces tearing if multiple of 32
+  #endif
+ #endif
 #endif
+
+#define PIXEL_BUFFER_SIZE (PIXEL_BUFFER_LINES * COLOR_SIZE * DISPLAY_WIDTH)
+
+#define REFRESH_INTERVAL 33 // refresh interval in ms
+
+#ifdef PLATFORM_custom
+ #define EEPROM_SIZE 2048
 #else
-#ifdef PLATFORM_LCD8
-#if defined(AT32F415)
-#define PIXEL_BUFFER_LINES 22 // lower if more mem is required for lvgl
-#elif defined(AT32F435)
-#define PIXEL_BUFFER_LINES DISPLAY_HEIGHT
+ #define EEPROM_SIZE 512 // device has a 2 page eeprom
 #endif
-#else
-#define PIXEL_BUFFER_LINES 32 // reduces tearing if multiple of 32
-#endif
-#endif
-#define PIXEL_BUFFER_SIZE (PIXEL_BUFFER_LINES * 2 * DISPLAY_WIDTH)
-
-#define REFRESH_INTERVAL 33 // refresh interval in us
-
-#define EEPROM_SIZE 512 // device has a 2 page eeprom
-
 /**
  * default values
  */
 #define POWER_MAX 500
 #define POWER_REDLINE 300
-#define POWER_MIN -250
+#define POWER_MIN -400
 
 #define SPEED_MAX       35
 #define SPEED_REDLINE   25
+#define SPEED_MAX_ASSIST 28
 
 #define BATTERY_MIN 21000
 #define BATTERY_MAX 29400
 
-#define GRAPH_DURATION 1
+#define GRAPH_DURATION 5
 #define GRAPH_SHIFT 1
 #define GRAPH_MAX 30
 
@@ -56,7 +67,9 @@
 #define WHEEL_CIRCUMFENCE 216
 #define PAS_TIMEOUT 8000
 #define PAS_RAMP 1600
-#define REGEN_CURRENT 5000
+#define REGEN_CURRENT 15000
+
+#define SHUTDOWN_TIMER_DEFAULT 10
 
 #define CYCLE_DELAY_LIMIT 5             // max amount of delay before lv_timer triggers again, keep at ~5ms for maximum responsiveness
 /*
@@ -69,71 +82,82 @@
  * do not understand the circuit and since no device is ever sold with an RTC I guess the original
  * developers didn't either.
  */
-// #define LEXT_INSTALLED 1
+#define LEXT_INSTALLED 1
 
 // change to not draw controller mode
 #define DRAW_CONTROLLER_MODE
 
 // archtecture specifics
 
-#define RAMHIGH 
-#define CRITICAL  
+#define RAMFAST
+#define RAMHIGH
+#define CRITICAL
 
 #if defined(AT32F415)
 /*
  * OC will use 200mhz and an external crystal. 
  * I added an 8MHz crystal and two 17pF caps.
  */
-#define OC // overclock to 200mhz, which is the maximum. Higher values will result in 200mhz but every other calculation is broken
+  #define OC // overclock to 200mhz, which is the maximum. Higher values will result in 200mhz but every other calculation is broken
 
-#ifdef OC
-#define CLOCK_SOURCE         CRM_CLOCK_SOURCE_HEXT  // you need a stable crystal
-#define CLOCK_SOURCE_DIV     CRM_PLL_SOURCE_HEXT 
-#define CLOCK_SOURCE_FLAG    CRM_HEXT_STABLE_FLAG
-#define FLASH_WAIT_CYCLES    FLASH_WAIT_CYCLE_3 // 3 might work, ymmv
-#define PLL_MULTIPL          CRM_PLL_MULT_25    // 200mhz
-#define AHB_DIVIDER          CRM_AHB_DIV_1      // 200mhz
-#define APB2_DIVIDER         CRM_APB2_DIV_2     // 100mhz
-#define APB1_DIVIDER         CRM_APB1_DIV_2     // 100mhz
-#define EFFECTIVE_CLOCK      (8000000)
+  #ifdef OC
+   #define CLOCK_SOURCE         CRM_CLOCK_SOURCE_HEXT  // you need a stable crystal
+   #define CLOCK_SOURCE_DIV     CRM_PLL_SOURCE_HEXT 
+   #define CLOCK_SOURCE_FLAG    CRM_HEXT_STABLE_FLAG
+   #define FLASH_WAIT_CYCLES    FLASH_WAIT_CYCLE_3 // 3 might work, ymmv
+   #define PLL_MULTIPL          CRM_PLL_MULT_25    // 200mhz
+   #define AHB_DIVIDER          CRM_AHB_DIV_1      // 200mhz
+   #define APB2_DIVIDER         CRM_APB2_DIV_2     // 100mhz
+   #define APB1_DIVIDER         CRM_APB1_DIV_2     // 100mhz
+   #define EFFECTIVE_CLOCK      (8000000)
 
-#else
-#define CLOCK_SOURCE         CRM_CLOCK_SOURCE_HICK
-#define CLOCK_SOURCE_DIV     CRM_PLL_SOURCE_HICK
-#define CLOCK_SOURCE_FLAG    CRM_HICK_STABLE_FLAG
-#define FLASH_WAIT_CYCLES    FLASH_WAIT_CYCLE_4 // 
-#define PLL_MULTIPL          CRM_PLL_MULT_36    // 144mhz
-#define AHB_DIVIDER          CRM_AHB_DIV_1      // @cpu
-#define APB2_DIVIDER         CRM_APB2_DIV_2     // 72mhz
-#define APB1_DIVIDER         CRM_APB1_DIV_2     // 72mhz
-#define EFFECTIVE_CLOCK      (4000000)
-#endif
+  #else
+   #define CLOCK_SOURCE         CRM_CLOCK_SOURCE_HICK
+   #define CLOCK_SOURCE_DIV     CRM_PLL_SOURCE_HICK
+   #define CLOCK_SOURCE_FLAG    CRM_HICK_STABLE_FLAG
+   #define FLASH_WAIT_CYCLES    FLASH_WAIT_CYCLE_4 // 
+   #define PLL_MULTIPL          CRM_PLL_MULT_36    // 144mhz
+   #define AHB_DIVIDER          CRM_AHB_DIV_1      // @cpu
+   #define APB2_DIVIDER         CRM_APB2_DIV_2     // 72mhz
+   #define APB1_DIVIDER         CRM_APB1_DIV_2     // 72mhz
+   #define EFFECTIVE_CLOCK      (4000000)
+  #endif
 
-#define TIMER_FREQ(x)        (\
+  #define TIMER_FREQ(x)        (\
             (\
                 (2 * (EFFECTIVE_CLOCK) * (1 + PLL_MULTIPL)) / ((1 + (APB2_DIVIDER >> 2)) * (1 + (AHB_DIVIDER >> 3)) * 10) \
             ) / x)
 
-#include "at32f415.h"
+  #include "at32f415.h"
 
 #elif defined(AT32F435)
-#include "at32f435_437.h"
+  #include "at32f435_437.h"
 // #undef RAMHIGH
 // #undef CRITICAL 
 // #define RAMHIGH     __attribute__((__section__(".ramhigh"))) 
 // #define CRITICAL    __attribute__((__section__(".flash0ws"))) 
-#define CLOCK_SOURCE        CRM_CLOCK_SOURCE_HEXT
-#define PLL_SOURCE          CRM_PLL_SOURCE_HEXT
-#define CONF_FLASH_DIV      FLASH_CLOCK_DIV_3
-#define CONF_FREQ           8000000
-#define CONF_PLL_MUL        150
-#define CONF_PLL_PREDIV     1
-#define CONF_PLL_POSTDIV    CRM_PLL_FR_4
-#define TIMER_FREQ(x)       (( \
+  #define CLOCK_SOURCE        CRM_CLOCK_SOURCE_HEXT
+  #define PLL_SOURCE          CRM_PLL_SOURCE_HEXT
+  #define CONF_FLASH_DIV      FLASH_CLOCK_DIV_3
+  #define CONF_FREQ           8000000
+  #define CONF_PLL_MUL        150
+  #define CONF_PLL_PREDIV     1
+  #define CONF_PLL_POSTDIV    CRM_PLL_FR_4
+  #define TIMER_FREQ(x)       (( \
             (CONF_FREQ * CONF_PLL_MUL) / (CONF_PLL_PREDIV * (1 << CONF_PLL_POSTDIV)) \
         ) / x)
 #elif defined(GD32F303)
-#include "gd32f30x.h"
+  #include "gd32f30x.h"
+#elif defined(STM32H743)
+ #include "stm32h743.h"
+ #undef RAMHIGH
+ #undef RAMFAST
+ #undef CRITICAL 
+ #define RAMFAST __attribute__ ((section(".itcmram")))
+ #define RAMHIGH __attribute__ ((section(".d1")))
+ #define RAM_D2 __attribute__ ((section(".d2")))
+ #define RAM_D3 __attribute__ ((section(".d3")))
+ #define CRITICAL __attribute__ ((section(".itcmramFunc")))
 #endif
 
 #define UART_COMM_NONE 0 
@@ -166,12 +190,14 @@
  * Change X_BACKOFF to determine how many pixels will be redrawn. If you see random pixels on the next line or missing black ones on the right edge, use this to fix that issue
  * This is due to the "ILI9488" not ignoring pixls outside it's range set Page/Column range like per spec. Might be due to it being a knockoff.
  */
-#define DMA_WRITE 1
-#define X_BACKOFF 0 
+#ifndef STM32H743
+ #define DMA_WRITE 1
+ #define X_BACKOFF 0 
+#endif
 
 #ifndef TRUE
-#define TRUE 1
-#define FALSE 0
+ #define TRUE 1
+ #define FALSE 0
 #endif
 
 #endif // __CONFIG_H__

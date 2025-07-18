@@ -9,6 +9,11 @@
 void lcd_init(void);
 void lcd_backlight(uint32_t enable);
 int lcd_start(void);
+#if COLOR_SIZE == 2
+CRITICAL void lcd_fill(uint32_t x1, uint32_t y1, uint32_t x2, uint32_t y2, uint16_t color);
+#else
+CRITICAL void lcd_fill(uint32_t x1, uint32_t y1, uint32_t x2, uint32_t y2, uint32_t color);
+#endif
 #if LVGL_VERSION_MAJOR == 9
 void lcd_draw_large_text(uint32_t x, uint32_t y, const lv_image_dsc_t *img, lv_color_t color);
 void lcd_lvgl_flush(lv_display_t *display, const lv_area_t *area, uint8_t *pixmap);
@@ -22,6 +27,7 @@ CRITICAL void read_register(uint8_t command, void *location, uint32_t bits, uint
 #define ILI_SOFT_RESET                  0x01
 #define ILI_SLEEP_OUT                   0x11
 #define ILI_SLEEP_IN                    0x10
+#define ILI_DISPLAY_INVERSION_ON        0x21
 #define ILI_DISPLAY_ON                  0x29
 #define ILI_DISPLAY_OFF                 0x28
 #define ILI_MEMORY_ACCESS_CONTROL       0x36
@@ -45,7 +51,11 @@ CRITICAL void read_register(uint8_t command, void *location, uint32_t bits, uint
 #define ILI_PA_ADDR_SET                 0x2B
 #define ILI_MEMORY_WRITE                0x2C
 
+#if COLOR_SIZE == 2
 #define RGB(r, g, b)            ((uint16_t) (((r & 0b11111000) << 8) | ((g & 0b11111100) << 3) | b >> 3))
+#else
+#define RGB(r, g, b)            ((uint32_t) (r << 16 | g << 8 | b))
+#endif
 /**
  *
  * commands

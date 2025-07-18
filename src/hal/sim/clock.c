@@ -10,6 +10,7 @@
 
 extern settings_t settings;
 volatile uint32_t timer_counter = 0;
+volatile uint32_t shutdown_timer = 0;
 
 /***
  * LVGL timer functions
@@ -28,6 +29,7 @@ void _mstimer_timer(lv_timer_t *timer) {
 }
 void _wheelspeed_timer(lv_timer_t *timer) {
     gui_increment_trip();
+    shutdown_timer = timer_counter;
 }
 
 uint32_t reset_flag = 0;
@@ -64,7 +66,7 @@ void clock_get_all(uint8_t *hours, uint8_t *minutes, uint8_t *sec, uint16_t *yea
     *day = tm->tm_mday;
 }
 
-void clock_set_wheelspeed_timer(uint32_t interval) {
+void clock_set_wheelspeed_timer(int32_t interval) {
     if (interval > 0) {
         lv_timer_set_period(wheelspeed_timer, interval);
         lv_timer_resume(wheelspeed_timer);

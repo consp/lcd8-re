@@ -44,6 +44,7 @@ typedef struct __attribute__((packed)) {
 
     uint32_t    date;
     uint32_t    time;
+    uint8_t     shutdown_timer;
 
     int16_t     light_sensitivity;
 

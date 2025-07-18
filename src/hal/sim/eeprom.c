@@ -35,6 +35,7 @@ void eeprom_write_defaults(void) {
     settings.regen_current = REGEN_CURRENT;
     settings.pas_timeout = PAS_TIMEOUT;
     settings.pas_ramp = PAS_RAMP;
+    settings.shutdown_timer = SHUTDOWN_TIMER_DEFAULT;
 
     settings.trip_time = 0;
     settings.trip_distance = 0;

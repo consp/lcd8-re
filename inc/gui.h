@@ -26,6 +26,7 @@
 #define RGB565(x, y, z)     (lv_color_t) { .full = (((x & 0b11111000) << 8) | ((y & 0b11111100) << 3) | (z >> 3)) }
 #endif
 #elif LV_VER == 9
+// Colors are in 888, this is no longer changable
 #define RGB565(x, y, z)     (lv_color_t) { .red = x, .green = y, .blue = z }
 #else
 #pragma error("Need lvgl 8 or 9")
@@ -37,7 +38,7 @@
 #define COLOR_GREY          RGB565(100, 100, 100)
 #define COLOR_DARK_GREY     RGB565(77, 77, 77)
 #define COLOR_YELLOW        RGB565(255, 252, 0)
-#define COLOR_BLUE          RGB565(0, 0, 160)
+#define COLOR_BLUE          RGB565(0, 0, 255)
 //RGB565(0xFE, 0xFF, 0)
 
 /* locations
@@ -106,7 +107,7 @@
 #define POWER_NORMAL_WIDTH      (24*8)
 #define POWER_RED_WIDTH         2
 #define POWER_COLOR_BAR         RGB565(255, 151, 0)
-#define POWER_COLOR_BORDER      RGB565(77, 77, 77)
+// #define POWER_COLOR_BORDER      RGB565(77, 77, 77)
 #define POWER_COLOR_BORDER_DARK RGB565(40, 40, 40)
 #define POWER_COLOR_REGEN       RGB565(0, 255, 0)
 #define POWER_COLOR_REGEN_DARK  RGB565(0, 48, 0)
@@ -121,6 +122,16 @@
 #define POWER_TEXT_BG_COLOR     POWER_COLOR_BG
 #define POWER_TEXT_FG_COLOR     RGB565(255, 255, 255) 
 #define POWER_REGEN_INDEX       (POWER_MIN / POWER_REGEN_WIDTH)
+
+#define POWER_COLOR_TEXT        RGB565(255, 255, 255)
+#define POWER_COLOR_BORDER      RGB565(128,128,128)
+#define POWER_COLOR_BACKGROUND  RGB565(0, 0, 128)
+#define POWER_COLOR_REDLINE     RGB565(195, 0, 0)
+#define POWER_COLOR_INDICATOR   RGB565(0, 255, 255)
+#define SPEED_COLOR_TEXT        POWER_COLOR_TEXT
+#define SPEED_COLOR_BACKGROUND  RGB565(0, 80, 0)
+#define SPEED_COLOR_REDLINE     POWER_COLOR_REDLINE
+#define SPEED_COLOR_INDICATOR   RGB565(0, 255, 0)
 
 #define SPEED_SCALE_X           32
 #define SPEED_SCALE_Y           64 + 16
@@ -168,7 +179,7 @@
 #define GRAPH_HEIGHT                    (4 * 32)
 #define GRAPH_BORDER_COLOR              RGB565(100, 100, 100)
 #define GRAPH_DIV_COLOR                 RGB565(60, 60, 60)
-#define GRAPH_LINE_COLOR                RGB565(144, 144, 144)
+#define GRAPH_LINE_COLOR                RGB565(166, 166, 166)
 #define GRAPH_CHART_COLOR               RGB565(220, 220, 220)
 #define GRAPH_LEGEND_COLOR              RGB565(122, 122, 122)
 #define GRAPH_CURSOR_COLOR              RGB565(0, 0, 144)

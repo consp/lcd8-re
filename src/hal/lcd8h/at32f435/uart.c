@@ -6,7 +6,8 @@
 #include "crc.h"
 #include <machine/endian.h>
 
-#pragma GCC optimize ("O2")
+
+#pragma GCC optimize ("O3")
 
 uint8_t uart_rx_buffer[UART_RX_BUFFER_SIZE];
 uint8_t uart_tx_buffer[UART_TX_BUFFER_SIZE];
