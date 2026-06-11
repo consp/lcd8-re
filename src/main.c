@@ -266,9 +266,9 @@ int CRITICAL main(void)
     eeprom_init();                          // initialize the eeprom for data storage
     clock_init();                           // clouck source (if available)
     
-    button_release(BUTTON_ID_POWER, 500);   // ignore inputs for a while
-    button_release(BUTTON_ID_DOWN, 500);   // ignore inputs for a while
-    button_release(BUTTON_ID_UP, 500);   // ignore inputs for a while
+    button_release(BUTTON_ID_POWER, 2000);   // ignore inputs for a while
+    button_release(BUTTON_ID_DOWN, 2000);   // ignore inputs for a while
+    button_release(BUTTON_ID_UP, 2000);   // ignore inputs for a while
 
 #ifndef PLATFORM_SIM
     uart_init(57600, 230400);                       // initialize comms
