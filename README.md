@@ -14,8 +14,8 @@ Anyone who expects a ready made product without effort.
 
 ## Supported platforms 
 
-![Schematic](/img/schematic.svg | width=1024)
-![Image](/img/DISPLAY.jpg | width=1024)
+![Schematic](/img/schematic.svg)
+![Image](/img/DISPLAY.jpg)
 - Custom display:
   - Transflective LCD
   - 4 button support
