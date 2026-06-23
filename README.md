@@ -1,35 +1,31 @@
-# Gui based on lvgl for eBike displays running the [EBiCS firmware](https://github.com/EBiCS/EBiCS_Firmware/)
+# Gui based on lvgl9 for eBikes running the [EBiCS firmware](https://github.com/EBiCS/EBiCS_Firmware/)
 
 Features:
 * customisable (obviously ...)
 * Faster update rates than any factory device
-* Custom communication protocol to be able to edit settings of the controller on the fly
+
+## who is this for?
+
+Anyone who wants to build their own eBike display and wants an example. This project is provided as is. No commercial usage is allowed of any kind unless stated explicitly otherwise.
+
+### Who is this not for?
+
+Anyone who expects a ready made product without effort.
 
 ## Supported platforms 
 
-- [KT LCD8H](src/hal/lcd8h/README.md)
-  - OC mode runs the device at 200mhz with external crystal.
-    - A external clock source is required (8MHz crystal with two ~18pf 0603 caps) for higher clockspeeds.
-  - Fast ILI9844 communication, original device runs at about 2MHz max but the ILI9844 is capable of a lot more, the current implementation does ~14MHz at 200MHz bitbanged, and ~12MHz with DMA.
-    - Tested with 20cm cable and no issues experienced
-    - Should get you 30 FPS easily.
-  - Support for an upgrade to AT32F435, the chip is pin compatible but has 386kb memory and potentially a lot more flash (up to 4MB).
-- [EB04](src/hal/eb04/README.md)
-  - I was hoping for it to be a bogstandard ARM cortex-M but it's a MediaTek chip with missing SDK due to mediatek being mediatek. I also fried mine since the RX/TX ports are not protected effectively.
-- SIM
-  - X11/Wayland GTK build to simulate it on a pc, stdin and stdout are the serial ports RX and TX. (remember to disable canonical mode if writing something yourself)
+[Schematic](/img/schematic.svg)
+[Image](/img/DISPLAY.jpg)
+- Custom display:
+  - Transflective LCD
+  - 4 button support
+  - Persistent Real time clock (if battery added) 
+  - CAN/UART capable
+  - Fast
+  - Be able to connect to phone to show nav updates (via custom gadgetbridge app)
 
 ## Known issues
-
-- KT LCD8H
-  - No support for a clock since the displays do not have battery and 32khz crystal. You can install a 32khz crystal if you want but there is no deepsleep support due to lack of battery and the way it's implemented.
-  - No support for light automation since no sensor present.
-  - Baudrates over 57k6 are not recommended due to the way it's implemented. This causes the "low" signal to be significantly shorter than required on higher baudrates missing the measurepoint.
-  - Baudrates over 9k6 need the bodge cap removed. I do not know why it is installed as the signal is fine without it.
-- EB04
-  - It's a MediaTek IoT/SmartWatch chip with required MT Labs support, which no longer exists.
-- SIM
-  - It's a sim, memory usage is inaccurate.
+Probably many, there is a bug in the PCB making the ADC unreliable when a battery is installed.
 
 # Attribution
 Temperature icon: [Temperature Vectors by Vecteezy](https://www.vecteezy.com/free-vector/temperature)
@@ -37,7 +33,12 @@ Engine icon: [Heat icons created by HAJICON - Flaticon](https://www.flaticon.com
 Brake icon: [Brake icons created by Smashicons - Flaticon](https://www.flaticon.com/free-icons/brake)
 Trip icon: [Trip icons created by improstudio - Flaticon](https://www.flaticon.com/free-icons/trip)
 Other icons: [Uicons - Flaticon](https://www.flaticon.com/uicons)
-Headlight and headlight auto: [Headlight icons created by TravisAvery - Flaticon](https://www.flaticon.com)
+Headlight and headlight auto: [Headlight icons created by TravisAvery - Flaticon](https://www.flaticon.com/free-icon/headlights_9104236)
 
 # License
-All stuff not already licenced otherwise is only available under CC-BY-NC-4.0 https://creativecommons.org/licenses/by-nc/4.0/ . For commercial use contact me.
+All stuff not already licenced otherwise is only available under CC-BY-NC-4.0 https://creativecommons.org/licenses/by-nc/4.0/ . For commercial use contact me. No waranty of any kind is provided. No claims of any kind can be made.
+
+# Contribution
+
+If, for some reason, you want to add something or make a pull request: It's fine to do so but don't expect a prompt response. Any LLM based code or other generated files will be rejected without warning.
+If, for some reason, you have a question: Use the discussion part of github. Do not expect a prompt response.

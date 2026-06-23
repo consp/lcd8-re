@@ -1,0 +1,7 @@
+thirdparty/
+todo
+build/
+gdb*
+*.gdb
+linkermap.html
+openocd*
