@@ -3,6 +3,8 @@
 Features:
 * customisable (obviously ...)
 * Faster update rates than any factory device
+* Uses LVGL
+* Has MCU with sufficient power and memory to do everything I want it to without too much problems.
 
 ## who is this for?
 
@@ -14,7 +16,7 @@ Anyone who expects a ready made product without effort.
 
 ## Supported platforms 
 
-![Schematic](/img/schematic.svg)
+![Schematic](/img/pcb.jpg)
 ![Image](/img/DISPLAY.jpg)
 - Custom display:
   - Transflective LCD
@@ -23,6 +25,8 @@ Anyone who expects a ready made product without effort.
   - CAN/UART capable
   - Fast
   - Be able to connect to phone to show nav updates (via custom gadgetbridge app)
+  - STM32H743
+  - Should have enough power to output 1.5A on the 5V rail to USB
 
 ## Known issues
 Probably many, there is a bug in the PCB making the ADC unreliable when a battery is installed.
