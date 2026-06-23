@@ -3,9 +3,10 @@
 Features:
 * customisable (obviously ...)
 * Faster update rates than any factory device
-* Uses LVGL
+* Uses LVGL9
 * Has MCU with sufficient power and memory to do everything I want it to without too much problems.
 * Touchscreen to control music on phone
+* Navigation assistance (from phone)
 
 ## who is this for?
 
@@ -31,14 +32,15 @@ Anyone who expects a ready made product without effort.
   - [Custom VESC](https://github.com/consp/bldc/tree/single_magnet_pas_with_adc_and_uart) (for different messages and single magnet PAS)
  
 ## Usage
-Keys
+* Keys (up/down) increase assist/decrease assist
+* F key -> hold next page (Main page, sensors, other sensors), single press switch between data and graph
+* Power -> Reset trip, hold for shutdown
 
 
 ## Known issues
 * Probably many.
 * There is a bug in the PCB making the ADC unreliable when a battery is installed.
 * The debouncing can be done better.
-* 
 
 # Attribution
 Temperature icon: [Temperature Vectors by Vecteezy](https://www.vecteezy.com/free-vector/temperature)
