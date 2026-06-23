@@ -1,10 +1,11 @@
-# Gui based on lvgl9 for eBikes running the [EBiCS firmware](https://github.com/EBiCS/EBiCS_Firmware/)
+# Gui based on lvgl9 for eBikes runing a VSEC motor controller
 
 Features:
 * customisable (obviously ...)
 * Faster update rates than any factory device
 * Uses LVGL
 * Has MCU with sufficient power and memory to do everything I want it to without too much problems.
+* Touchscreen to control music on phone
 
 ## who is this for?
 
@@ -24,12 +25,20 @@ Anyone who expects a ready made product without effort.
   - Persistent Real time clock (if battery added) 
   - CAN/UART capable
   - Fast
-  - Be able to connect to phone to show nav updates (via custom gadgetbridge app)
+  - Be able to connect to phone to show nav updates ([via custom gadgetbridge app](https://github.com/consp/Gadgetbridge))
   - STM32H743
   - Should have enough power to output 1.5A on the 5V rail to USB
+  - [Custom VESC](https://github.com/consp/bldc/tree/single_magnet_pas_with_adc_and_uart) (for different messages and single magnet PAS)
+ 
+## Usage
+Keys
+
 
 ## Known issues
-Probably many, there is a bug in the PCB making the ADC unreliable when a battery is installed.
+* Probably many.
+* There is a bug in the PCB making the ADC unreliable when a battery is installed.
+* The debouncing can be done better.
+* 
 
 # Attribution
 Temperature icon: [Temperature Vectors by Vecteezy](https://www.vecteezy.com/free-vector/temperature)
